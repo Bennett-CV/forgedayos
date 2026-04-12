@@ -1,0 +1,44 @@
+{
+  "name": "WorkoutLog",
+  "type": "object",
+  "properties": {
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Monday of the week (yyyy-MM-dd)"
+    },
+    "day": {
+      "type": "number",
+      "description": "1\u20135"
+    },
+    "exercise": {
+      "type": "string",
+      "description": "Exercise name"
+    },
+    "set_number": {
+      "type": "number",
+      "description": "Which set (1, 2, 3)"
+    },
+    "weight": {
+      "type": "number",
+      "description": "Weight in lbs (0 for bodyweight)"
+    },
+    "reps": {
+      "type": "number",
+      "description": "Reps completed"
+    },
+    "is_amrap": {
+      "type": "boolean",
+      "description": "Is this an AMRAP set?"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "week_start",
+    "day",
+    "exercise",
+    "set_number"
+  ]
+}
