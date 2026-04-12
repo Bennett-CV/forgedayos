@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { format, startOfWeek, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Dumbbell, Activity } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dumbbell, Activity, History, ClipboardList } from "lucide-react";
 import { WORKOUT_PROGRAM } from "../lib/workoutProgram";
 import ExerciseRow from "../components/lifts/ExerciseRow";
+import ExerciseHistory from "../components/lifts/ExerciseHistory";
 
 export default function Lifts() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [allLogs, setAllLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(1);
+  const [view, setView] = useState("log"); // "log" | "history"
 
   const weekStart = format(
     startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }),
@@ -22,7 +24,7 @@ export default function Lifts() {
   );
 
   const load = async () => {
-    const logs = await base44.entities.WorkoutLog.list("-created_date", 1000);
+    const logs = await base44.entities.WorkoutLog.list("-created_date", 2000);
     setAllLogs(logs);
     setLoading(false);
   };
@@ -31,7 +33,6 @@ export default function Lifts() {
 
   const currentWeekLogs = allLogs.filter(l => l.week_start === weekStart);
   const prevWeekLogs = allLogs.filter(l => l.week_start === prevWeekStart);
-
   const dayProgram = WORKOUT_PROGRAM[selectedDay];
 
   if (loading) {
@@ -48,34 +49,36 @@ export default function Lifts() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Lifts</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Track week-over-week progress</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {allLogs.length > 0
+              ? `${[...new Set(allLogs.map(l => l.week_start))].length} weeks of history`
+              : "Track week-over-week progress"}
+          </p>
+        </div>
+
+        {/* View toggle */}
+        <div className="flex items-center gap-1 bg-secondary/50 rounded-xl p-1">
+          <button
+            onClick={() => setView("log")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${view === "log" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <ClipboardList className="h-3.5 w-3.5" /> Log
+          </button>
+          <button
+            onClick={() => setView("history")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${view === "history" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <History className="h-3.5 w-3.5" /> History
+          </button>
         </div>
       </div>
 
-      {/* Week Navigator */}
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
-        <button onClick={() => setWeekOffset(o => o + 1)} className="p-2 rounded-lg hover:bg-secondary transition-colors">
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <div className="text-center">
-          <p className="text-sm font-bold">Week of {format(startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }), "MMM d, yyyy")}</p>
-          <p className="text-xs text-muted-foreground">{currentWeekLogs.length} sets logged</p>
-        </div>
-        <button
-          onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
-          disabled={weekOffset === 0}
-          className="p-2 rounded-lg hover:bg-secondary transition-colors disabled:opacity-30"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Day Tabs */}
+      {/* Day Tabs — always visible */}
       <div className="grid grid-cols-5 gap-2">
         {[1, 2, 3, 4, 5].map(day => {
           const prog = WORKOUT_PROGRAM[day];
           const isCardio = prog.type === "cardio";
-          const logsForDay = currentWeekLogs.filter(l => l.day === day);
+          const logsForDay = allLogs.filter(l => l.day === day);
           const hasData = logsForDay.length > 0;
           const active = selectedDay === day;
           return (
@@ -103,40 +106,101 @@ export default function Lifts() {
         })}
       </div>
 
-      {/* Day Content */}
-      <motion.div
-        key={`${selectedDay}-${weekOffset}`}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border bg-card p-5"
-      >
-        <div className="flex items-center gap-2 mb-1">
-          {dayProgram.type === "cardio"
-            ? <Activity className="h-5 w-5 text-chart-3" />
-            : <Dumbbell className="h-5 w-5 text-primary" />
-          }
-          <h2 className="text-base font-bold text-foreground">
-            {dayProgram.label} — {dayProgram.type === "cardio" ? "Cardio" : "Strength"}
-          </h2>
-        </div>
-        <p className="text-xs text-muted-foreground mb-4">
-          {dayProgram.type === "cardio" ? "Log your cardio duration below." : "Enter weight (lbs) and reps for each set. Auto-saves on blur."}
-        </p>
+      {/* LOG VIEW */}
+      {view === "log" && (
+        <>
+          {/* Week Navigator */}
+          <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+            <button onClick={() => setWeekOffset(o => o + 1)} className="p-2 rounded-lg hover:bg-secondary transition-colors">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="text-center">
+              <p className="text-sm font-bold">Week of {format(startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }), "MMM d, yyyy")}</p>
+              <p className="text-xs text-muted-foreground">{currentWeekLogs.filter(l => l.day === selectedDay).length} sets logged this day</p>
+            </div>
+            <button
+              onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
+              disabled={weekOffset === 0}
+              className="p-2 rounded-lg hover:bg-secondary transition-colors disabled:opacity-30"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
 
-        <div>
-          {dayProgram.exercises.map(exercise => (
-            <ExerciseRow
-              key={exercise.name}
-              exercise={{ ...exercise, _day: selectedDay }}
-              sets={exercise.sets}
-              weekStart={weekStart}
-              currentLogs={currentWeekLogs}
-              prevLogs={prevWeekLogs}
-              onSaved={load}
-            />
-          ))}
-        </div>
-      </motion.div>
+          <motion.div
+            key={`log-${selectedDay}-${weekOffset}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-border bg-card p-5"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              {dayProgram.type === "cardio"
+                ? <Activity className="h-5 w-5 text-chart-3" />
+                : <Dumbbell className="h-5 w-5 text-primary" />
+              }
+              <h2 className="text-base font-bold text-foreground">
+                {dayProgram.label} — {dayProgram.type === "cardio" ? "Cardio" : "Strength"}
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              {dayProgram.type === "cardio" ? "Log your cardio duration below." : "Enter weight (lbs) and reps. Auto-saves on blur."}
+            </p>
+            <div>
+              {dayProgram.exercises.map(exercise => (
+                <ExerciseRow
+                  key={exercise.name}
+                  exercise={{ ...exercise, _day: selectedDay }}
+                  sets={exercise.sets}
+                  weekStart={weekStart}
+                  currentLogs={currentWeekLogs}
+                  prevLogs={prevWeekLogs}
+                  onSaved={load}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </>
+      )}
+
+      {/* HISTORY VIEW */}
+      {view === "history" && (
+        <motion.div
+          key={`history-${selectedDay}`}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-border bg-card p-5"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <History className="h-5 w-5 text-primary" />
+            <h2 className="text-base font-bold text-foreground">
+              {dayProgram.label} — Full History
+            </h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            All-time weight tracking. Shows avg lbs per set and week-over-week delta (Δ).
+          </p>
+          <div>
+            {dayProgram.exercises
+              .filter(e => !e.isCardio)
+              .map(exercise => (
+                <ExerciseHistory
+                  key={exercise.name}
+                  exercise={{ ...exercise, _day: selectedDay }}
+                  allLogs={allLogs.filter(l => l.day === selectedDay)}
+                />
+              ))}
+            {dayProgram.type === "cardio" && (
+              <ExerciseHistory
+                exercise={{ name: "Cardio", sets: 1, _day: selectedDay }}
+                allLogs={allLogs.filter(l => l.day === selectedDay)}
+              />
+            )}
+            {allLogs.filter(l => l.day === selectedDay).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">No history logged for Day {selectedDay} yet.</p>
+            )}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
