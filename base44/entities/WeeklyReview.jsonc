@@ -1,0 +1,46 @@
+{
+  "name": "WeeklyReview",
+  "type": "object",
+  "properties": {
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of the review week (Monday)"
+    },
+    "week_end": {
+      "type": "string",
+      "format": "date",
+      "description": "End of the review week (Sunday)"
+    },
+    "summary": {
+      "type": "string",
+      "description": "AI-generated weekly summary in markdown"
+    },
+    "total_points": {
+      "type": "number",
+      "description": "Total momentum points for the week"
+    },
+    "pillar_scores": {
+      "type": "object",
+      "description": "Points broken down by pillar"
+    },
+    "highlights": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Top highlights of the week"
+    },
+    "areas_to_improve": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Areas that need attention"
+    }
+  },
+  "required": [
+    "week_start",
+    "week_end"
+  ]
+}

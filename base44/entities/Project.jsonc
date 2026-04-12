@@ -1,0 +1,64 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Project name"
+    },
+    "pillar": {
+      "type": "string",
+      "enum": [
+        "career",
+        "health",
+        "wealth",
+        "learning",
+        "relationships"
+      ],
+      "description": "Primary pillar"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "completed",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "progress": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Completion percentage"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target completion date"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this project is about"
+    },
+    "weekly_update": {
+      "type": "string",
+      "description": "Latest weekly progress note"
+    },
+    "priority": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3
+      ],
+      "description": "1 = highest priority"
+    }
+  },
+  "required": [
+    "name",
+    "pillar",
+    "status"
+  ]
+}

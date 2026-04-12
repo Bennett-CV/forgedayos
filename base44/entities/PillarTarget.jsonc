@@ -1,0 +1,55 @@
+{
+  "name": "PillarTarget",
+  "type": "object",
+  "properties": {
+    "pillar": {
+      "type": "string",
+      "enum": [
+        "career",
+        "health",
+        "wealth",
+        "learning",
+        "relationships"
+      ]
+    },
+    "metric_name": {
+      "type": "string",
+      "description": "Name of the metric (e.g., Miles Run, Pages Read)"
+    },
+    "metric_type": {
+      "type": "string",
+      "enum": [
+        "leading",
+        "lagging"
+      ],
+      "description": "Leading = daily/weekly actions, Lagging = monthly/quarterly outcomes"
+    },
+    "target_value": {
+      "type": "number",
+      "description": "Target value per period"
+    },
+    "period": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly",
+        "quarterly"
+      ]
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measurement"
+    },
+    "category": {
+      "type": "string",
+      "description": "Matching category for activities"
+    }
+  },
+  "required": [
+    "pillar",
+    "metric_name",
+    "target_value",
+    "period"
+  ]
+}
