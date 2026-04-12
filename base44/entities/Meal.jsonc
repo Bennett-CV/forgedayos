@@ -1,0 +1,55 @@
+{
+  "name": "Meal",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "meal_type": {
+      "type": "string",
+      "enum": [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "snack"
+      ]
+    },
+    "food_description": {
+      "type": "string",
+      "description": "Raw user input, e.g. '1 pound ground beef'"
+    },
+    "food_name": {
+      "type": "string"
+    },
+    "serving_size": {
+      "type": "string"
+    },
+    "calories": {
+      "type": "number"
+    },
+    "protein_g": {
+      "type": "number"
+    },
+    "carbs_g": {
+      "type": "number"
+    },
+    "fat_g": {
+      "type": "number"
+    },
+    "fiber_g": {
+      "type": "number"
+    },
+    "sugar_g": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "date",
+    "meal_type",
+    "food_description"
+  ]
+}

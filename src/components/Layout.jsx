@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Menu, X, Dumbbell } from "lucide-react";
+import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Menu, X, Dumbbell, Utensils } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { path: "/projects", label: "Projects", icon: FolderKanban },
   { path: "/review", label: "Review", icon: FileText },
   { path: "/lifts", label: "Lifts", icon: Dumbbell },
+  { path: "/nutrition", label: "Nutrition", icon: Utensils },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 

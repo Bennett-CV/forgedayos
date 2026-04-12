@@ -12,6 +12,7 @@ import Projects from './pages/Projects';
 import WeeklyReview from './pages/WeeklyReview';
 import SettingsPage from './pages/SettingsPage';
 import Lifts from './pages/Lifts';
+import Nutrition from './pages/Nutrition';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -45,6 +46,7 @@ const AuthenticatedApp = () => {
         <Route path="/projects" element={<Projects />} />
         <Route path="/review" element={<WeeklyReview />} />
         <Route path="/lifts" element={<Lifts />} />
+        <Route path="/nutrition" element={<Nutrition />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<PageNotFound />} />
       </Route>
