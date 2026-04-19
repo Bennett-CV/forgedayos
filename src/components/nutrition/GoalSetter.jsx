@@ -43,8 +43,16 @@ export default function GoalSetter({ onComplete }) {
         toast.error(response.data.error);
       } else {
         toast.success("Goals calculated and saved!");
-        queryClient.invalidateQueries({ queryKey: ['user'] });
-        onComplete?.(response.data.nutrition_goals);
+        // Reload user data and meals to show updated goals
+        const [mealsData, me] = await Promise.all([
+          base44.entities.Meal.list("-created_date", 500),
+          base44.auth.me(),
+        ]);
+        onComplete?.({
+          goals: me?.nutrition_goals || null,
+          userProfile: me,
+          meals: mealsData
+        });
       }
     } catch (error) {
       toast.error("Failed to calculate goals");

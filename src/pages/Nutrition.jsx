@@ -169,7 +169,14 @@ export default function Nutrition() {
               Enter your body metrics and goals to get personalized nutrition recommendations.
             </DialogDescription>
           </DialogHeader>
-          <GoalSetter onComplete={() => setGoalModalOpen(false)} />
+          <GoalSetter onComplete={(data) => {
+            if (data) {
+              setGoals(data.goals);
+              setUserProfile(data.userProfile);
+              setMeals(data.meals);
+            }
+            setGoalModalOpen(false);
+          }} />
         </DialogContent>
       </Dialog>
     </div>
