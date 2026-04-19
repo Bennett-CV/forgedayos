@@ -109,10 +109,11 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
                 className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
               />
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder="reps"
                 value={setData[i]?.reps || ""}
-                onChange={e => updateField(i, "reps", e.target.value)}
+                onChange={e => updateField(i, "reps", e.target.value.replace(/\D/g, ""))}
                 onBlur={() => handleBlur(i)}
                 className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
               />
