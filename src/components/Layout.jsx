@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Dumbbell, Utensils } from "lucide-react";
+import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Dumbbell, Utensils, Wallet } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const NAV_ITEMS = [
@@ -9,14 +9,15 @@ const NAV_ITEMS = [
   { path: "/review", label: "Review", icon: FileText },
   { path: "/lifts", label: "Lifts", icon: Dumbbell },
   { path: "/nutrition", label: "Nutrition", icon: Utensils },
+  { path: "/finance", label: "Finance", icon: Wallet },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
 const BOTTOM_TABS = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/log", label: "Log", icon: Plus },
-  { path: "/projects", label: "Projects", icon: FolderKanban },
   { path: "/nutrition", label: "Nutrition", icon: Utensils },
+  { path: "/finance", label: "Finance", icon: Wallet },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 

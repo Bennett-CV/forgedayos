@@ -13,6 +13,7 @@ import WeeklyReview from './pages/WeeklyReview';
 import SettingsPage from './pages/SettingsPage';
 import Lifts from './pages/Lifts';
 import Nutrition from './pages/Nutrition';
+import Finance from './pages/Finance';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -47,6 +48,7 @@ const AuthenticatedApp = () => {
         <Route path="/review" element={<WeeklyReview />} />
         <Route path="/lifts" element={<Lifts />} />
         <Route path="/nutrition" element={<Nutrition />} />
+        <Route path="/finance" element={<Finance />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<PageNotFound />} />
       </Route>

@@ -1,0 +1,46 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Transaction date"
+    },
+    "description": {
+      "type": "string",
+      "description": "What the transaction was for"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Transaction amount (always positive)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "income",
+        "expense"
+      ],
+      "description": "Income or expense"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "Reference to BudgetCategory id"
+    },
+    "category_name": {
+      "type": "string",
+      "description": "Denormalized category name for display"
+    },
+    "month": {
+      "type": "string",
+      "description": "YYYY-MM for easy filtering"
+    }
+  },
+  "required": [
+    "date",
+    "description",
+    "amount",
+    "type",
+    "month"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "BudgetCategory",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Category name (e.g. Rent, Groceries, Salary)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "income",
+        "expense"
+      ],
+      "description": "Whether this is an income or expense category"
+    },
+    "budget_amount": {
+      "type": "number",
+      "description": "Monthly budgeted amount"
+    },
+    "color": {
+      "type": "string",
+      "description": "Hex color for display"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji icon"
+    }
+  },
+  "required": [
+    "name",
+    "type",
+    "budget_amount"
+  ]
+}
