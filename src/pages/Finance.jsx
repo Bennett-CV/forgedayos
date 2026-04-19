@@ -124,7 +124,7 @@ export default function Finance() {
             <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Expenses</p>
               {expenseCategories.map(cat => (
-                <BudgetCategoryBar key={cat.id} category={cat} spent={spentByCategory[cat.id] || 0} />
+                <BudgetCategoryBar key={cat.id} category={cat} spent={spentByCategory[cat.id] || 0} onUpdated={load} />
               ))}
             </div>
           )}
@@ -133,7 +133,7 @@ export default function Finance() {
             <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Income Sources</p>
               {incomeCategories.map(cat => (
-                <BudgetCategoryBar key={cat.id} category={cat} spent={
+                <BudgetCategoryBar key={cat.id} category={cat} onUpdated={load} spent={
                   transactions.filter(t => t.type === "income" && t.category_id === cat.id).reduce((s, t) => s + t.amount, 0)
                 } />
               ))}
