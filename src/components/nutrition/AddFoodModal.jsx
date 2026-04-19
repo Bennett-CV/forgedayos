@@ -56,11 +56,10 @@ function FoodForm({ mealType, setMealType, foodInput, setFoodInput, quantity, se
             style={{ userSelect: "text", WebkitUserSelect: "text" }}
           />
           <Button
-            onClick={() => handleAnalyze()}
+            onClick={handleAnalyze}
             disabled={analyzing || !foodInput.trim()}
             variant="outline"
             className="shrink-0 min-h-[44px] min-w-[44px]"
-            type="button"
           >
             {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           </Button>
@@ -119,9 +118,8 @@ function FoodForm({ mealType, setMealType, foodInput, setFoodInput, quantity, se
       {preview && (
         <Button
           onClick={handleSave}
-          disabled={saving || !quantity || quantity === "0"}
-          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-2 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
-          type="button"
+          disabled={saving}
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-2 min-h-[44px]"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
           Save to {mealType}
@@ -151,22 +149,17 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
     if (!foodInput.trim()) return;
     setAnalyzing(true);
     setPreview(null);
-    try {
-      const response = await base44.functions.invoke("analyzeFoodUSDA", { foodInput });
-      setPreview(response.data);
-    } catch (error) {
-      toast.error("Failed to analyze food. Please try again.");
-    } finally {
-      setAnalyzing(false);
-    }
+    const response = await base44.functions.invoke("analyzeFoodUSDA", { foodInput });
+    setPreview(response.data);
+    setAnalyzing(false);
   };
 
   const handleSave = async () => {
     if (!preview || saving) return;
-    const qty = Math.max(0.1, parseFloat(quantity) || 1);
     setSaving(true);
     try {
       const mealDate = date || format(new Date(), "yyyy-MM-dd");
+      const qty = parseFloat(quantity) || 1;
       await base44.entities.Meal.create({
         date: mealDate,
         meal_type: mealType,
@@ -215,13 +208,11 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={v => !v && handleClose()}>
-        <DrawerContent className="bg-card border-border px-4 pb-6 max-h-[85vh] flex flex-col">
-          <DrawerHeader className="px-0 shrink-0">
+        <DrawerContent className="bg-card border-border px-4 pb-6">
+          <DrawerHeader className="px-0">
             <DrawerTitle className="font-black">Log Food</DrawerTitle>
           </DrawerHeader>
-          <div className="overflow-y-auto flex-1 pr-2">
-            <FoodForm {...formProps} />
-          </div>
+          <FoodForm {...formProps} />
         </DrawerContent>
       </Drawer>
     );
