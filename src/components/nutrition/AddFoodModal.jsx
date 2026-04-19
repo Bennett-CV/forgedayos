@@ -21,29 +21,8 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
     if (!foodInput.trim()) return;
     setAnalyzing(true);
     setPreview(null);
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt: `Analyze the following food and return accurate nutritional macros for exactly the quantity described.
-
-Food: "${foodInput}"
-
-Be precise with the quantity given. For example, "1 pound ground beef (80/20)" = ~910 calories, ~81g protein, 0g carbs, 64g fat.
-Return a clean food name and all macros rounded to 1 decimal place.`,
-      response_json_schema: {
-        type: "object",
-        properties: {
-          food_name: { type: "string" },
-          serving_size: { type: "string" },
-          calories: { type: "number" },
-          protein_g: { type: "number" },
-          carbs_g: { type: "number" },
-          fat_g: { type: "number" },
-          fiber_g: { type: "number" },
-          sugar_g: { type: "number" },
-        },
-        required: ["food_name", "calories", "protein_g", "carbs_g", "fat_g"],
-      },
-    });
-    setPreview(result);
+    const response = await base44.functions.invoke("analyzeFoodUSDA", { foodInput });
+    setPreview(response.data);
     setAnalyzing(false);
   };
 
