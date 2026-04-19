@@ -14,6 +14,7 @@ export default function Nutrition() {
   const [activeTab, setActiveTab] = useState("nutrition");
   const [dateOffset, setDateOffset] = useState(0);
   const [meals, setMeals] = useState([]);
+  const [goals, setGoals] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeMealType, setActiveMealType] = useState("breakfast");
@@ -22,8 +23,12 @@ export default function Nutrition() {
   const displayDate = format(subDays(new Date(), dateOffset), "EEEE, MMMM d");
 
   const load = async () => {
-    const data = await base44.entities.Meal.list("-created_date", 500);
+    const [data, me] = await Promise.all([
+      base44.entities.Meal.list("-created_date", 500),
+      base44.auth.me(),
+    ]);
     setMeals(data);
+    setGoals(me?.nutrition_goals || null);
     setLoading(false);
   };
 
@@ -93,7 +98,7 @@ export default function Nutrition() {
             </button>
           </div>
 
-          {dayMeals.length > 0 && <DailyMacroSummary meals={dayMeals} />}
+          {dayMeals.length > 0 && <DailyMacroSummary meals={dayMeals} goals={goals} />}
 
           <motion.div
             key={currentDate}

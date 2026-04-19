@@ -5,20 +5,44 @@ import { PILLARS, PILLAR_KEYS } from "../lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Settings } from "lucide-react";
+import { Plus, Trash2, Settings, Utensils } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [nutritionGoals, setNutritionGoals] = useState({ calories: "", protein_g: "", carbs_g: "", fat_g: "" });
+  const [savingGoals, setSavingGoals] = useState(false);
 
   const load = async () => {
-    const data = await base44.entities.PillarTarget.list("-created_date", 100);
+    const [data, me] = await Promise.all([
+      base44.entities.PillarTarget.list("-created_date", 100),
+      base44.auth.me(),
+    ]);
     setTargets(data);
+    const g = me?.nutrition_goals || {};
+    setNutritionGoals({
+      calories: g.calories || "",
+      protein_g: g.protein_g || "",
+      carbs_g: g.carbs_g || "",
+      fat_g: g.fat_g || "",
+    });
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleSaveGoals = async () => {
+    setSavingGoals(true);
+    const goals = {};
+    if (nutritionGoals.calories) goals.calories = parseFloat(nutritionGoals.calories);
+    if (nutritionGoals.protein_g) goals.protein_g = parseFloat(nutritionGoals.protein_g);
+    if (nutritionGoals.carbs_g) goals.carbs_g = parseFloat(nutritionGoals.carbs_g);
+    if (nutritionGoals.fat_g) goals.fat_g = parseFloat(nutritionGoals.fat_g);
+    await base44.auth.updateMe({ nutrition_goals: goals });
+    toast.success("Nutrition goals saved!");
+    setSavingGoals(false);
+  };
 
   const [newTarget, setNewTarget] = useState({
     pillar: "",
@@ -58,6 +82,36 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Configure your pillar targets & KPIs</p>
+      </div>
+
+      {/* Nutrition Goals */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Utensils className="h-4 w-4 text-chart-3" />
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Daily Nutrition Goals</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          {[
+            { key: "calories", label: "Calories", unit: "kcal", placeholder: "e.g. 2500" },
+            { key: "protein_g", label: "Protein", unit: "g", placeholder: "e.g. 180" },
+            { key: "carbs_g", label: "Carbs", unit: "g", placeholder: "e.g. 250" },
+            { key: "fat_g", label: "Fat", unit: "g", placeholder: "e.g. 80" },
+          ].map(({ key, label, unit, placeholder }) => (
+            <div key={key}>
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">{label} ({unit})</label>
+              <Input
+                type="number"
+                placeholder={placeholder}
+                value={nutritionGoals[key]}
+                onChange={e => setNutritionGoals(g => ({ ...g, [key]: e.target.value }))}
+                className="bg-secondary/50 border-border font-mono"
+              />
+            </div>
+          ))}
+        </div>
+        <Button onClick={handleSaveGoals} disabled={savingGoals} className="gap-2">
+          Save Goals
+        </Button>
       </div>
 
       {/* Add New Target */}
