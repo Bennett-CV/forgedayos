@@ -12,7 +12,7 @@ import Projects from './pages/Projects';
 import WeeklyReview from './pages/WeeklyReview';
 import SettingsPage from './pages/SettingsPage';
 import Lifts from './pages/Lifts';
-import Nutrition from './pages/Nutrition';
+import Nutrition from './pages/Nutrition.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
