@@ -56,10 +56,11 @@ function FoodForm({ mealType, setMealType, foodInput, setFoodInput, quantity, se
             style={{ userSelect: "text", WebkitUserSelect: "text" }}
           />
           <Button
-            onClick={handleAnalyze}
+            onClick={() => handleAnalyze()}
             disabled={analyzing || !foodInput.trim()}
             variant="outline"
             className="shrink-0 min-h-[44px] min-w-[44px]"
+            type="button"
           >
             {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           </Button>
