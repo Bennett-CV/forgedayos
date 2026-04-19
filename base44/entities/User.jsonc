@@ -10,6 +10,50 @@
       ],
       "default": "user"
     },
+    "weight_lbs": {
+      "type": "number",
+      "description": "Current body weight in pounds"
+    },
+    "height_inches": {
+      "type": "number",
+      "description": "Height in inches"
+    },
+    "age": {
+      "type": "number",
+      "description": "Age in years"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female"
+      ],
+      "description": "Biological sex for BMR calculation"
+    },
+    "activity_level": {
+      "type": "string",
+      "enum": [
+        "sedentary",
+        "light",
+        "moderate",
+        "active",
+        "very_active"
+      ],
+      "description": "Daily activity level"
+    },
+    "fitness_goal": {
+      "type": "string",
+      "enum": [
+        "lose_weight",
+        "maintain",
+        "gain_muscle"
+      ],
+      "description": "Primary fitness goal"
+    },
+    "target_weight_lbs": {
+      "type": "number",
+      "description": "Goal weight in pounds"
+    },
     "nutrition_goals": {
       "type": "object",
       "description": "Daily nutrition targets",
@@ -28,5 +72,6 @@
         }
       }
     }
-  }
+  },
+  "required": []
 }

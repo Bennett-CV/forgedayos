@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { format, subDays } from "date-fns";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Utensils } from "lucide-react";
+import { ChevronLeft, ChevronRight, Utensils, User } from "lucide-react";
 import AddFoodModal from "../components/nutrition/AddFoodModal";
 import MealSection from "../components/nutrition/MealSection";
 import DailyMacroSummary from "../components/nutrition/DailyMacroSummary";
 import WeightTab from "../components/nutrition/WeightTab.jsx";
+import GoalSetter from "../components/nutrition/GoalSetter";
+import NutritionGoalsDisplay from "../components/nutrition/NutritionGoalsDisplay";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const MEAL_ORDER = ["breakfast", "lunch", "dinner", "snack"];
 
@@ -15,9 +18,11 @@ export default function Nutrition() {
   const [dateOffset, setDateOffset] = useState(0);
   const [meals, setMeals] = useState([]);
   const [goals, setGoals] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeMealType, setActiveMealType] = useState("breakfast");
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
 
   const currentDate = format(subDays(new Date(), dateOffset), "yyyy-MM-dd");
   const displayDate = format(subDays(new Date(), dateOffset), "EEEE, MMMM d");
@@ -29,6 +34,7 @@ export default function Nutrition() {
     ]);
     setMeals(data);
     setGoals(me?.nutrition_goals || null);
+    setUserProfile(me);
     setLoading(false);
   };
 
@@ -53,8 +59,19 @@ export default function Nutrition() {
     <div className="space-y-5 animate-slide-up max-w-3xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Nutrition</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Track your food and weight</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Nutrition</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Track your food and weight</p>
+          </div>
+          <button
+            onClick={() => setGoalModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+          >
+            <User className="h-4 w-4" />
+            <span className="text-xs font-semibold">My Goals</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -98,6 +115,11 @@ export default function Nutrition() {
             </button>
           </div>
 
+          {/* Show personalized goals if set */}
+          {goals && goals.calories && (
+            <NutritionGoalsDisplay goals={goals} onEdit={() => setGoalModalOpen(true)} />
+          )}
+
           {dayMeals.length > 0 && <DailyMacroSummary meals={dayMeals} goals={goals} />}
 
           <motion.div
@@ -137,6 +159,19 @@ export default function Nutrition() {
 
       {/* Weight Tab */}
       {activeTab === "weight" && <WeightTab />}
+
+      {/* Goal Setting Modal */}
+      <Dialog open={goalModalOpen} onOpenChange={setGoalModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Set Your Fitness Goals</DialogTitle>
+            <DialogDescription>
+              Enter your body metrics and goals to get personalized nutrition recommendations.
+            </DialogDescription>
+          </DialogHeader>
+          <GoalSetter onComplete={() => setGoalModalOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
