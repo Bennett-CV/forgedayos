@@ -155,41 +155,45 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   };
 
   const handleSave = async () => {
-    if (!preview) return;
+    if (!preview || saving) return;
     setSaving(true);
-    const mealDate = date || format(new Date(), "yyyy-MM-dd");
-    const qty = parseFloat(quantity) || 1;
-    await base44.entities.Meal.create({
-      date: mealDate,
-      meal_type: mealType,
-      food_description: foodInput,
-      quantity: qty,
-      calories: (preview.calories || 0) * qty,
-      protein_g: (preview.protein_g || 0) * qty,
-      carbs_g: (preview.carbs_g || 0) * qty,
-      fat_g: (preview.fat_g || 0) * qty,
-      fiber_g: preview.fiber_g ? preview.fiber_g * qty : null,
-      sugar_g: preview.sugar_g ? preview.sugar_g * qty : null,
-      food_name: preview.food_name,
-      serving_size: preview.serving_size,
-    });
+    try {
+      const mealDate = date || format(new Date(), "yyyy-MM-dd");
+      const qty = parseFloat(quantity) || 1;
+      await base44.entities.Meal.create({
+        date: mealDate,
+        meal_type: mealType,
+        food_description: foodInput,
+        quantity: qty,
+        calories: (preview.calories || 0) * qty,
+        protein_g: (preview.protein_g || 0) * qty,
+        carbs_g: (preview.carbs_g || 0) * qty,
+        fat_g: (preview.fat_g || 0) * qty,
+        fiber_g: preview.fiber_g ? preview.fiber_g * qty : null,
+        sugar_g: preview.sugar_g ? preview.sugar_g * qty : null,
+        food_name: preview.food_name,
+        serving_size: preview.serving_size,
+      });
 
-    // Roll up into Activity for dashboard scoring (one per meal logged)
-    await base44.entities.Activity.create({
-      pillar: "nutrition",
-      category: "nutrition",
-      title: `Logged ${mealType}: ${preview.food_name || foodInput}`,
-      points: 2,
-      date: mealDate,
-    });
+      // Roll up into Activity for dashboard scoring (one per meal logged)
+      await base44.entities.Activity.create({
+        pillar: "nutrition",
+        category: "nutrition",
+        title: `Logged ${mealType}: ${preview.food_name || foodInput}`,
+        points: 2,
+        date: mealDate,
+      });
 
-    toast.success("Food logged!");
-    setSaving(false);
-    setFoodInput("");
-    setPreview(null);
-    setQuantity("1");
-    onAdded?.();
-    onClose?.();
+      toast.success("Food logged!");
+      setFoodInput("");
+      setPreview(null);
+      setQuantity("1");
+      onAdded?.();
+      onClose?.();
+    } catch (error) {
+      toast.error("Failed to save meal. Please try again.");
+      setSaving(false);
+    }
   };
 
   const handleClose = () => {
