@@ -118,8 +118,9 @@ function FoodForm({ mealType, setMealType, foodInput, setFoodInput, quantity, se
       {preview && (
         <Button
           onClick={handleSave}
-          disabled={saving}
-          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-2 min-h-[44px]"
+          disabled={saving || !quantity || quantity === "0"}
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-2 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+          type="button"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
           Save to {mealType}
@@ -156,10 +157,10 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
 
   const handleSave = async () => {
     if (!preview || saving) return;
+    const qty = Math.max(0.1, parseFloat(quantity) || 1);
     setSaving(true);
     try {
       const mealDate = date || format(new Date(), "yyyy-MM-dd");
-      const qty = parseFloat(quantity) || 1;
       await base44.entities.Meal.create({
         date: mealDate,
         meal_type: mealType,
