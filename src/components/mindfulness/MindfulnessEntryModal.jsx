@@ -23,19 +23,23 @@ const PROMPTS = {
   morning: ["What am I grateful for today?", "What's my #1 focus today?", "What would make today great?"],
   evening: ["What went well today?", "What could I have done better?", "What am I grateful for?"],
   meditation: ["How did the session feel?", "Any insights or observations?"],
+  reading: ["What are you reading?", "Key takeaways?"],
 };
 
 function EntryForm({ type, entry, onSave }) {
   const [content, setContent] = useState(entry?.content || "");
   const [duration, setDuration] = useState(entry?.duration_minutes ? String(entry.duration_minutes) : "");
+  const [pages, setPages] = useState(entry?.pages_read ? String(entry.pages_read) : "");
   const [mood, setMood] = useState(entry?.mood || "");
 
   const prompts = PROMPTS[type] || [];
   const isMeditation = type === "meditation";
+  const isReading = type === "reading";
 
   const handleSubmit = () => {
     const data = { type, content, mood: mood || undefined };
     if (isMeditation && duration) data.duration_minutes = parseFloat(duration);
+    if (isReading && pages) data.pages_read = parseFloat(pages);
     onSave(data);
   };
 
@@ -55,9 +59,23 @@ function EntryForm({ type, entry, onSave }) {
         </div>
       )}
 
+      {isReading && (
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Pages Read</label>
+          <Input
+            type="number"
+            placeholder="e.g. 20"
+            value={pages}
+            onChange={e => setPages(e.target.value)}
+            className="bg-secondary/50 border-border w-32 font-mono"
+            style={{ userSelect: "text", WebkitUserSelect: "text" }}
+          />
+        </div>
+      )}
+
       <div>
         <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">
-          {isMeditation ? "Notes" : "Entry"}
+          {isReading ? "Notes (optional)" : isMeditation ? "Notes" : "Entry"}
         </label>
         {prompts.length > 0 && !content && (
           <div className="flex flex-wrap gap-1.5 mb-2">
@@ -112,7 +130,7 @@ function EntryForm({ type, entry, onSave }) {
 
 export default function MindfulnessEntryModal({ open, type, entry, onClose, onSave }) {
   const isMobile = useIsMobile();
-  const title = type === "morning" ? "Morning Journal" : type === "evening" ? "Evening Journal" : "Meditation";
+  const title = type === "morning" ? "Morning Journal" : type === "evening" ? "Evening Journal" : type === "reading" ? "Reading Log" : "Meditation";
   const formProps = { type, entry, onSave };
 
   if (isMobile) {

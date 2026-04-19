@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { format, subDays } from "date-fns";
-import { Sun, Moon, Brain, Plus, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
+import { Sun, Moon, Brain, BookOpen, Plus, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
@@ -13,9 +13,10 @@ const TABS = [
   { id: "morning", label: "Morning", icon: Sun },
   { id: "evening", label: "Evening", icon: Moon },
   { id: "meditation", label: "Meditation", icon: Brain },
+  { id: "reading", label: "Reading", icon: BookOpen },
 ];
 
-const POINTS = { morning: 3, evening: 3, meditation: 3 };
+const POINTS = { morning: 3, evening: 3, meditation: 3, reading: 2 };
 
 export default function Mindfulness() {
   const [entries, setEntries] = useState([]);
@@ -48,12 +49,18 @@ export default function Mindfulness() {
       // Roll up into Activity for dashboard scoring
       const existing = await base44.entities.Activity.filter({ date: today, category: data.type });
       if (existing.length === 0) {
+        let activityTitle;
+        if (data.type === "meditation") {
+          activityTitle = `Meditation${data.duration_minutes ? ` (${data.duration_minutes} min)` : ""}`;
+        } else if (data.type === "reading") {
+          activityTitle = `Reading${data.pages_read ? ` (${data.pages_read} pages)` : ""}`;
+        } else {
+          activityTitle = `${data.type.charAt(0).toUpperCase() + data.type.slice(1)} journal`;
+        }
         await base44.entities.Activity.create({
           pillar: "mindfulness",
           category: data.type,
-          title: data.type === "meditation"
-            ? `Meditation${data.duration_minutes ? ` (${data.duration_minutes} min)` : ""}`
-            : `${data.type.charAt(0).toUpperCase() + data.type.slice(1)} journal`,
+          title: activityTitle,
           points: POINTS[data.type],
           date: today,
         });

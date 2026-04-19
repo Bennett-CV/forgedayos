@@ -12,7 +12,8 @@
       "enum": [
         "morning",
         "evening",
-        "meditation"
+        "meditation",
+        "reading"
       ],
       "description": "Type of mindfulness entry"
     },
@@ -23,6 +24,10 @@
     "duration_minutes": {
       "type": "number",
       "description": "Duration in minutes (for meditation)"
+    },
+    "pages_read": {
+      "type": "number",
+      "description": "Number of pages read (for reading)"
     },
     "mood": {
       "type": "string",
