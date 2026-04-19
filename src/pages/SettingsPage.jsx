@@ -247,7 +247,13 @@ export default function SettingsPage() {
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px]"
                 onClick={async () => {
-                  toast.error("Account deletion must be done via support.");
+                  try {
+                    await base44.auth.deleteMe();
+                    toast.success("Account deleted successfully");
+                    window.location.reload();
+                  } catch (error) {
+                    toast.error("Failed to delete account: " + error.message);
+                  }
                 }}
               >
                 Delete My Account

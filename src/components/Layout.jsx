@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Dumbbell, Utensils, Wallet, Sparkles, ChevronLeft } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -36,7 +37,7 @@ const TAB_ROOT_PATHS = {
 // Pages that are "child" pages — show Back button instead of logo on mobile
 const CHILD_PAGES = ["/lifts", "/projects", "/review", "/log"];
 
-function BottomTab({ item, active, currentPath }) {
+function BottomTab({ item, active, currentPath, onNavigate }) {
   const navigate = useNavigate();
   const Icon = item.icon;
 
@@ -50,7 +51,7 @@ function BottomTab({ item, active, currentPath }) {
         navigate(item.path);
       }
     } else {
-      navigate(item.path);
+      onNavigate(item.path);
     }
   };
 
@@ -77,6 +78,60 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isChildPage = CHILD_PAGES.includes(location.pathname);
+  
+  // Track navigation history per tab for independent stacks
+  const [tabHistory, setTabHistory] = useState({});
+  const [currentTab, setCurrentTab] = useState("/");
+
+  // Determine if back button should show based on stack depth
+  const showBackButton = (tabHistory[currentTab]?.length || 0) > 1 || (isChildPage && !BOTTOM_TABS.some(t => t.path === location.pathname));
+
+  const handleTabNavigate = (path) => {
+    const tabRoot = BOTTOM_TABS.find(t => t.path === path)?.path;
+    if (tabRoot) {
+      setCurrentTab(tabRoot);
+      setTabHistory(prev => {
+        const currentStack = prev[tabRoot] || [];
+        // If navigating to a child page, add to stack
+        if (CHILD_PAGES.includes(path) || !BOTTOM_TABS.some(t => t.path === path)) {
+          return {
+            ...prev,
+            [tabRoot]: [...currentStack, location.pathname]
+          };
+        }
+        // Otherwise reset stack for this tab
+        return {
+          ...prev,
+          [tabRoot]: [path]
+        };
+      });
+      navigate(path);
+    }
+  };
+
+  const handleBack = () => {
+    const stack = tabHistory[currentTab] || [];
+    if (stack.length > 1) {
+      const previousPath = stack[stack.length - 2];
+      setTabHistory(prev => ({
+        ...prev,
+        [currentTab]: stack.slice(0, -1)
+      }));
+      navigate(previousPath);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  // Initialize tab history on mount
+  useEffect(() => {
+    const tabRoot = BOTTOM_TABS.find(t => location.pathname === t.path)?.path || "/";
+    setCurrentTab(tabRoot);
+    setTabHistory(prev => ({
+      ...prev,
+      [tabRoot]: prev[tabRoot] || [location.pathname]
+    }));
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -127,9 +182,9 @@ export default function Layout() {
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="flex items-center px-4 h-14">
-          {isChildPage ? (
+          {showBackButton ? (
             <button
-              onClick={() => navigate(-1)}
+              onClick={handleBack}
               className="flex items-center gap-1 text-primary font-semibold text-sm min-h-[44px] min-w-[44px] -ml-2 px-2"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -173,6 +228,7 @@ export default function Layout() {
             item={item}
             active={location.pathname === item.path}
             currentPath={location.pathname}
+            onNavigate={handleTabNavigate}
           />
         ))}
       </nav>

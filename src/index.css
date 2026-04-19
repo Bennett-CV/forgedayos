@@ -107,6 +107,14 @@ input, textarea, [contenteditable] {
   -webkit-user-select: text;
 }
 
+/* Mobile native feel - minimum touch target size for buttons */
+button, a, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
