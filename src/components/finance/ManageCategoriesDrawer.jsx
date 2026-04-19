@@ -75,6 +75,60 @@ function CategoryForm({ onAdded }) {
   );
 }
 
+function CategoryRow({ c, onDelete, onChanged }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(c.budget_amount || 0));
+
+  const handleSave = async () => {
+    const parsed = parseFloat(value);
+    if (isNaN(parsed) || parsed < 0) { toast.error("Enter a valid amount"); return; }
+    await base44.entities.BudgetCategory.update(c.id, { budget_amount: parsed });
+    toast.success("Budget updated");
+    setEditing(false);
+    onChanged?.();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") { setValue(String(c.budget_amount || 0)); setEditing(false); }
+  };
+
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3 bg-card">
+      <div className="flex items-center gap-3">
+        <span className="text-lg">{c.icon || "📦"}</span>
+        <div>
+          <p className="text-sm font-semibold">{c.name}</p>
+          <p className="text-[10px] text-muted-foreground capitalize">
+            {c.type} · $
+            {editing ? (
+              <input
+                autoFocus
+                type="number"
+                min="0"
+                value={value}
+                onChange={e => setValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleSave}
+                className="inline w-20 bg-secondary border border-primary rounded px-1 py-0 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                style={{ userSelect: "text", WebkitUserSelect: "text" }}
+              />
+            ) : (
+              <button onClick={() => setEditing(true)} className="hover:text-primary hover:underline transition-colors font-mono">
+                {c.budget_amount?.toLocaleString()}
+              </button>
+            )}
+            /mo
+          </p>
+        </div>
+      </div>
+      <button onClick={() => onDelete(c.id)} className="text-muted-foreground hover:text-destructive transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 export default function ManageCategoriesDrawer({ open, onClose, categories, onChanged }) {
   const isMobile = useIsMobile();
 
@@ -89,18 +143,7 @@ export default function ManageCategoriesDrawer({ open, onClose, categories, onCh
       <CategoryForm onAdded={onChanged} />
       <div className="space-y-2">
         {categories.map(c => (
-          <div key={c.id} className="flex items-center justify-between rounded-xl border border-border px-4 py-3 bg-card">
-            <div className="flex items-center gap-3">
-              <span className="text-lg">{c.icon || "📦"}</span>
-              <div>
-                <p className="text-sm font-semibold">{c.name}</p>
-                <p className="text-[10px] text-muted-foreground capitalize">{c.type} · ${c.budget_amount?.toLocaleString()}/mo</p>
-              </div>
-            </div>
-            <button onClick={() => handleDelete(c.id)} className="text-muted-foreground hover:text-destructive transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center">
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
+          <CategoryRow key={c.id} c={c} onDelete={handleDelete} onChanged={onChanged} />
         ))}
         {categories.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-4">No categories yet. Add one above.</p>
