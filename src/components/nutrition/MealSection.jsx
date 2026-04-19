@@ -1,6 +1,8 @@
-import { Trash2, Plus } from "lucide-react";
+import { useState } from "react";
+import { Trash2, Plus, Pencil } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import EditMealModal from "./EditMealModal";
 
 const MEAL_COLORS = {
   breakfast: { bg: "bg-chart-3/10", text: "text-chart-3", border: "border-chart-3/30" },
@@ -10,6 +12,7 @@ const MEAL_COLORS = {
 };
 
 export default function MealSection({ mealType, meals, onAdd, onDeleted }) {
+  const [editingMeal, setEditingMeal] = useState(null);
   const c = MEAL_COLORS[mealType] || MEAL_COLORS.snack;
   const totals = meals.reduce(
     (acc, m) => ({
@@ -75,9 +78,14 @@ export default function MealSection({ mealType, meals, onAdd, onDeleted }) {
                   <td className="text-center px-3 py-2.5 font-mono text-foreground">{(meal.fat_g ?? 0).toFixed(1)}g</td>
                   <td className="text-center px-3 py-2.5 font-mono text-muted-foreground">{(meal.fiber_g ?? 0).toFixed(1)}g</td>
                   <td className="px-3 py-2.5">
-                    <button onClick={() => handleDelete(meal.id)} className="p-1 rounded hover:bg-destructive/10 transition-colors">
-                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setEditingMeal(meal)} className="p-1 rounded hover:bg-secondary transition-colors">
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                      </button>
+                      <button onClick={() => handleDelete(meal.id)} className="p-1 rounded hover:bg-destructive/10 transition-colors">
+                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -87,6 +95,13 @@ export default function MealSection({ mealType, meals, onAdd, onDeleted }) {
       ) : (
         <div className="px-5 py-4 text-xs text-muted-foreground">Nothing logged yet.</div>
       )}
+
+      <EditMealModal
+        open={!!editingMeal}
+        meal={editingMeal}
+        onClose={() => setEditingMeal(null)}
+        onSaved={() => { setEditingMeal(null); onDeleted?.(); }}
+      />
     </div>
   );
 }
