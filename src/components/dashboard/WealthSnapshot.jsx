@@ -29,7 +29,7 @@ export default function WealthSnapshot() {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Wealth · This Month</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Finance · This Month</p>
         <Link to="/finance" className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
           View <ArrowRight className="h-3 w-3" />
         </Link>

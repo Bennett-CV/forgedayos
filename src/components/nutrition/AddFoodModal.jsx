@@ -141,7 +141,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
 
     // Roll up into Activity for dashboard scoring (one per meal logged)
     await base44.entities.Activity.create({
-      pillar: "health",
+      pillar: "nutrition",
       category: "nutrition",
       title: `Logged ${mealType}: ${preview.food_name || foodInput}`,
       points: 2,

@@ -67,7 +67,7 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
         const existing = await base44.entities.Activity.filter({ date: today, category });
         if (existing.length === 0) {
           await base44.entities.Activity.create({
-            pillar: "health",
+            pillar: "lifts",
             category,
             title: exercise.isCardio ? "Cardio session" : "Lifting session",
             points: exercise.isCardio ? 3 : 4,

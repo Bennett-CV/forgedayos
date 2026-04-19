@@ -49,7 +49,7 @@ export default function Mindfulness() {
       const existing = await base44.entities.Activity.filter({ date: today, category: data.type });
       if (existing.length === 0) {
         await base44.entities.Activity.create({
-          pillar: "health",
+          pillar: "mindfulness",
           category: data.type,
           title: data.type === "meditation"
             ? `Meditation${data.duration_minutes ? ` (${data.duration_minutes} min)` : ""}`

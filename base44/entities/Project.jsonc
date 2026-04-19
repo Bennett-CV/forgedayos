@@ -10,10 +10,10 @@
       "type": "string",
       "enum": [
         "career",
-        "health",
-        "wealth",
-        "learning",
-        "relationships"
+        "lifts",
+        "nutrition",
+        "finance",
+        "mindfulness"
       ],
       "description": "Primary pillar"
     },
