@@ -97,28 +97,36 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
 
       {!exercise.isCardio && (
         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${numSets}, 1fr)` }}>
-          {Array.from({ length: numSets }, (_, i) => (
-            <div key={i} className="space-y-1">
-              <p className="text-[9px] uppercase tracking-widest text-muted-foreground text-center">Set {i + 1}</p>
-              <Input
-                type="number"
-                placeholder="lbs"
-                value={setData[i]?.weight || ""}
-                onChange={e => updateField(i, "weight", e.target.value)}
-                onBlur={() => handleBlur(i)}
-                className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
-              />
-              <Input
-                type="text"
-                inputMode="numeric"
-                placeholder="reps"
-                value={setData[i]?.reps || ""}
-                onChange={e => updateField(i, "reps", e.target.value.replace(/\D/g, ""))}
-                onBlur={() => handleBlur(i)}
-                className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
-              />
-            </div>
-          ))}
+          {Array.from({ length: numSets }, (_, i) => {
+            const prevSet = getLog(prevLogs, i + 1);
+            return (
+              <div key={i} className="space-y-1">
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground text-center">Set {i + 1}</p>
+                <Input
+                  type="number"
+                  placeholder="lbs"
+                  value={setData[i]?.weight || ""}
+                  onChange={e => updateField(i, "weight", e.target.value)}
+                  onBlur={() => handleBlur(i)}
+                  className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
+                />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="reps"
+                  value={setData[i]?.reps || ""}
+                  onChange={e => updateField(i, "reps", e.target.value.replace(/\D/g, ""))}
+                  onBlur={() => handleBlur(i)}
+                  className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
+                />
+                {prevSet && (
+                  <p className="text-[9px] text-center text-muted-foreground font-mono">
+                    {prevSet.weight > 0 ? `${prevSet.weight}×${prevSet.reps}` : `${prevSet.reps} reps`}
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
