@@ -76,7 +76,7 @@ export default function BudgetCategoryBar({ category, spent, onUpdated }) {
               <span className="font-mono text-xs font-semibold">
                 ${budget.toLocaleString("en-US", { maximumFractionDigits: 0 })}/mo
               </span>
-              <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+              <Pencil className="h-3 w-3 opacity-40" />
             </button>
           )}
         </div>
