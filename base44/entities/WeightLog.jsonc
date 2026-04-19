@@ -1,0 +1,23 @@
+{
+  "name": "WeightLog",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the weigh-in"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "description": "Body weight in pounds"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    }
+  },
+  "required": [
+    "date",
+    "weight_lbs"
+  ]
+}
