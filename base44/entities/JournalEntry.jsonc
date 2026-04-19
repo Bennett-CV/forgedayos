@@ -1,0 +1,43 @@
+{
+  "name": "JournalEntry",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the entry"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "morning",
+        "evening",
+        "meditation"
+      ],
+      "description": "Type of mindfulness entry"
+    },
+    "content": {
+      "type": "string",
+      "description": "Journal text or meditation notes"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Duration in minutes (for meditation)"
+    },
+    "mood": {
+      "type": "string",
+      "enum": [
+        "great",
+        "good",
+        "neutral",
+        "low",
+        "rough"
+      ],
+      "description": "Optional mood rating"
+    }
+  },
+  "required": [
+    "date",
+    "type"
+  ]
+}
