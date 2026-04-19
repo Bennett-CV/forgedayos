@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Dumbbell, Utensils, Wallet, Sparkles } from "lucide-react";
+import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Dumbbell, Utensils, Wallet, Sparkles, ChevronLeft } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 const NAV_ITEMS = [
@@ -23,13 +23,32 @@ const BOTTOM_TABS = [
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
-function BottomTab({ item, active }) {
+// Root paths for bottom tabs — tapping an active tab navigates here
+const TAB_ROOT_PATHS = {
+  "/": "/",
+  "/log": "/log",
+  "/nutrition": "/nutrition",
+  "/finance": "/finance",
+  "/mindfulness": "/mindfulness",
+  "/settings": "/settings",
+};
+
+// Pages that are "child" pages — show Back button instead of logo on mobile
+const CHILD_PAGES = ["/lifts", "/projects", "/review", "/log"];
+
+function BottomTab({ item, active, currentPath }) {
   const navigate = useNavigate();
   const Icon = item.icon;
 
   const handleTap = () => {
     if (active) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // If we're at the root path for this tab, scroll to top
+      if (currentPath === item.path) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        // Navigate to the tab's root
+        navigate(item.path);
+      }
     } else {
       navigate(item.path);
     }
@@ -56,6 +75,8 @@ function BottomTab({ item, active }) {
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const isChildPage = CHILD_PAGES.includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -106,12 +127,22 @@ export default function Layout() {
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="flex items-center px-4 h-14">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md bg-primary/20 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-bold text-sm">MomentumOS</span>
-          </Link>
+          {isChildPage ? (
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1 text-primary font-semibold text-sm min-h-[44px] min-w-[44px] -ml-2 px-2"
+            >
+              <ChevronLeft className="h-5 w-5" />
+              Back
+            </button>
+          ) : (
+            <Link to="/" className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-md bg-primary/20 flex items-center justify-center">
+                <Zap className="h-4 w-4 text-primary" />
+              </div>
+              <span className="font-bold text-sm">MomentumOS</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -141,6 +172,7 @@ export default function Layout() {
             key={item.path}
             item={item}
             active={location.pathname === item.path}
+            currentPath={location.pathname}
           />
         ))}
       </nav>
