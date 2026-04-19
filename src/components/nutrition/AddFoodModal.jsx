@@ -150,9 +150,14 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
     if (!foodInput.trim()) return;
     setAnalyzing(true);
     setPreview(null);
-    const response = await base44.functions.invoke("analyzeFoodUSDA", { foodInput });
-    setPreview(response.data);
-    setAnalyzing(false);
+    try {
+      const response = await base44.functions.invoke("analyzeFoodUSDA", { foodInput });
+      setPreview(response.data);
+    } catch (error) {
+      toast.error("Failed to analyze food. Please try again.");
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleSave = async () => {
