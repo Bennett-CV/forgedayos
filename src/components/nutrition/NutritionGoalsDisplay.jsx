@@ -4,20 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Utensils, TrendingUp, Zap, Dumbbell, Pencil, Check, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
 export default function NutritionGoalsDisplay({ goals, onEdit }) {
-  if (!goals || !goals.calories) return null;
-
   const [editing, setEditing] = useState(false);
   const [editValues, setEditValues] = useState({
-    calories: goals.calories,
-    protein_g: goals.protein_g,
-    carbs_g: goals.carbs_g,
-    fat_g: goals.fat_g
+    calories: goals?.calories || 0,
+    protein_g: goals?.protein_g || 0,
+    carbs_g: goals?.carbs_g || 0,
+    fat_g: goals?.fat_g || 0
   });
+
+  // Update edit values when goals change
+  useEffect(() => {
+    if (goals) {
+      setEditValues({
+        calories: goals.calories,
+        protein_g: goals.protein_g,
+        carbs_g: goals.carbs_g,
+        fat_g: goals.fat_g
+      });
+    }
+  }, [goals]);
+
+  if (!goals || !goals.calories) return null;
 
   const totalMacros = (goals.protein_g || 0) + (goals.carbs_g || 0) + (goals.fat_g || 0);
   const proteinPct = Math.round(((goals.protein_g || 0) * 4 / goals.calories) * 100);
