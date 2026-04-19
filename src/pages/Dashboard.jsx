@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { format } from "date-fns";
 import { Plus } from "lucide-react";
@@ -10,24 +10,27 @@ import MomentumChart from "../components/dashboard/MomentumChart";
 import RecentActivity from "../components/dashboard/RecentActivity";
 import ActiveProjects from "../components/dashboard/ActiveProjects";
 import { PILLAR_KEYS } from "../lib/constants";
+import { usePullToRefresh } from "../hooks/usePullToRefresh";
+import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 
 export default function Dashboard() {
   const [activities, setActivities] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      const [acts, projs] = await Promise.all([
-        base44.entities.Activity.list("-created_date", 500),
-        base44.entities.Project.list("-created_date", 50),
-      ]);
-      setActivities(acts);
-      setProjects(projs);
-      setLoading(false);
-    }
-    load();
+  const load = useCallback(async () => {
+    const [acts, projs] = await Promise.all([
+      base44.entities.Activity.list("-created_date", 500),
+      base44.entities.Project.list("-created_date", 50),
+    ]);
+    setActivities(acts);
+    setProjects(projs);
+    setLoading(false);
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 
   if (loading) {
     return (
@@ -40,42 +43,45 @@ export default function Dashboard() {
   const today = format(new Date(), "EEEE, MMMM d");
 
   return (
-    <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <>
+      <PullToRefreshIndicator pullY={pullY} pullProgress={pullProgress} isRefreshing={isRefreshing} />
+      <div className="space-y-6 animate-slide-up">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
+          </div>
+          <Link to="/log">
+            <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold min-h-[44px]">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Log Activity</span>
+            </Button>
+          </Link>
+        </div>
+
+        {/* Compounding Score + Chart */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <CompoundingScore activities={activities} />
+          <MomentumChart activities={activities} />
+        </div>
+
+        {/* 5 Pillars */}
         <div>
-          <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
+          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">The 5 Pillars</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {PILLAR_KEYS.map((pillar, i) => (
+              <PillarCard key={pillar} pillar={pillar} activities={activities} index={i} />
+            ))}
+          </div>
         </div>
-        <Link to="/log">
-          <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Log Activity</span>
-          </Button>
-        </Link>
-      </div>
 
-      {/* Compounding Score + Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <CompoundingScore activities={activities} />
-        <MomentumChart activities={activities} />
-      </div>
-
-      {/* 5 Pillars */}
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">The 5 Pillars</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          {PILLAR_KEYS.map((pillar, i) => (
-            <PillarCard key={pillar} pillar={pillar} activities={activities} index={i} />
-          ))}
+        {/* Recent + Projects */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RecentActivity activities={activities} />
+          <ActiveProjects projects={projects} />
         </div>
       </div>
-
-      {/* Recent + Projects */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <RecentActivity activities={activities} />
-        <ActiveProjects projects={projects} />
-      </div>
-    </div>
+    </>
   );
 }

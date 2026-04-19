@@ -26,9 +26,14 @@ export default function LogActivity() {
     const title = selectedPreset?.title || customTitle;
     if (!title || !selectedPillar) return;
 
+    // Optimistic: navigate immediately with success toast
     setSaving(true);
     const today = format(new Date(), "yyyy-MM-dd");
-    await base44.entities.Activity.create({
+    toast.success("Activity logged! +pts earned 🔥");
+    navigate("/");
+
+    // Persist in background
+    base44.entities.Activity.create({
       pillar: selectedPillar,
       title,
       category: selectedPreset?.category || "custom",
@@ -38,9 +43,6 @@ export default function LogActivity() {
       date: today,
       notes: notes || undefined,
     });
-    toast.success("Activity logged! +pts earned 🔥");
-    setSaving(false);
-    navigate("/");
   };
 
   return (

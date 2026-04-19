@@ -34,7 +34,7 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
     );
   }, [currentLogs, exercise.name]);
 
-  const handleBlur = async (setIndex) => {
+  const handleBlur = (setIndex) => {
     const d = setData[setIndex];
     if (!d.weight && !d.reps) return;
     const payload = {
@@ -46,17 +46,19 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
       reps: d.reps ? parseInt(d.reps) : 0,
       is_amrap: exercise.isAmrap || false,
     };
+    // Optimistic: state is already updated via updateField; persist in background
     if (d.id) {
-      await base44.entities.WorkoutLog.update(d.id, payload);
+      base44.entities.WorkoutLog.update(d.id, payload).then(() => onSaved?.());
     } else {
-      const created = await base44.entities.WorkoutLog.create(payload);
-      setSetData(prev => {
-        const next = [...prev];
-        next[setIndex] = { ...next[setIndex], id: created.id };
-        return next;
+      base44.entities.WorkoutLog.create(payload).then(created => {
+        setSetData(prev => {
+          const next = [...prev];
+          next[setIndex] = { ...next[setIndex], id: created.id };
+          return next;
+        });
+        onSaved?.();
       });
     }
-    onSaved?.();
   };
 
   const updateField = (setIndex, field, val) => {

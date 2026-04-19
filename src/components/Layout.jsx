@@ -1,5 +1,6 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Dumbbell, Utensils } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -11,7 +12,6 @@ const NAV_ITEMS = [
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
-// Bottom tab items (primary 5)
 const BOTTOM_TABS = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/log", label: "Log", icon: Plus },
@@ -19,6 +19,37 @@ const BOTTOM_TABS = [
   { path: "/nutrition", label: "Nutrition", icon: Utensils },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
+
+function BottomTab({ item, active }) {
+  const navigate = useNavigate();
+  const Icon = item.icon;
+
+  const handleTap = () => {
+    if (active) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      navigate(item.path);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleTap}
+      className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[56px] transition-colors relative ${
+        active ? "text-primary" : "text-muted-foreground"
+      }`}
+    >
+      <Icon className="h-5 w-5" />
+      <span className="text-[10px] font-semibold tracking-wide">{item.label}</span>
+      {active && (
+        <motion.div
+          layoutId="bottomTabIndicator"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full"
+        />
+      )}
+    </button>
+  );
+}
 
 export default function Layout() {
   const location = useLocation();
@@ -53,9 +84,7 @@ export default function Layout() {
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
-                {active && (
-                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
-                )}
+                {active && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
               </Link>
             );
           })}
@@ -83,11 +112,20 @@ export default function Layout() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
-        <div className="max-w-7xl mx-auto p-4 lg:p-8">
-          <Outlet />
-        </div>
+      {/* Main Content with route slide transitions */}
+      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 overflow-x-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -16 }}
+            transition={{ duration: 0.18, ease: "easeInOut" }}
+            className="max-w-7xl mx-auto p-4 lg:p-8"
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Mobile Bottom Tab Bar */}
@@ -95,23 +133,13 @@ export default function Layout() {
         className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border flex"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        {BOTTOM_TABS.map(item => {
-          const active = location.pathname === item.path;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[56px] transition-colors ${
-                active ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-semibold tracking-wide">{item.label}</span>
-              {active && <div className="absolute bottom-[calc(0px+env(safe-area-inset-bottom))] w-6 h-0.5 bg-primary rounded-full" />}
-            </Link>
-          );
-        })}
+        {BOTTOM_TABS.map(item => (
+          <BottomTab
+            key={item.path}
+            item={item}
+            active={location.pathname === item.path}
+          />
+        ))}
       </nav>
     </div>
   );
