@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { format, startOfWeek } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
@@ -46,19 +47,36 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
       reps: d.reps ? parseInt(d.reps) : 0,
       is_amrap: exercise.isAmrap || false,
     };
-    // Optimistic: state is already updated via updateField; persist in background
-    if (d.id) {
-      base44.entities.WorkoutLog.update(d.id, payload).then(() => onSaved?.());
-    } else {
-      base44.entities.WorkoutLog.create(payload).then(created => {
-        setSetData(prev => {
-          const next = [...prev];
-          next[setIndex] = { ...next[setIndex], id: created.id };
-          return next;
+    const today = format(new Date(), "yyyy-MM-dd");
+    const isCurrentWeek = weekStart === format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+
+    const saveLog = d.id
+      ? base44.entities.WorkoutLog.update(d.id, payload)
+      : base44.entities.WorkoutLog.create(payload).then(created => {
+          setSetData(prev => {
+            const next = [...prev];
+            next[setIndex] = { ...next[setIndex], id: created.id };
+            return next;
+          });
         });
-        onSaved?.();
-      });
-    }
+
+    saveLog.then(async () => {
+      // Roll up into Activity for dashboard scoring (once per day, only for current week)
+      if (isCurrentWeek) {
+        const category = exercise.isCardio ? "cardio" : "lifting";
+        const existing = await base44.entities.Activity.filter({ date: today, category });
+        if (existing.length === 0) {
+          await base44.entities.Activity.create({
+            pillar: "health",
+            category,
+            title: exercise.isCardio ? "Cardio session" : "Lifting session",
+            points: exercise.isCardio ? 3 : 4,
+            date: today,
+          });
+        }
+      }
+      onSaved?.();
+    });
   };
 
   const updateField = (setIndex, field, val) => {

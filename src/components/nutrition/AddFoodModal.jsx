@@ -131,12 +131,23 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   const handleSave = async () => {
     if (!preview) return;
     setSaving(true);
+    const mealDate = date || format(new Date(), "yyyy-MM-dd");
     await base44.entities.Meal.create({
-      date: date || format(new Date(), "yyyy-MM-dd"),
+      date: mealDate,
       meal_type: mealType,
       food_description: foodInput,
       ...preview,
     });
+
+    // Roll up into Activity for dashboard scoring (one per meal logged)
+    await base44.entities.Activity.create({
+      pillar: "health",
+      category: "nutrition",
+      title: `Logged ${mealType}: ${preview.food_name || foodInput}`,
+      points: 2,
+      date: mealDate,
+    });
+
     toast.success("Food logged!");
     setSaving(false);
     setFoodInput("");
