@@ -19,6 +19,10 @@
       "type": "string",
       "description": "Raw user input, e.g. '1 pound ground beef'"
     },
+    "quantity": {
+      "type": "number",
+      "description": "Number of servings consumed"
+    },
     "food_name": {
       "type": "string"
     },

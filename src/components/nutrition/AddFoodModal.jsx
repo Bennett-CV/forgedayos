@@ -20,7 +20,7 @@ function useIsMobile() {
   return mobile;
 }
 
-function FoodForm({ mealType, setMealType, foodInput, setFoodInput, analyzing, handleAnalyze, preview, saving, handleSave }) {
+function FoodForm({ mealType, setMealType, foodInput, setFoodInput, quantity, setQuantity, analyzing, handleAnalyze, preview, saving, handleSave }) {
   return (
     <div className="space-y-4 p-1">
       {/* Meal type — native button group instead of Select for mobile */}
@@ -68,6 +68,23 @@ function FoodForm({ mealType, setMealType, foodInput, setFoodInput, analyzing, h
       </div>
 
       {preview && (
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Quantity</label>
+          <Input
+            type="number"
+            step="0.1"
+            min="0.1"
+            placeholder="How many servings?"
+            value={quantity}
+            onChange={e => setQuantity(e.target.value)}
+            className="bg-secondary/50 border-border"
+            style={{ userSelect: "text", WebkitUserSelect: "text" }}
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">Default is 1 serving ({preview.serving_size})</p>
+        </div>
+      )}
+
+      {preview && (
         <div className="rounded-xl border border-border bg-secondary/30 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-foreground">{preview.food_name}</p>
@@ -75,12 +92,12 @@ function FoodForm({ mealType, setMealType, foodInput, setFoodInput, analyzing, h
           </div>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "Calories", val: preview.calories, unit: "kcal", color: "text-chart-3" },
-              { label: "Protein", val: preview.protein_g, unit: "g", color: "text-chart-1" },
-              { label: "Carbs", val: preview.carbs_g, unit: "g", color: "text-chart-4" },
-              { label: "Fat", val: preview.fat_g, unit: "g", color: "text-chart-2" },
-              { label: "Fiber", val: preview.fiber_g ?? "—", unit: "g", color: "text-muted-foreground" },
-              { label: "Sugar", val: preview.sugar_g ?? "—", unit: "g", color: "text-muted-foreground" },
+              { label: "Calories", val: Math.round((preview.calories || 0) * (quantity || 1)), unit: "kcal", color: "text-chart-3" },
+              { label: "Protein", val: Math.round((preview.protein_g || 0) * (quantity || 1)), unit: "g", color: "text-chart-1" },
+              { label: "Carbs", val: Math.round((preview.carbs_g || 0) * (quantity || 1)), unit: "g", color: "text-chart-4" },
+              { label: "Fat", val: Math.round((preview.fat_g || 0) * (quantity || 1)), unit: "g", color: "text-chart-2" },
+              { label: "Fiber", val: preview.fiber_g ? Math.round(preview.fiber_g * (quantity || 1)) : "—", unit: "g", color: "text-muted-foreground" },
+              { label: "Sugar", val: preview.sugar_g ? Math.round(preview.sugar_g * (quantity || 1)) : "—", unit: "g", color: "text-muted-foreground" },
             ].map(({ label, val, unit, color }) => (
               <div key={label} className="text-center bg-secondary/50 rounded-lg p-2">
                 <p className={`text-base font-black font-mono ${color}`}>
@@ -90,6 +107,11 @@ function FoodForm({ mealType, setMealType, foodInput, setFoodInput, analyzing, h
               </div>
             ))}
           </div>
+          {quantity && quantity !== "1" && (
+            <p className="text-[10px] text-center text-muted-foreground mt-2">
+              Totals for {quantity} serving{quantity !== "1" ? "s" : ""}
+            </p>
+          )}
         </div>
       )}
 
@@ -110,13 +132,17 @@ function FoodForm({ mealType, setMealType, foodInput, setFoodInput, analyzing, h
 export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, date }) {
   const [foodInput, setFoodInput] = useState("");
   const [mealType, setMealType] = useState(defaultMealType || "breakfast");
+  const [quantity, setQuantity] = useState("1");
   const [analyzing, setAnalyzing] = useState(false);
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (open) setMealType(defaultMealType || "breakfast");
+    if (open) {
+      setMealType(defaultMealType || "breakfast");
+      setQuantity("1");
+    }
   }, [open, defaultMealType]);
 
   const handleAnalyze = async () => {
@@ -132,11 +158,20 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
     if (!preview) return;
     setSaving(true);
     const mealDate = date || format(new Date(), "yyyy-MM-dd");
+    const qty = parseFloat(quantity) || 1;
     await base44.entities.Meal.create({
       date: mealDate,
       meal_type: mealType,
       food_description: foodInput,
-      ...preview,
+      quantity: qty,
+      calories: (preview.calories || 0) * qty,
+      protein_g: (preview.protein_g || 0) * qty,
+      carbs_g: (preview.carbs_g || 0) * qty,
+      fat_g: (preview.fat_g || 0) * qty,
+      fiber_g: preview.fiber_g ? preview.fiber_g * qty : null,
+      sugar_g: preview.sugar_g ? preview.sugar_g * qty : null,
+      food_name: preview.food_name,
+      serving_size: preview.serving_size,
     });
 
     // Roll up into Activity for dashboard scoring (one per meal logged)
@@ -152,6 +187,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
     setSaving(false);
     setFoodInput("");
     setPreview(null);
+    setQuantity("1");
     onAdded?.();
     onClose?.();
   };
@@ -159,10 +195,11 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   const handleClose = () => {
     setFoodInput("");
     setPreview(null);
+    setQuantity("1");
     onClose?.();
   };
 
-  const formProps = { mealType, setMealType, foodInput, setFoodInput, analyzing, handleAnalyze, preview, saving, handleSave };
+  const formProps = { mealType, setMealType, foodInput, setFoodInput, quantity, setQuantity, analyzing, handleAnalyze, preview, saving, handleSave };
 
   if (isMobile) {
     return (
