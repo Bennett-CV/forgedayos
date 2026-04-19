@@ -119,11 +119,15 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
                   onBlur={() => handleBlur(i)}
                   className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
                 />
-                {prevSet && (
+                {prevSet ? (
                   <p className="text-[9px] text-center text-muted-foreground font-mono">
-                    {prevSet.weight > 0 ? `${prevSet.weight}×${prevSet.reps}` : `${prevSet.reps} reps`}
+                    {prevSet.weight > 0
+                      ? `${prevSet.weight}×${prevSet.reps}`
+                      : prevSet.reps > 0
+                      ? `${prevSet.reps} reps`
+                      : "— last wk"}
                   </p>
-                )}
+                ) : null}
               </div>
             );
           })}
