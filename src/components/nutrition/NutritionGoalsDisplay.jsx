@@ -48,7 +48,16 @@ export default function NutritionGoalsDisplay({ goals, onEdit }) {
       });
       toast.success("Goals updated!");
       setEditing(false);
-      if (onEdit) onEdit();
+      // Reload user data to reflect changes
+      const me = await base44.auth.me();
+      if (me?.nutrition_goals) {
+        setEditValues({
+          calories: me.nutrition_goals.calories,
+          protein_g: me.nutrition_goals.protein_g,
+          carbs_g: me.nutrition_goals.carbs_g,
+          fat_g: me.nutrition_goals.fat_g
+        });
+      }
     } catch (error) {
       toast.error("Failed to update goals");
     }
