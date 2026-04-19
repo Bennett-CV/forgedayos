@@ -60,7 +60,7 @@ export const ACTIVITY_PRESETS = {
   health: [
     { title: 'Lifting', category: 'lifting', unit: 'minutes', defaultPoints: 4 },
     { title: 'Running', category: 'running', unit: 'miles', defaultPoints: 3 },
-    { title: 'Cardio', category: 'cardio', unit: 'minutes', defaultPoints: 3 },
+    { title: 'Meditation', category: 'meditation', unit: 'minutes', defaultPoints: 3 },
     { title: 'Mobility / Stretch', category: 'mobility', unit: 'minutes', defaultPoints: 2 },
   ],
   wealth: [
