@@ -73,17 +73,28 @@ export default function Projects() {
         )}
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="font-black">New Project</DialogTitle>
-          </DialogHeader>
-          <ProjectForm
-            onCreated={() => { setShowForm(false); load(); }}
-            onCancel={() => setShowForm(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* On mobile, ProjectForm uses a Drawer internally; on desktop use Dialog */}
+      <div className="hidden lg:block">
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="font-black">New Project</DialogTitle>
+            </DialogHeader>
+            <ProjectForm
+              open={showForm}
+              onCreated={() => { setShowForm(false); load(); }}
+              onCancel={() => setShowForm(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="lg:hidden">
+        <ProjectForm
+          open={showForm}
+          onCreated={() => { setShowForm(false); load(); }}
+          onCancel={() => setShowForm(false)}
+        />
+      </div>
     </div>
   );
 }

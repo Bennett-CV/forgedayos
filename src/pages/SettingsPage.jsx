@@ -5,8 +5,12 @@ import { PILLARS, PILLAR_KEYS } from "../lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Settings, Utensils } from "lucide-react";
+import { Plus, Trash2, Settings, Utensils, UserX } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 
 export default function SettingsPage() {
   const [targets, setTargets] = useState([]);
@@ -217,6 +221,41 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground">No targets set yet. Add your first KPI above.</p>
         </div>
       )}
+
+      {/* Delete Account */}
+      <div className="rounded-2xl border border-destructive/30 bg-card p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <UserX className="h-4 w-4 text-destructive" />
+          <h2 className="text-sm font-bold uppercase tracking-wider text-destructive">Danger Zone</h2>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="gap-2 min-h-[44px]">
+              <UserX className="h-4 w-4" /> Delete Account
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="bg-card border-border">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Account</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete your account and all your data — activities, projects, meals, workouts, and reviews. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 min-h-[44px]"
+                onClick={async () => {
+                  toast.error("Account deletion must be done via support.");
+                }}
+              >
+                Delete My Account
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
