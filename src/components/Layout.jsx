@@ -17,9 +17,9 @@ const NAV_ITEMS = [
 
 const BOTTOM_TABS = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/lifts", label: "Lifts", icon: Dumbbell },
   { path: "/log", label: "Log", icon: Plus },
   { path: "/nutrition", label: "Nutrition", icon: Utensils },
-  { path: "/finance", label: "Finance", icon: Wallet },
   { path: "/mindfulness", label: "Mind", icon: Sparkles },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
@@ -27,15 +27,15 @@ const BOTTOM_TABS = [
 // Root paths for bottom tabs — tapping an active tab navigates here
 const TAB_ROOT_PATHS = {
   "/": "/",
+  "/lifts": "/lifts",
   "/log": "/log",
   "/nutrition": "/nutrition",
-  "/finance": "/finance",
   "/mindfulness": "/mindfulness",
   "/settings": "/settings",
 };
 
 // Pages that are "child" pages — show Back button instead of logo on mobile
-const CHILD_PAGES = ["/lifts", "/projects", "/review", "/log"];
+const CHILD_PAGES = ["/projects", "/review", "/log"];
 
 function BottomTab({ item, active, currentPath, onNavigate }) {
   const navigate = useNavigate();
