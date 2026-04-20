@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { format, startOfWeek } from "date-fns";
 import { Input } from "@/components/ui/input";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Check } from "lucide-react";
 
 export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, currentLogs, onSaved }) {
-  // currentLogs and prevLogs are arrays of WorkoutLog for this exercise
   const numSets = sets;
+  const [dirty, setDirty] = useState(false);
 
   const getLog = (logsArr, setNum) =>
     logsArr?.find(l => l.exercise === exercise.name && l.set_number === setNum);
@@ -33,9 +33,10 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
         };
       })
     );
+    setDirty(false);
   }, [currentLogs, exercise.name]);
 
-  const handleBlur = (setIndex) => {
+  const handleSave = (setIndex) => {
     const d = setData[setIndex];
     if (!d.weight && !d.reps) return;
     const payload = {
@@ -80,11 +81,17 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
   };
 
   const updateField = (setIndex, field, val) => {
+    setDirty(true);
     setSetData(prev => {
       const next = [...prev];
       next[setIndex] = { ...next[setIndex], [field]: val };
       return next;
     });
+  };
+
+  const handleSaveAll = () => {
+    Array.from({ length: numSets }, (_, i) => handleSave(i));
+    setDirty(false);
   };
 
   // Compare avg weight this week vs last
@@ -127,16 +134,16 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
                   placeholder="lbs"
                   value={setData[i]?.weight || ""}
                   onChange={e => updateField(i, "weight", e.target.value)}
-                  onBlur={() => handleBlur(i)}
+                  onBlur={() => handleSave(i)}
                   className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
-                />
-                <Input
+                  />
+                  <Input
                   type="text"
                   inputMode="numeric"
                   placeholder="reps"
                   value={setData[i]?.reps || ""}
                   onChange={e => updateField(i, "reps", e.target.value.replace(/\D/g, ""))}
-                  onBlur={() => handleBlur(i)}
+                  onBlur={() => handleSave(i)}
                   className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
                 />
                 {prevSet ? (
@@ -162,10 +169,21 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
             placeholder="60"
             value={setData[0]?.reps || ""}
             onChange={e => updateField(0, "reps", e.target.value)}
-            onBlur={() => handleBlur(0)}
+            onBlur={() => handleSave(0)}
             className="h-8 text-xs bg-secondary/50 border-border font-mono"
           />
         </div>
+      )}
+
+      {dirty && (
+        <button
+          type="button"
+          onPointerDown={e => e.stopPropagation()}
+          onClick={handleSaveAll}
+          className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg min-h-[36px]"
+        >
+          <Check className="h-3 w-3" /> Save
+        </button>
       )}
 
       {/* Previous week comparison */}
