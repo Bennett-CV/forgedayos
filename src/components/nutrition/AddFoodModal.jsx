@@ -208,11 +208,13 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={v => !v && handleClose()}>
-        <DrawerContent className="bg-card border-border">
-          <DrawerHeader className="px-4">
+        <DrawerContent className="bg-card border-border max-h-[92dvh] flex flex-col">
+          <DrawerHeader className="px-4 shrink-0">
             <DrawerTitle className="font-black">Log Food</DrawerTitle>
           </DrawerHeader>
-          {content}
+          <div className="overflow-y-auto flex-1">
+            {content}
+          </div>
         </DrawerContent>
       </Drawer>
     );
