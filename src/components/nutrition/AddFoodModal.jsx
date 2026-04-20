@@ -107,6 +107,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
             <button
               key={m}
               type="button"
+              onPointerDown={e => e.stopPropagation()}
               onClick={() => setMealType(m)}
               className={`capitalize text-xs font-semibold py-2.5 rounded-lg transition-colors min-h-[44px] ${
                 mealType === m
@@ -134,6 +135,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
           <button
             type="button"
             onClick={handleAnalyze}
+            onPointerDown={e => e.stopPropagation()}
             disabled={analyzing || !foodInput.trim()}
             className="shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md border border-border bg-transparent hover:bg-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -192,6 +194,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
         <button
           type="button"
           onClick={handleSave}
+          onPointerDown={e => e.stopPropagation()}
           disabled={saving}
           className="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-md bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
