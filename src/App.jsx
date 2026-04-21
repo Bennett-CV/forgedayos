@@ -15,6 +15,7 @@ import Lifts from './pages/Lifts';
 import Nutrition from './pages/Nutrition';
 import Finance from './pages/Finance';
 import Mindfulness from './pages/Mindfulness';
+import Onboarding from './pages/Onboarding';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
         <Route path="/finance" element={<Finance />} />
         <Route path="/mindfulness" element={<Mindfulness />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="*" element={<PageNotFound />} />
       </Route>
     </Routes>

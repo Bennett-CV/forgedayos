@@ -4,6 +4,7 @@ export const PILLARS = {
   career: {
     key: 'career',
     label: 'Career',
+    description: 'Deep work, outreach, shipping, growth',
     icon: Briefcase,
     color: 'hsl(173, 80%, 50%)',
     bgClass: 'bg-chart-1/10',
@@ -13,6 +14,7 @@ export const PILLARS = {
   lifts: {
     key: 'lifts',
     label: 'Lifts',
+    description: 'Strength training, cardio, mobility',
     icon: Dumbbell,
     color: 'hsl(142, 70%, 50%)',
     bgClass: 'bg-chart-2/10',
@@ -22,6 +24,7 @@ export const PILLARS = {
   nutrition: {
     key: 'nutrition',
     label: 'Nutrition',
+    description: 'Meals, macros, calories, weight',
     icon: Utensils,
     color: 'hsl(38, 92%, 60%)',
     bgClass: 'bg-chart-3/10',
@@ -31,6 +34,7 @@ export const PILLARS = {
   finance: {
     key: 'finance',
     label: 'Finance',
+    description: 'Budget, investing, saving, income',
     icon: Wallet,
     color: 'hsl(262, 83%, 65%)',
     bgClass: 'bg-chart-4/10',
@@ -40,6 +44,7 @@ export const PILLARS = {
   mindfulness: {
     key: 'mindfulness',
     label: 'Mindfulness',
+    description: 'Journaling, meditation, reading',
     icon: Sparkles,
     color: 'hsl(350, 80%, 60%)',
     bgClass: 'bg-chart-5/10',
