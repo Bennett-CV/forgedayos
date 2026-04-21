@@ -5,7 +5,7 @@ import { PILLARS, PILLAR_KEYS } from "../lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Settings, Utensils, UserX, Zap } from "lucide-react";
+import { Plus, Trash2, Settings, Utensils, UserX, Zap, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -90,9 +90,14 @@ export default function SettingsPage() {
           <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Settings</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Configure your pillar targets & KPIs</p>
         </div>
-        <Button variant="outline" onClick={() => navigate("/onboarding")} className="gap-2 shrink-0">
-          <Zap className="h-4 w-4 text-primary" /> Setup Wizard
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" onClick={() => navigate("/onboarding")} className="gap-2">
+            <Zap className="h-4 w-4 text-primary" /> Setup Wizard
+          </Button>
+          <Button variant="outline" onClick={() => base44.auth.logout()} className="gap-2 text-muted-foreground hover:text-foreground">
+            <LogOut className="h-4 w-4" /> Log Out
+          </Button>
+        </div>
       </div>
 
       {/* Nutrition Goals */}
