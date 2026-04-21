@@ -20,9 +20,11 @@ Examples:
 - "1 pound ground beef 80/20" → { "quantity": 453.6, "unit": "g", "search_term": "ground beef 80% lean 20% fat raw", "description": "1 lb Ground Beef (80/20)" }
 - "2 large eggs" → { "quantity": 2, "unit": "serving", "search_term": "egg whole raw", "description": "2 Large Eggs" }
 - "1 cup cooked white rice" → { "quantity": 186, "unit": "g", "search_term": "white rice cooked", "description": "1 cup White Rice (cooked)" }
-- "6 oz chicken breast grilled" → { "quantity": 170, "unit": "g", "search_term": "chicken breast grilled", "description": "6 oz Chicken Breast (grilled)" }
+- "6 oz chicken breast grilled" → { "quantity": 170, "unit": "g", "search_term": "chicken breast grilled boneless skinless", "description": "6 oz Chicken Breast (grilled)" }
+- "7 oz chicken breast" → { "quantity": 198, "unit": "g", "search_term": "chicken breast broilers or fryers meat only cooked roasted", "description": "7 oz Chicken Breast" }
 
-Return grams when possible. If it's a countable food, return number of servings.`,
+Return grams when possible. If it's a countable food, return number of servings.
+IMPORTANT: For meats and proteins, use specific USDA-style search terms (e.g. "broilers or fryers meat only cooked roasted" for chicken). Avoid vague terms that could match processed or mixed foods.`,
       response_json_schema: {
         type: "object",
         properties: {
@@ -37,7 +39,7 @@ Return grams when possible. If it's a countable food, return number of servings.
 
     // Step 2: Search USDA for the food
     const searchRes = await fetch(
-      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(parsed.search_term)}&dataType=Foundation,SR%20Legacy&pageSize=3&api_key=${USDA_API_KEY}`
+      `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(parsed.search_term)}&dataType=Foundation,SR%20Legacy&pageSize=5&api_key=${USDA_API_KEY}`
     );
     const searchData = await searchRes.json();
 
@@ -45,10 +47,23 @@ Return grams when possible. If it's a countable food, return number of servings.
       return Response.json({ error: 'No USDA data found for this food' }, { status: 404 });
     }
 
-    const food = searchData.foods[0];
+    // Pick the first food that has calorie data
+    let food = searchData.foods[0];
+    for (const candidate of searchData.foods) {
+      const hasCalories = (candidate.foodNutrients || []).some(
+        n => (n.nutrientNumber === "208" || n.nutrientId === 1008 || n.nutrientNumber === 208) && n.value > 0
+      );
+      if (hasCalories) { food = candidate; break; }
+    }
+
     const nutrients = {};
     for (const n of food.foodNutrients || []) {
-      nutrients[n.nutrientNumber] = n.value;
+      // Support both string and numeric nutrientNumber, and nutrientId
+      const num = String(n.nutrientNumber || n.nutrientId || "");
+      // Map nutrientId to nutrientNumber for common nutrients
+      const idMap = { "1008": "208", "1003": "203", "1005": "205", "1004": "204", "1079": "291", "2000": "269" };
+      const key = idMap[num] || num;
+      if (n.value !== undefined && n.value !== null) nutrients[key] = n.value;
     }
 
     // USDA nutrient numbers: 208=calories, 203=protein, 205=carbs, 204=fat, 291=fiber, 269=sugar
