@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { format } from "date-fns";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -15,21 +16,23 @@ import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [activities, setActivities] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    if (!user?.email) return;
     const [acts, projs] = await Promise.all([
-      base44.entities.Activity.list("-created_date", 500),
-      base44.entities.Project.list("-created_date", 50),
+      base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 500),
+      base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
     ]);
     setActivities(acts);
     setProjects(projs);
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, user]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { format, startOfWeek, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Dumbbell, Activity, History, ClipboardList } from "lucide-react";
@@ -10,6 +11,7 @@ import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 
 export default function Lifts() {
+  const { user } = useAuth();
   const [weekOffset, setWeekOffset] = useState(0);
   const [allLogs, setAllLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,10 +28,11 @@ export default function Lifts() {
   );
 
   const load = useCallback(async () => {
-    const logs = await base44.entities.WorkoutLog.list("-created_date", 2000);
+    if (!user?.email) return;
+    const logs = await base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 2000);
     setAllLogs(logs);
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => { load(); }, [load]);
 

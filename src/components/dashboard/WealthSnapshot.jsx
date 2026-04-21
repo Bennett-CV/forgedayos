@@ -1,18 +1,21 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function WealthSnapshot() {
+  const { user } = useAuth();
   const [data, setData] = useState(null);
 
   useEffect(() => {
+    if (!user?.email) return;
     const monthKey = format(new Date(), "yyyy-MM");
     Promise.all([
-      base44.entities.Transaction.filter({ month: monthKey }),
-      base44.entities.BudgetCategory.filter({ type: "expense" }),
+      base44.entities.Transaction.filter({ month: monthKey, created_by: user.email }),
+      base44.entities.BudgetCategory.filter({ type: "expense", created_by: user.email }),
     ]).then(([txns, cats]) => {
       const totalExpenses = txns.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
       const totalIncome = txns.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);

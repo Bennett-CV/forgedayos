@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { format, subDays } from "date-fns";
 import { Sun, Moon, Brain, BookOpen, Plus, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ const TABS = [
 const POINTS = { morning: 3, evening: 3, meditation: 3, reading: 2 };
 
 export default function Mindfulness() {
+  const { user } = useAuth();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("morning");
@@ -27,10 +29,11 @@ export default function Mindfulness() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   const load = useCallback(async () => {
-    const data = await base44.entities.JournalEntry.list("-date", 200);
+    if (!user?.email) return;
+    const data = await base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 200);
     setEntries(data);
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -47,7 +50,7 @@ export default function Mindfulness() {
     } else {
       await base44.entities.JournalEntry.create({ ...data, date: today });
       // Roll up into Activity for dashboard scoring
-      const existing = await base44.entities.Activity.filter({ date: today, category: data.type });
+      const existing = await base44.entities.Activity.filter({ date: today, category: data.type, created_by: user.email });
       if (existing.length === 0) {
         let activityTitle;
         if (data.type === "meditation") {

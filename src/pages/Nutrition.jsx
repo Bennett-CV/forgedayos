@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { format, subDays } from "date-fns";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Utensils, User } from "lucide-react";
@@ -14,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const MEAL_ORDER = ["breakfast", "lunch", "dinner", "snack"];
 
 export default function Nutrition() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("nutrition");
   const [dateOffset, setDateOffset] = useState(0);
   const [meals, setMeals] = useState([]);
@@ -28,8 +30,9 @@ export default function Nutrition() {
   const displayDate = format(subDays(new Date(), dateOffset), "EEEE, MMMM d");
 
   const load = async () => {
+    if (!user?.email) return;
     const [data, me] = await Promise.all([
-      base44.entities.Meal.list("-created_date", 500),
+      base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 500),
       base44.auth.me(),
     ]);
     setMeals(data);

@@ -21,10 +21,8 @@ export default function SettingsPage() {
   const [savingGoals, setSavingGoals] = useState(false);
 
   const load = async () => {
-    const [data, me] = await Promise.all([
-      base44.entities.PillarTarget.list("-created_date", 100),
-      base44.auth.me(),
-    ]);
+    const me = await base44.auth.me();
+    const data = await base44.entities.PillarTarget.filter({ created_by: me?.email }, "-created_date", 100);
     setTargets(data);
     const g = me?.nutrition_goals || {};
     setNutritionGoals({

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { motion } from "framer-motion";
 import { Plus, FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,15 @@ import ProjectForm from "../components/projects/ProjectForm";
 import ProjectCard from "../components/projects/ProjectCard";
 
 export default function Projects() {
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState("active");
 
   const load = async () => {
-    const data = await base44.entities.Project.list("-created_date", 100);
+    if (!user?.email) return;
+    const data = await base44.entities.Project.filter({ created_by: user.email }, "-created_date", 100);
     setProjects(data);
     setLoading(false);
   };

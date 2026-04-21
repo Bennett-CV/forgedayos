@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { format, subDays } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 export default function WeightTab() {
+  const { user } = useAuth();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [weightInput, setWeightInput] = useState("");
@@ -28,12 +30,13 @@ export default function WeightTab() {
   const today = format(new Date(), "yyyy-MM-dd");
 
   const load = async () => {
-    const data = await base44.entities.WeightLog.list("-date", 90);
+    if (!user?.email) return;
+    const data = await base44.entities.WeightLog.filter({ created_by: user.email }, "-date", 90);
     setLogs(data);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [user]);
 
   const todayLog = logs.find(l => l.date === today);
 

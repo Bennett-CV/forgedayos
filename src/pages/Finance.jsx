@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { format, subMonths, addMonths } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import AddTransactionDrawer from "../components/finance/AddTransactionDrawer";
 import ManageCategoriesDrawer from "../components/finance/ManageCategoriesDrawer";
 
 export default function Finance() {
+  const { user } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -23,9 +25,10 @@ export default function Finance() {
   const isCurrentMonth = monthKey === format(new Date(), "yyyy-MM");
 
   const load = async () => {
+    if (!user?.email) return;
     const [txns, cats] = await Promise.all([
-      base44.entities.Transaction.filter({ month: monthKey }),
-      base44.entities.BudgetCategory.list(),
+      base44.entities.Transaction.filter({ month: monthKey, created_by: user.email }),
+      base44.entities.BudgetCategory.filter({ created_by: user.email }),
     ]);
     setTransactions(txns);
     setCategories(cats);

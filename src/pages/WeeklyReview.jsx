@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
 import { FileText, Sparkles, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
@@ -9,6 +10,7 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 
 export default function WeeklyReview() {
+  const { user } = useAuth();
   const [activities, setActivities] = useState([]);
   const [projects, setProjects] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -23,11 +25,12 @@ export default function WeeklyReview() {
   const weekEndStr = format(weekEnd, "yyyy-MM-dd");
 
   useEffect(() => {
+    if (!user?.email) return;
     async function load() {
       const [acts, projs, revs] = await Promise.all([
-        base44.entities.Activity.list("-date", 500),
-        base44.entities.Project.list("-created_date", 50),
-        base44.entities.WeeklyReview.list("-created_date", 50),
+        base44.entities.Activity.filter({ created_by: user.email }, "-date", 500),
+        base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
+        base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50),
       ]);
       setActivities(acts);
       setProjects(projs);
@@ -35,7 +38,7 @@ export default function WeeklyReview() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const existing = reviews.find(r => r.week_start === weekStartStr);
