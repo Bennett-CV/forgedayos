@@ -143,7 +143,7 @@ export default function Layout() {
               <Zap className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-base font-bold tracking-tight text-foreground">MomentumOS</h1>
+              <h1 className="text-base font-bold tracking-tight text-foreground">Forgeday</h1>
               <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Personal OS</p>
             </div>
           </Link>
@@ -195,7 +195,7 @@ export default function Layout() {
               <div className="h-7 w-7 rounded-md bg-primary/20 flex items-center justify-center">
                 <Zap className="h-4 w-4 text-primary" />
               </div>
-              <span className="font-bold text-sm">MomentumOS</span>
+              <span className="font-bold text-sm">Forgeday</span>
             </Link>
           )}
         </div>
