@@ -63,7 +63,7 @@ export default function Onboarding({ onComplete }) {
 
       toast.success("You're all set! Welcome to Forgeday.");
       onComplete?.();
-      navigate("/");
+      window.location.href = "/";
     } catch (err) {
       toast.error("Failed to save. Please try again.");
     } finally {
