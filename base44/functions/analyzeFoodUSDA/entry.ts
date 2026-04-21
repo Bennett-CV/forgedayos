@@ -13,18 +13,32 @@ Deno.serve(async (req) => {
 
     // Step 1: Use AI to extract quantity + clean food name
     const parsed = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `Parse this food input into a quantity multiplier and a clean USDA-searchable food name.
+      prompt: `Parse this food input into a total gram weight and a clean USDA-searchable food name.
 Food input: "${foodInput}"
+
+ALWAYS return grams (unit: "g"). Convert everything to total grams using these reference weights:
+- 1 large egg = 50g
+- 1 medium egg = 44g
+- 1 small egg = 38g
+- 1 slice bread = 28g
+- 1 tbsp butter/oil = 14g
+- 1 cup milk = 244g
+- 1 oz = 28.35g
+- 1 lb = 453.6g
+- 1 cup cooked rice = 186g
+- 1 cup oats (dry) = 80g
+- 1 medium banana = 118g
+- 1 medium apple = 182g
+- 1 cup broccoli = 91g
 
 Examples:
 - "1 pound ground beef 80/20" → { "quantity": 453.6, "unit": "g", "search_term": "ground beef 80% lean 20% fat raw", "description": "1 lb Ground Beef (80/20)" }
-- "2 large eggs" → { "quantity": 2, "unit": "serving", "search_term": "egg whole raw", "description": "2 Large Eggs" }
+- "3 eggs" → { "quantity": 150, "unit": "g", "search_term": "egg whole raw", "description": "3 Large Eggs" }
+- "2 large eggs" → { "quantity": 100, "unit": "g", "search_term": "egg whole raw", "description": "2 Large Eggs" }
 - "1 cup cooked white rice" → { "quantity": 186, "unit": "g", "search_term": "white rice cooked", "description": "1 cup White Rice (cooked)" }
-- "6 oz chicken breast grilled" → { "quantity": 170, "unit": "g", "search_term": "chicken breast grilled boneless skinless", "description": "6 oz Chicken Breast (grilled)" }
-- "7 oz chicken breast" → { "quantity": 198, "unit": "g", "search_term": "chicken breast broilers or fryers meat only cooked roasted", "description": "7 oz Chicken Breast" }
+- "6 oz chicken breast grilled" → { "quantity": 170, "unit": "g", "search_term": "chicken breast broilers or fryers meat only cooked roasted", "description": "6 oz Chicken Breast (grilled)" }
 
-Return grams when possible. If it's a countable food, return number of servings.
-IMPORTANT: For meats and proteins, use specific USDA-style search terms (e.g. "broilers or fryers meat only cooked roasted" for chicken). Avoid vague terms that could match processed or mixed foods.`,
+IMPORTANT: For meats and proteins, use specific USDA-style search terms (e.g. "broilers or fryers meat only cooked roasted" for chicken). Avoid vague terms that could match processed or mixed foods. Always convert count-based foods to grams using the reference weights above.`,
       response_json_schema: {
         type: "object",
         properties: {
