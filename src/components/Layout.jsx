@@ -24,16 +24,6 @@ const BOTTOM_TABS = [
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
-// Root paths for bottom tabs — tapping an active tab navigates here
-const TAB_ROOT_PATHS = {
-  "/": "/",
-  "/lifts": "/lifts",
-  "/log": "/log",
-  "/nutrition": "/nutrition",
-  "/mindfulness": "/mindfulness",
-  "/settings": "/settings",
-};
-
 // Pages that are "child" pages — show Back button instead of logo on mobile
 const CHILD_PAGES = ["/projects", "/review", "/log"];
 
@@ -43,11 +33,9 @@ function BottomTab({ item, active, currentPath, onNavigate }) {
 
   const handleTap = () => {
     if (active) {
-      // If we're at the root path for this tab, scroll to top
       if (currentPath === item.path) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
-        // Navigate to the tab's root
         navigate(item.path);
       }
     } else {
@@ -78,12 +66,10 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isChildPage = CHILD_PAGES.includes(location.pathname);
-  
-  // Track navigation history per tab for independent stacks
+
   const [tabHistory, setTabHistory] = useState({});
   const [currentTab, setCurrentTab] = useState("/");
 
-  // Determine if back button should show based on stack depth
   const showBackButton = (tabHistory[currentTab]?.length || 0) > 1 || (isChildPage && !BOTTOM_TABS.some(t => t.path === location.pathname));
 
   const handleTabNavigate = (path) => {
@@ -92,18 +78,10 @@ export default function Layout() {
       setCurrentTab(tabRoot);
       setTabHistory(prev => {
         const currentStack = prev[tabRoot] || [];
-        // If navigating to a child page, add to stack
         if (CHILD_PAGES.includes(path) || !BOTTOM_TABS.some(t => t.path === path)) {
-          return {
-            ...prev,
-            [tabRoot]: [...currentStack, location.pathname]
-          };
+          return { ...prev, [tabRoot]: [...currentStack, location.pathname] };
         }
-        // Otherwise reset stack for this tab
-        return {
-          ...prev,
-          [tabRoot]: [path]
-        };
+        return { ...prev, [tabRoot]: [path] };
       });
       navigate(path);
     }
@@ -113,17 +91,13 @@ export default function Layout() {
     const stack = tabHistory[currentTab] || [];
     if (stack.length > 1) {
       const previousPath = stack[stack.length - 2];
-      setTabHistory(prev => ({
-        ...prev,
-        [currentTab]: stack.slice(0, -1)
-      }));
+      setTabHistory(prev => ({ ...prev, [currentTab]: stack.slice(0, -1) }));
       navigate(previousPath);
     } else {
       navigate(-1);
     }
   };
 
-  // Initialize tab history on mount
   useEffect(() => {
     const tabRoot = BOTTOM_TABS.find(t => location.pathname === t.path)?.path || "/";
     setCurrentTab(tabRoot);
@@ -135,8 +109,8 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-border bg-card fixed inset-y-0 left-0 z-30">
+      {/* Sidebar — visible at ≥768px */}
+      <aside style={{ display: 'none' }} className="sidebar-panel w-64 flex-col border-r border-border bg-card fixed inset-y-0 left-0 z-30">
         <div className="p-6 border-b border-border">
           <Link to="/" className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -148,7 +122,7 @@ export default function Layout() {
             </div>
           </Link>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(item => {
             const active = location.pathname === item.path;
             return (
@@ -176,9 +150,9 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Mobile Header */}
+      {/* Mobile Header — hidden at ≥768px */}
       <div
-        className="md:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border"
+        className="mobile-header fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="flex items-center px-4 h-14">
@@ -201,8 +175,8 @@ export default function Layout() {
         </div>
       </div>
 
-      {/* Main Content with route slide transitions */}
-      <main className="flex-1 md:ml-64 pt-14 md:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 overflow-x-hidden">
+      {/* Main Content */}
+      <main className="app-main flex-1 overflow-x-hidden">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
@@ -210,16 +184,16 @@ export default function Layout() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -16 }}
             transition={{ duration: 0.18, ease: "easeInOut" }}
-            className="max-w-7xl mx-auto p-4 md:p-8"
+            className="max-w-7xl mx-auto p-4 md:p-6"
           >
             <Outlet />
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Mobile Bottom Tab Bar */}
+      {/* Mobile Bottom Tab Bar — hidden at ≥768px */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border flex"
+        className="mobile-tabs fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border flex"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {BOTTOM_TABS.map(item => (

@@ -115,6 +115,21 @@ button, a, [role="button"] {
   -webkit-user-select: none;
 }
 
+/* ── Layout responsive breakpoint: sidebar at ≥768px ── */
+/* Below 768px: mobile header + bottom tabs visible, sidebar hidden */
+.sidebar-panel { display: none !important; }
+.mobile-header { display: block; }
+.mobile-tabs   { display: flex; }
+.app-main      { margin-left: 0; padding-top: 3.5rem; padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
+
+/* At ≥768px: sidebar visible, mobile chrome hidden */
+@media (min-width: 768px) {
+  .sidebar-panel { display: flex !important; }
+  .mobile-header { display: none !important; }
+  .mobile-tabs   { display: none !important; }
+  .app-main      { margin-left: 16rem; padding-top: 0; padding-bottom: 0; }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

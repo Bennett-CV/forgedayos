@@ -53,7 +53,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
           </div>
           <Link to="/log">
@@ -65,7 +65,7 @@ export default function Dashboard() {
         </div>
 
         {/* Compounding Score + Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <CompoundingScore activities={activities} />
           <MomentumChart activities={activities} />
         </div>
@@ -73,7 +73,7 @@ export default function Dashboard() {
         {/* 5 Pillars */}
         <div>
           <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">The 5 Pillars</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {PILLAR_KEYS.map((pillar, i) => (
               <PillarCard key={pillar} pillar={pillar} activities={activities} index={i} />
             ))}
@@ -81,7 +81,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent + Projects */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <RecentActivity activities={activities} />
           <ActiveProjects projects={projects} />
         </div>
