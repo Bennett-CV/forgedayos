@@ -136,7 +136,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-card fixed inset-y-0 left-0 z-30">
+      <aside className="hidden md:flex w-64 flex-col border-r border-border bg-card fixed inset-y-0 left-0 z-30">
         <div className="p-6 border-b border-border">
           <Link to="/" className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center">
@@ -178,7 +178,7 @@ export default function Layout() {
 
       {/* Mobile Header */}
       <div
-        className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border"
+        className="md:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <div className="flex items-center px-4 h-14">
@@ -202,7 +202,7 @@ export default function Layout() {
       </div>
 
       {/* Main Content with route slide transitions */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0 overflow-x-hidden">
+      <main className="flex-1 md:ml-64 pt-14 md:pt-0 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 overflow-x-hidden">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
@@ -210,7 +210,7 @@ export default function Layout() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -16 }}
             transition={{ duration: 0.18, ease: "easeInOut" }}
-            className="max-w-7xl mx-auto p-4 lg:p-8"
+            className="max-w-7xl mx-auto p-4 md:p-8"
           >
             <Outlet />
           </motion.div>
@@ -219,7 +219,7 @@ export default function Layout() {
 
       {/* Mobile Bottom Tab Bar */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border flex"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border flex"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {BOTTOM_TABS.map(item => (
