@@ -9,6 +9,7 @@ import BudgetCategoryBar from "../components/finance/BudgetCategoryBar";
 import TransactionList from "../components/finance/TransactionList";
 import AddTransactionDrawer from "../components/finance/AddTransactionDrawer";
 import ManageCategoriesDrawer from "../components/finance/ManageCategoriesDrawer";
+import SpendingTrends from "../components/finance/SpendingTrends";
 
 export default function Finance() {
   const { user } = useAuth();
@@ -107,6 +108,7 @@ export default function Finance() {
         {[
           { id: "overview", label: "Budget" },
           { id: "transactions", label: "Transactions" },
+          { id: "trends", label: "Trends" },
         ].map(tab => (
           <button
             key={tab.id}
@@ -158,6 +160,9 @@ export default function Finance() {
       {activeTab === "transactions" && (
         <TransactionList transactions={transactions} onDeleted={load} />
       )}
+
+      {/* Trends Tab */}
+      {activeTab === "trends" && <SpendingTrends />}
 
       <AddTransactionDrawer open={addOpen} onClose={() => setAddOpen(false)} onAdded={load} categories={categories} />
       <ManageCategoriesDrawer open={manageOpen} onClose={() => setManageOpen(false)} categories={categories} onChanged={load} />

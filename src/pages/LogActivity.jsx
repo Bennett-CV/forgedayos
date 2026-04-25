@@ -7,13 +7,15 @@ import { PILLARS, PILLAR_KEYS, ACTIVITY_PRESETS } from "../lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, ArrowLeft, Zap } from "lucide-react";
+import { Check, ArrowLeft, Zap, Star } from "lucide-react";
 import { toast } from "sonner";
 import PostLogMotivation from "../components/log/PostLogMotivation";
-import { calculateMomentumScore, getStreak } from "../lib/momentum";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function LogActivity() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const focusedPillars = user?.focused_pillars || [];
   const [selectedPillar, setSelectedPillar] = useState(null);
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [customTitle, setCustomTitle] = useState("");
@@ -66,7 +68,34 @@ export default function LogActivity() {
 
       {/* Pillar Selection */}
       <div>
-        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3 block">Select Pillar</label>
+        {focusedPillars.length > 0 && (
+          <div className="mb-4">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2 block flex items-center gap-1">
+              <Star className="h-3 w-3 text-accent" /> Your Focus
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {focusedPillars.map(key => {
+                const p = PILLARS[key];
+                if (!p) return null;
+                const Icon = p.icon;
+                const active = selectedPillar === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setSelectedPillar(key); setSelectedPreset(null); }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all duration-200 ${
+                      active ? `${p.bgClass} ${p.borderClass} ${p.textClass}` : `border-border hover:${p.borderClass} hover:bg-secondary/50`
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 ${active ? p.textClass : 'text-muted-foreground'}`} />
+                    <span className={`text-xs font-semibold ${active ? p.textClass : 'text-muted-foreground'}`}>{p.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2 block">All Pillars</label>
         <div className="grid grid-cols-5 gap-2">
           {PILLAR_KEYS.map(key => {
             const p = PILLARS[key];

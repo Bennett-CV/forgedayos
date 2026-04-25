@@ -15,6 +15,7 @@ import GoalProgress from "../components/dashboard/GoalProgress";
 import { PILLAR_KEYS } from "../lib/constants";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
+import EmptyStateDashboard from "../components/dashboard/EmptyStateDashboard";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -46,6 +47,7 @@ export default function Dashboard() {
   }
 
   const today = format(new Date(), "EEEE, MMMM d");
+  const isEmpty = activities.length === 0;
 
   return (
     <>
@@ -65,33 +67,40 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {/* Compounding Score + Chart */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CompoundingScore activities={activities} />
-          <MomentumChart activities={activities} />
-        </div>
+        {/* Empty state for new users */}
+        {isEmpty ? (
+          <EmptyStateDashboard user={user} />
+        ) : (
+          <>
+            {/* Compounding Score + Chart */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CompoundingScore activities={activities} />
+              <MomentumChart activities={activities} />
+            </div>
 
-        {/* 5 Pillars */}
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">The 5 Pillars</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {PILLAR_KEYS.map((pillar, i) => (
-              <PillarCard key={pillar} pillar={pillar} activities={activities} index={i} />
-            ))}
-          </div>
-        </div>
+            {/* 5 Pillars */}
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">The 5 Pillars</h2>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {PILLAR_KEYS.map((pillar, i) => (
+                  <PillarCard key={pillar} pillar={pillar} activities={activities} index={i} />
+                ))}
+              </div>
+            </div>
 
-        {/* Recent + Projects */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <RecentActivity activities={activities} />
-          <ActiveProjects projects={projects} />
-        </div>
+            {/* Recent + Projects */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RecentActivity activities={activities} />
+              <ActiveProjects projects={projects} />
+            </div>
 
-        {/* Goal Progress */}
-        <GoalProgress activities={activities} />
+            {/* Goal Progress */}
+            <GoalProgress activities={activities} />
 
-        {/* Wealth Snapshot */}
-        <WealthSnapshot />
+            {/* Wealth Snapshot */}
+            <WealthSnapshot />
+          </>
+        )}
       </div>
     </>
   );

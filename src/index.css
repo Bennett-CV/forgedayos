@@ -130,6 +130,32 @@ button, a, [role="button"] {
   .app-main      { margin-left: 16rem; padding-top: 0; padding-bottom: 0; }
 }
 
+/* Light mode overrides */
+.light-mode {
+  --background: 0 0% 97%;
+  --foreground: 222 47% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 8%;
+  --primary: 173 80% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 20% 92%;
+  --secondary-foreground: 222 30% 20%;
+  --muted: 210 20% 94%;
+  --muted-foreground: 215 20% 40%;
+  --accent: 38 92% 50%;
+  --accent-foreground: 222 47% 6%;
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 20% 86%;
+  --input: 210 20% 86%;
+  --ring: 173 80% 38%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 222 47% 8%;
+  --sidebar-border: 210 20% 86%;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

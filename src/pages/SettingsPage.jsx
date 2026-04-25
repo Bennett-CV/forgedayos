@@ -5,7 +5,7 @@ import { PILLARS, PILLAR_KEYS } from "../lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Settings, Utensils, UserX, Zap, LogOut } from "lucide-react";
+import { Plus, Trash2, Settings, Utensils, UserX, Zap, LogOut, Sun, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -19,6 +19,17 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [nutritionGoals, setNutritionGoals] = useState({ calories: "", protein_g: "", carbs_g: "", fat_g: "" });
   const [savingGoals, setSavingGoals] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.add("light-mode");
+    } else {
+      root.classList.remove("light-mode");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   const load = async () => {
     const me = await base44.auth.me();
@@ -95,6 +106,32 @@ export default function SettingsPage() {
           <Button variant="outline" onClick={() => base44.auth.logout()} className="gap-2 text-muted-foreground hover:text-foreground">
             <LogOut className="h-4 w-4" /> Log Out
           </Button>
+        </div>
+      </div>
+
+      {/* Theme Toggle */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-0.5">Appearance</h2>
+            <p className="text-xs text-muted-foreground">Switch between dark and light mode</p>
+          </div>
+          <div className="flex items-center gap-1 rounded-xl bg-secondary/50 p-1 border border-border">
+            {[
+              { value: "dark", label: "Dark", Icon: Moon },
+              { value: "light", label: "Light", Icon: Sun },
+            ].map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  theme === value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" /> {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
