@@ -52,7 +52,7 @@ export default function GoalProgress({ activities }) {
 
       <div className="p-4 space-y-3">
         {targets.slice(0, 5).map(target => {
-          const config = PILLARS[target.pillar];
+          const config = PILLARS[target.pillar] || PILLARS["career"];
           const current = getPeriodPoints(activities, target);
           const pct = Math.min(100, Math.round((current / target.target_value) * 100));
           const done = pct >= 100;
