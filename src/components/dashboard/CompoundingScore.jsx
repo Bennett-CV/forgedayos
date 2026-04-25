@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Minus, Flame, Zap, Target } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Zap } from "lucide-react";
 import { calculateMomentumScore, calculateVelocity, getQTDScore, getStreak } from "../../lib/momentum";
+import StreakBadge from "./StreakBadge";
 
 export default function CompoundingScore({ activities }) {
   const weekScore = calculateMomentumScore(activities, 7);
@@ -27,12 +28,7 @@ export default function CompoundingScore({ activities }) {
             </div>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Compounding Score</h2>
           </div>
-          {streak > 0 && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/20">
-              <Flame className="h-3.5 w-3.5 text-accent" />
-              <span className="text-xs font-bold text-accent">{streak}d streak</span>
-            </div>
-          )}
+          <StreakBadge streak={streak} />
         </div>
 
         <div className="flex items-baseline gap-3">

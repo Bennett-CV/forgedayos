@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, ArrowLeft, Zap } from "lucide-react";
 import { toast } from "sonner";
+import PostLogMotivation from "../components/log/PostLogMotivation";
+import { calculateMomentumScore, getStreak } from "../lib/momentum";
 
 export default function LogActivity() {
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ export default function LogActivity() {
   const [notes, setNotes] = useState("");
   const [points, setPoints] = useState("");
   const [saving, setSaving] = useState(false);
+  const [motivationActivity, setMotivationActivity] = useState(null);
 
   const presets = selectedPillar ? ACTIVITY_PRESETS[selectedPillar] : [];
 
@@ -26,23 +29,27 @@ export default function LogActivity() {
     const title = selectedPreset?.title || customTitle;
     if (!title || !selectedPillar) return;
 
-    // Optimistic: navigate immediately with success toast
     setSaving(true);
     const today = format(new Date(), "yyyy-MM-dd");
-    toast.success("Activity logged! +pts earned 🔥");
-    navigate("/");
+    const earnedPoints = points ? parseInt(points) : (selectedPreset?.defaultPoints || 2);
 
     // Persist in background
-    base44.entities.Activity.create({
+    await base44.entities.Activity.create({
       pillar: selectedPillar,
       title,
       category: selectedPreset?.category || "custom",
       value: value ? parseFloat(value) : undefined,
       unit: selectedPreset?.unit || "",
-      points: points ? parseInt(points) : (selectedPreset?.defaultPoints || 2),
+      points: earnedPoints,
       date: today,
       notes: notes || undefined,
     });
+
+    // Show AI motivation popup, then auto-navigate after a delay
+    setMotivationActivity({ pillar: selectedPillar, title, points: earnedPoints });
+    toast.success(`+${earnedPoints} pts earned 🔥`);
+    setSaving(false);
+    setTimeout(() => navigate("/"), 4000);
   };
 
   return (
@@ -170,7 +177,7 @@ export default function LogActivity() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <Button
             onClick={handleSubmit}
-            disabled={saving}
+            disabled={saving || !!motivationActivity}
             className="w-full h-12 gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-base"
           >
             {saving ? (
@@ -183,6 +190,16 @@ export default function LogActivity() {
             )}
           </Button>
         </motion.div>
+      )}
+
+      {/* AI Coach motivation popup */}
+      {motivationActivity && (
+        <PostLogMotivation
+          activity={motivationActivity}
+          weekScore={0}
+          streak={0}
+          onClose={() => navigate("/")}
+        />
       )}
     </div>
   );

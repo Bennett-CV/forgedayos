@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { PILLARS, PILLAR_KEYS } from "../lib/constants";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import GuidedCheckIn from "../components/review/GuidedCheckIn";
+import ShareWeekCard from "../components/review/ShareWeekCard";
 
 export default function WeeklyReview() {
   const { user } = useAuth();
@@ -18,6 +20,7 @@ export default function WeeklyReview() {
   const [generating, setGenerating] = useState(false);
   const [currentReview, setCurrentReview] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [showCheckIn, setShowCheckIn] = useState(false);
 
   const weekStart = startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
   const weekEnd = endOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
@@ -56,12 +59,22 @@ export default function WeeklyReview() {
     pillarPoints[k] = weekActivities.filter(a => a.pillar === k).reduce((s, a) => s + (a.points || 0), 0);
   });
 
-  const generateReview = async () => {
+  const generateReview = async (checkInAnswers) => {
+    setShowCheckIn(false);
     setGenerating(true);
     const actSummary = weekActivities.map(a => `${a.title} (${a.pillar}, ${a.value || ''} ${a.unit || ''}, +${a.points}pts)`).join("\n");
     const projSummary = projects.filter(p => p.status === "active").map(p => `${p.name} (${p.progress}% complete, ${p.pillar})`).join("\n");
 
+    const checkInContext = checkInAnswers ? `
+User's self-reflection:
+- Biggest win: ${checkInAnswers.win || "—"}
+- What they missed: ${checkInAnswers.miss || "—"}
+- Energy notes: ${checkInAnswers.energy || "—"}
+- Next week focus: ${checkInAnswers.next || "—"}
+` : "";
+
     const prompt = `You are MomentumOS, a personal operating system for ambitious operators. Generate a concise, data-driven weekly review.
+${checkInContext}
 
 Week: ${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}
 Total Points: ${totalPoints}
@@ -168,8 +181,13 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
         })}
       </div>
 
+      {/* Guided Check-In */}
+      {showCheckIn && (
+        <GuidedCheckIn onComplete={(answers) => generateReview(answers)} />
+      )}
+
       {/* Generate / Review */}
-      {currentReview?.summary ? (
+      {!showCheckIn && (currentReview?.summary ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -180,7 +198,7 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
               <FileText className="h-4 w-4 text-primary" />
               <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Review</h2>
             </div>
-            <Button variant="outline" size="sm" onClick={generateReview} disabled={generating} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => setShowCheckIn(true)} disabled={generating} className="text-xs">
               {generating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
               Regenerate
             </Button>
@@ -189,24 +207,30 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
             <ReactMarkdown>{currentReview.summary}</ReactMarkdown>
           </div>
         </motion.div>
+      ) : generating ? (
+        <div className="text-center py-12 rounded-2xl border border-border bg-card">
+          <Loader2 className="h-8 w-8 text-primary animate-spin mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Generating your review...</p>
+        </div>
       ) : (
         <div className="text-center py-12 rounded-2xl border border-dashed border-border">
           <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-4">No review for this week yet.</p>
-          <Button onClick={generateReview} disabled={generating} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-            {generating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Generate Weekly Review
-              </>
-            )}
+          <Button onClick={() => setShowCheckIn(true)} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+            <Sparkles className="h-4 w-4" />
+            Start Weekly Review
           </Button>
         </div>
+      ))}
+
+      {/* Share */}
+      {currentReview?.summary && (
+        <ShareWeekCard
+          review={currentReview}
+          weekStart={weekStartStr}
+          weekEnd={weekEndStr}
+          pillarPoints={pillarPoints}
+        />
       )}
     </div>
   );

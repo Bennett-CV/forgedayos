@@ -11,6 +11,7 @@ import MomentumChart from "../components/dashboard/MomentumChart";
 import RecentActivity from "../components/dashboard/RecentActivity";
 import ActiveProjects from "../components/dashboard/ActiveProjects";
 import WealthSnapshot from "../components/dashboard/WealthSnapshot";
+import GoalProgress from "../components/dashboard/GoalProgress";
 import { PILLAR_KEYS } from "../lib/constants";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
@@ -85,6 +86,9 @@ export default function Dashboard() {
           <RecentActivity activities={activities} />
           <ActiveProjects projects={projects} />
         </div>
+
+        {/* Goal Progress */}
+        <GoalProgress activities={activities} />
 
         {/* Wealth Snapshot */}
         <WealthSnapshot />
