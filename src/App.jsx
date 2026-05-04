@@ -18,7 +18,7 @@ import Mindfulness from './pages/Mindfulness';
 import Onboarding from './pages/Onboarding';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, checkAppState } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -34,9 +34,23 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
       navigateToLogin();
       return null;
+    } else {
+      // Unknown/network error — show retry screen instead of blank crash
+      return (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-background gap-4 p-8 text-center">
+          <div className="text-4xl">⚡</div>
+          <h1 className="text-xl font-bold text-foreground">Having trouble connecting</h1>
+          <p className="text-sm text-muted-foreground max-w-xs">Check your internet connection and try again.</p>
+          <button
+            onClick={checkAppState}
+            className="mt-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      );
     }
   }
 
