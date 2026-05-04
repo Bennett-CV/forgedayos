@@ -32,16 +32,20 @@ export default function SettingsPage() {
   }, [theme]);
 
   const load = async () => {
-    const me = await base44.auth.me();
-    const data = await base44.entities.PillarTarget.filter({ created_by: me?.email }, "-created_date", 100);
-    setTargets(data);
-    const g = me?.nutrition_goals || {};
-    setNutritionGoals({
-      calories: g.calories || "",
-      protein_g: g.protein_g || "",
-      carbs_g: g.carbs_g || "",
-      fat_g: g.fat_g || "",
-    });
+    try {
+      const me = await base44.auth.me();
+      const data = await base44.entities.PillarTarget.filter({ created_by: me?.email }, "-created_date", 100);
+      setTargets(data);
+      const g = me?.nutrition_goals || {};
+      setNutritionGoals({
+        calories: g.calories || "",
+        protein_g: g.protein_g || "",
+        carbs_g: g.carbs_g || "",
+        fat_g: g.fat_g || "",
+      });
+    } catch {
+      // Best-effort: show empty settings rather than error
+    }
     setLoading(false);
   };
 

@@ -25,12 +25,16 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     if (!user?.email) return;
-    const [acts, projs] = await Promise.all([
-      base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 500),
-      base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
-    ]);
-    setActivities(acts);
-    setProjects(projs);
+    try {
+      const [acts, projs] = await Promise.all([
+        base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 500),
+        base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
+      ]);
+      setActivities(acts);
+      setProjects(projs);
+    } catch {
+      // Best-effort: show empty state rather than error on launch
+    }
     setLoading(false);
   }, []);
 
