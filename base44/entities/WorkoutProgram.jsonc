@@ -1,0 +1,51 @@
+{
+  "name": "WorkoutProgram",
+  "type": "object",
+  "properties": {
+    "day": {
+      "type": "number",
+      "description": "Day number (1-5)"
+    },
+    "label": {
+      "type": "string",
+      "description": "Display label for the day (e.g. Day 1)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "strength",
+        "cardio"
+      ],
+      "description": "Type of workout"
+    },
+    "exercises": {
+      "type": "array",
+      "description": "List of exercises for this day",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sets": {
+            "type": "number"
+          },
+          "reps": {
+            "type": "number"
+          },
+          "isAmrap": {
+            "type": "boolean"
+          },
+          "isCardio": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "day",
+    "type",
+    "exercises"
+  ]
+}

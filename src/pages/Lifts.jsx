@@ -4,9 +4,9 @@ import { useAuth } from "@/lib/AuthContext";
 import { format, startOfWeek, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Dumbbell, Activity, History, ClipboardList } from "lucide-react";
-import { WORKOUT_PROGRAM } from "../lib/workoutProgram";
 import ExerciseRow from "../components/lifts/ExerciseRow";
 import ExerciseHistory from "../components/lifts/ExerciseHistory";
+import ProgramSetup from "../components/lifts/ProgramSetup";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 
@@ -14,6 +14,7 @@ export default function Lifts() {
   const { user } = useAuth();
   const [weekOffset, setWeekOffset] = useState(0);
   const [allLogs, setAllLogs] = useState([]);
+  const [program, setProgram] = useState(null); // array of 5 day objects or null if not set up
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(1);
   const [view, setView] = useState("log");
@@ -29,18 +30,22 @@ export default function Lifts() {
 
   const load = useCallback(async () => {
     if (!user?.email) return;
-    const logs = await base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 2000);
-    setAllLogs(logs);
+    try {
+      const [logs, programDays] = await Promise.all([
+        base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 2000),
+        base44.entities.WorkoutProgram.filter({ created_by: user.email }, "day", 10),
+      ]);
+      setAllLogs(logs);
+      setProgram(programDays.length > 0 ? programDays : null);
+    } catch {
+      // best-effort
+    }
     setLoading(false);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
-
-  const currentWeekLogs = allLogs.filter(l => l.week_start === weekStart);
-  const prevWeekLogs = allLogs.filter(l => l.week_start === prevWeekStart);
-  const dayProgram = WORKOUT_PROGRAM[selectedDay];
 
   if (loading) {
     return (
@@ -49,6 +54,19 @@ export default function Lifts() {
       </div>
     );
   }
+
+  // New user with no program — show setup
+  if (!program) {
+    return <ProgramSetup onComplete={load} />;
+  }
+
+  // Build a lookup by day number
+  const programByDay = {};
+  program.forEach(d => { programByDay[d.day] = d; });
+
+  const currentWeekLogs = allLogs.filter(l => l.week_start === weekStart);
+  const prevWeekLogs = allLogs.filter(l => l.week_start === prevWeekStart);
+  const dayProgram = programByDay[selectedDay];
 
   return (
     <>
@@ -83,7 +101,8 @@ export default function Lifts() {
         {/* Day Tabs */}
         <div className="grid grid-cols-5 gap-2">
           {[1, 2, 3, 4, 5].map(day => {
-            const prog = WORKOUT_PROGRAM[day];
+            const prog = programByDay[day];
+            if (!prog) return null;
             const isCardio = prog.type === "cardio";
             const hasData = allLogs.some(l => l.day === day);
             const active = selectedDay === day;
@@ -109,7 +128,7 @@ export default function Lifts() {
         </div>
 
         {/* LOG VIEW */}
-        {view === "log" && (
+        {view === "log" && dayProgram && (
           <>
             <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
               <button onClick={() => setWeekOffset(o => o + 1)} className="p-2 rounded-lg hover:bg-secondary transition-colors min-h-[44px] min-w-[44px]">
@@ -140,14 +159,14 @@ export default function Lifts() {
                   : <Dumbbell className="h-5 w-5 text-primary" />
                 }
                 <h2 className="text-base font-bold text-foreground">
-                  {dayProgram.label} — {dayProgram.type === "cardio" ? "Cardio" : "Strength"}
+                  {dayProgram.label || `Day ${selectedDay}`} — {dayProgram.type === "cardio" ? "Cardio" : "Strength"}
                 </h2>
               </div>
               <p className="text-xs text-muted-foreground mb-4">
                 {dayProgram.type === "cardio" ? "Log your cardio duration below." : "Enter weight (lbs) and reps. Auto-saves on blur."}
               </p>
               <div>
-                {dayProgram.exercises.map(exercise => (
+                {(dayProgram.exercises || []).map(exercise => (
                   <ExerciseRow
                     key={exercise.name}
                     exercise={{ ...exercise, _day: selectedDay }}
@@ -164,7 +183,7 @@ export default function Lifts() {
         )}
 
         {/* HISTORY VIEW */}
-        {view === "history" && (
+        {view === "history" && dayProgram && (
           <motion.div
             key={`history-${selectedDay}`}
             initial={{ opacity: 0, y: 8 }}
@@ -173,13 +192,13 @@ export default function Lifts() {
           >
             <div className="flex items-center gap-2 mb-1">
               <History className="h-5 w-5 text-primary" />
-              <h2 className="text-base font-bold text-foreground">{dayProgram.label} — Full History</h2>
+              <h2 className="text-base font-bold text-foreground">{dayProgram.label || `Day ${selectedDay}`} — Full History</h2>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
               All-time weight tracking. Shows avg lbs per set and week-over-week delta (Δ).
             </p>
             <div>
-              {dayProgram.exercises
+              {(dayProgram.exercises || [])
                 .filter(e => !e.isCardio)
                 .map(exercise => (
                   <ExerciseHistory
