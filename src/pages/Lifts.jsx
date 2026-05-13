@@ -36,7 +36,9 @@ export default function Lifts() {
         base44.entities.WorkoutProgram.filter({ created_by: user.email }, "day", 10),
       ]);
       setAllLogs(logs);
-      setProgram(programDays.length > 0 ? programDays : null);
+      // Strictly ensure only this user's program days are used
+      const myDays = programDays.filter(d => d.created_by === user.email);
+      setProgram(myDays.length > 0 ? myDays : null);
     } catch {
       // best-effort
     }
