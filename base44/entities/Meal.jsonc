@@ -17,7 +17,7 @@
     },
     "food_description": {
       "type": "string",
-      "description": "Raw user input, e.g. '1 pound ground beef'"
+      "description": "Raw user input or food name"
     },
     "quantity": {
       "type": "number",
@@ -27,7 +27,12 @@
       "type": "string"
     },
     "serving_size": {
-      "type": "string"
+      "type": "string",
+      "description": "Human-readable serving label (e.g. '1 cup (240g)')"
+    },
+    "serving_size_g": {
+      "type": "number",
+      "description": "Actual grams consumed \u2014 used to reconstruct per100g for recents"
     },
     "calories": {
       "type": "number"

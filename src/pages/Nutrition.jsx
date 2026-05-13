@@ -156,6 +156,7 @@ export default function Nutrition() {
             onAdded={load}
             defaultMealType={activeMealType}
             date={currentDate}
+            recentMeals={meals}
           />
         </>
       )}
