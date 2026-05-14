@@ -130,19 +130,22 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
               <div key={i} className="space-y-1">
                 <p className="text-[9px] uppercase tracking-widest text-muted-foreground text-center">Set {i + 1}</p>
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="lbs"
                   value={setData[i]?.weight || ""}
                   onChange={e => updateField(i, "weight", e.target.value)}
+                  onFocus={e => e.target.select()}
                   onBlur={() => handleSave(i)}
                   className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
-                  />
-                  <Input
+                />
+                <Input
                   type="text"
                   inputMode="numeric"
                   placeholder="reps"
                   value={setData[i]?.reps || ""}
                   onChange={e => updateField(i, "reps", e.target.value.replace(/\D/g, ""))}
+                  onFocus={e => e.target.select()}
                   onBlur={() => handleSave(i)}
                   className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
                 />
@@ -165,10 +168,12 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
         <div className="space-y-1 max-w-[120px]">
           <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Duration (min)</p>
           <Input
-            type="number"
+            type="text"
+            inputMode="numeric"
             placeholder="60"
             value={setData[0]?.reps || ""}
-            onChange={e => updateField(0, "reps", e.target.value)}
+            onChange={e => updateField(0, "reps", e.target.value.replace(/\D/g, ""))}
+            onFocus={e => e.target.select()}
             onBlur={() => handleSave(0)}
             className="h-8 text-xs bg-secondary/50 border-border font-mono"
           />
