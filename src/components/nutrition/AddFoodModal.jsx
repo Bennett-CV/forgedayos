@@ -45,6 +45,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   // servingIndex = index into selected.servings; qty = how many servings
   const [servingIndex, setServingIndex] = useState(0);
   const [qty, setQty] = useState(1);
+  const [fetchingServings, setFetchingServings] = useState(false);
   const [saving, setSaving] = useState(false);
   const searchTimeout = useRef(null);
 
@@ -83,11 +84,24 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
     }
   }
 
-  function pickFood(food) {
+  async function pickFood(food) {
     setSelected(food);
     setServingIndex(0);
     setQty(1);
     setView("amount");
+    // Fetch real serving options (e.g. "1 cup", "1 slice") from USDA detail endpoint
+    setFetchingServings(true);
+    try {
+      const res = await base44.functions.invoke("getFoodDetails", { fdcId: food.id });
+      if (res.data.servings?.length > 0) {
+        setSelected(prev => ({ ...prev, servings: res.data.servings }));
+        setServingIndex(0);
+      }
+    } catch {
+      // Keep search-time servings
+    } finally {
+      setFetchingServings(false);
+    }
   }
 
   function pickRecent(meal) {
@@ -119,15 +133,17 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
 
     const servingG = meal.serving_size_g || 100;
     const lastLabel = meal.serving_size || "1 serving (last used)";
-    pickFood({
+    // Skip detail fetch for recents — we already have serving info
+    setSelected({
       id: meal.id + "_recent",
       name: meal.food_name || meal.food_description,
       brand: null,
       per100g,
-      servings: [
-        { label: lastLabel, grams: servingG },
-      ],
+      servings: [{ label: lastLabel, grams: servingG }],
     });
+    setServingIndex(0);
+    setQty(1);
+    setView("amount");
   }
 
   // Current grams = serving grams × quantity
@@ -338,7 +354,10 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
 
           {/* Serving size picker */}
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2 block">Serving Size</label>
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2 flex items-center gap-1.5">
+              Serving Size
+              {fetchingServings && <Loader2 className="h-3 w-3 animate-spin" />}
+            </label>
             <div className="flex flex-wrap gap-2 mb-3">
               {selected.servings.map((s, i) => (
                 <button
