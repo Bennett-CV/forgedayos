@@ -56,19 +56,20 @@ Deno.serve(async (req) => {
           if (food.servingSizeUnit.toLowerCase() === 'oz') servingGrams = food.servingSize * 28.35;
           else if (food.servingSizeUnit.toLowerCase() === 'g') servingGrams = food.servingSize;
           if (servingGrams > 0) {
-            const label = `1 serving (${Math.round(servingGrams)}g)`;
-            servings.push({ label, grams: parseFloat(servingGrams.toFixed(1)) });
+            servings.push({ label: '1 serving', grams: parseFloat(servingGrams.toFixed(1)) });
           }
         }
 
-        // Common household measures from USDA
+        // Common household measures from USDA (e.g. "1 cup", "1 tbsp", "1 slice")
         const householdMeasure = food.foodMeasures?.find(m => m.gramWeight > 0);
         if (householdMeasure) {
-          servings.push({ label: `${householdMeasure.disseminationText} (${Math.round(householdMeasure.gramWeight)}g)`, grams: householdMeasure.gramWeight });
+          servings.push({ label: householdMeasure.disseminationText, grams: householdMeasure.gramWeight });
         }
 
-        // Always include 100g as reference
-        servings.push({ label: '100g', grams: 100 });
+        // Fallback only when no natural serving exists — keep grams internal
+        if (servings.length === 0) {
+          servings.push({ label: '1 portion', grams: 100 });
+        }
 
         // Deduplicate by grams
         const seen = new Set();

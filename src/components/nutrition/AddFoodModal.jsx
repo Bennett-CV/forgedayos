@@ -42,9 +42,9 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null);
-  // servingIndex = index into selected.servings; customGrams used when typing custom amount
+  // servingIndex = index into selected.servings; qty = how many servings
   const [servingIndex, setServingIndex] = useState(0);
-  const [customGrams, setCustomGrams] = useState("");
+  const [qty, setQty] = useState(1);
   const [saving, setSaving] = useState(false);
   const searchTimeout = useRef(null);
 
@@ -58,7 +58,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
       setQuery("");
       setResults([]);
       setSelected(null);
-      setCustomGrams("");
+      setQty(1);
       setManual({ name: "", calories: "", protein_g: "", carbs_g: "", fat_g: "", fiber_g: "" });
     }
   }, [open, defaultMealType]);
@@ -86,7 +86,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   function pickFood(food) {
     setSelected(food);
     setServingIndex(0);
-    setCustomGrams("");
+    setQty(1);
     setView("amount");
   }
 
@@ -118,22 +118,21 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
     }
 
     const servingG = meal.serving_size_g || 100;
+    const lastLabel = meal.serving_size || "1 serving (last used)";
     pickFood({
       id: meal.id + "_recent",
       name: meal.food_name || meal.food_description,
       brand: null,
       per100g,
       servings: [
-        { label: `${Math.round(servingG)}g (last used)`, grams: servingG },
-        { label: "100g", grams: 100 },
+        { label: lastLabel, grams: servingG },
       ],
     });
   }
 
-  // Current grams from serving selection or custom
+  // Current grams = serving grams × quantity
   function currentGrams() {
-    if (customGrams && parseFloat(customGrams) > 0) return parseFloat(customGrams);
-    if (selected && selected.servings[servingIndex]) return selected.servings[servingIndex].grams;
+    if (selected && selected.servings[servingIndex]) return selected.servings[servingIndex].grams * (qty || 1);
     return 100;
   }
 
@@ -163,7 +162,8 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
       } else {
         if (!selected || !macros) { setSaving(false); return; }
         const grams = currentGrams();
-        const servingLabel = customGrams ? `${Math.round(grams)}g (custom)` : selected.servings[servingIndex]?.label || `${Math.round(grams)}g`;
+        const baseLabel = selected.servings[servingIndex]?.label || "1 serving";
+        const servingLabel = qty > 1 ? `${qty}× ${baseLabel}` : baseLabel;
         await base44.entities.Meal.create({
           date: mealDate,
           meal_type: mealType,
@@ -345,9 +345,9 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
                   key={i}
                   type="button"
                   onPointerDown={e => e.stopPropagation()}
-                  onClick={() => { setServingIndex(i); setCustomGrams(""); }}
+                  onClick={() => { setServingIndex(i); setQty(1); }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[44px] transition-colors ${
-                    servingIndex === i && !customGrams
+                    servingIndex === i
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary/50 text-muted-foreground hover:text-foreground"
                   }`}
@@ -356,16 +356,33 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min="0"
-                placeholder="Custom grams..."
-                value={customGrams}
-                onChange={e => setCustomGrams(e.target.value)}
-                className="bg-secondary/50 border-border w-36 font-mono"
-              />
-              <span className="text-xs text-muted-foreground">g (custom)</span>
+            {/* Quantity stepper */}
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">How many?</label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => setQty(q => Math.max(1, q - 1))}
+                className="h-9 w-9 rounded-lg bg-secondary/50 text-foreground font-bold text-sm flex items-center justify-center min-h-[44px] min-w-[44px]"
+              >−</button>
+              <span className="font-mono text-sm font-bold text-foreground w-8 text-center">{qty}×</span>
+              <button
+                type="button"
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => setQty(q => Math.min(20, q + 1))}
+                className="h-9 w-9 rounded-lg bg-secondary/50 text-foreground font-bold text-sm flex items-center justify-center min-h-[44px] min-w-[44px]"
+              >+</button>
+              {[2, 3, 4].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => setQty(n)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[44px] transition-colors ${
+                    qty === n ? "bg-primary text-primary-foreground" : "bg-secondary/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >{n}×</button>
+              ))}
             </div>
           </div>
 
@@ -373,7 +390,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
           {macros && (
             <div className="rounded-xl border border-border bg-secondary/30 p-4">
               <p className="text-[10px] text-muted-foreground mb-3">
-                Macros for {customGrams ? `${customGrams}g` : selected.servings[servingIndex]?.label}
+                Macros for {qty > 1 ? `${qty}× ` : ""}{selected.servings[servingIndex]?.label}
               </p>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -399,7 +416,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
             type="button"
             onClick={handleSave}
             onPointerDown={e => e.stopPropagation()}
-            disabled={saving || (customGrams && parseFloat(customGrams) <= 0)}
+            disabled={saving}
             className="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-md bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
