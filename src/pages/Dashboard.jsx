@@ -36,7 +36,7 @@ export default function Dashboard() {
       // Best-effort: show empty state rather than error on launch
     }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => { load(); }, [load, user]);
 
