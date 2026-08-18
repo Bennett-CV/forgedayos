@@ -24,8 +24,16 @@ export const AuthProvider = ({ children }) => {
       
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
+      // base44's own hosting is same-origin with its backend and doesn't always
+      // provide an appBaseUrl, so only go absolute when we're actually cross-origin
+      // (e.g. hosted on Vercel) — otherwise keep the relative path base44 expects.
+      const normalizedAppBaseUrl = appParams.appBaseUrl ? appParams.appBaseUrl.replace(/\/+$/, '') : '';
+      const isCrossOrigin =
+        typeof window !== 'undefined' &&
+        normalizedAppBaseUrl &&
+        window.location.origin !== normalizedAppBaseUrl;
       const appClient = createAxiosClient({
-        baseURL: `${appParams.appBaseUrl.replace(/\/+$/, '')}/api/apps/public`,
+        baseURL: `${isCrossOrigin ? normalizedAppBaseUrl : ''}/api/apps/public`,
         headers: {
           'X-App-Id': appParams.appId
         },
