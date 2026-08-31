@@ -1,6 +1,6 @@
 import { Zap, ArrowLeft } from "lucide-react";
 
-const LAST_UPDATED = "August 31, 2026";
+const LAST_UPDATED = "August 30, 2026";
 
 function Section({ title, children }) {
   return (
@@ -59,6 +59,14 @@ export default function TermsOfUse() {
             to log meals, workouts, weight, journal entries, projects, and financial transactions.
             You agree to use the Service only for lawful purposes and not to misuse, disrupt, or
             attempt to gain unauthorized access to it.
+          </p>
+        </Section>
+
+        <Section title="Your Data and Service Availability">
+          <p>
+            You own the data you enter into the Service and can export or delete it at any time
+            from within the app. The Service is provided "as is" without warranty and may change
+            or be unavailable at any time. Forgeday is built and hosted on Base44.
           </p>
         </Section>
 

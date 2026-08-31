@@ -1,6 +1,6 @@
 import { Zap, ArrowLeft } from "lucide-react";
 
-const LAST_UPDATED = "August 31, 2026";
+const LAST_UPDATED = "August 30, 2026";
 
 function Section({ title, children }) {
   return (
@@ -64,9 +64,11 @@ export default function PrivacyPolicy() {
 
         <Section title="Data Sharing">
           <p>
-            We do not sell your personal information. We may share data with service providers that
-            help us operate the Service (such as hosting, analytics, and AI providers) under
-            appropriate confidentiality obligations, and where required by law.
+            Forgeday is built and hosted on Base44, and your data is stored on Base44
+            infrastructure. We do not sell your personal information to third parties for
+            advertising. We may share data with service providers that help us operate the
+            Service (such as hosting, analytics, and AI providers) under appropriate
+            confidentiality obligations, and where required by law.
           </p>
         </Section>
 
@@ -75,6 +77,14 @@ export default function PrivacyPolicy() {
             We use reasonable technical and organizational measures to protect your information.
             However, no method of transmission or storage is completely secure, and we cannot
             guarantee absolute security.
+          </p>
+        </Section>
+
+        <Section title="Health and Financial Data">
+          <p>
+            The app does not use HealthKit and does not read or write Apple Health data. The
+            Finance section is tracking-only: we do not process payments in the app and do not
+            collect or store payment card details.
           </p>
         </Section>
 
@@ -113,7 +123,7 @@ export default function PrivacyPolicy() {
         <Section title="Contact Us">
           <p>
             If you have questions about this Privacy Policy or your data, contact us through the
-            app's Settings page or at support.
+            app's Settings page.
           </p>
         </Section>
       </main>
