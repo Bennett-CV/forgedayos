@@ -8,6 +8,7 @@ import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import LegalFooter from "@/components/LegalFooter";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -39,8 +40,8 @@ export default function Login() {
   return (
     <AuthLayout
       icon={LogIn}
-      title="Welcome back"
-      subtitle="Log in to your account"
+      title="Welcome to Forgeday"
+      subtitle="PERSONAL OS"
       footer={
         <>
           Don't have an account?{" "}
@@ -50,6 +51,7 @@ export default function Login() {
           >
             Create one
           </Link>
+          <LegalFooter className="mt-6" />
         </>
       }
     >

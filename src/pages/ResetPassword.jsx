@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, Loader2, AlertTriangle } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import LegalFooter from "@/components/LegalFooter";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -41,9 +42,12 @@ export default function ResetPassword() {
         title="Invalid reset link"
         subtitle="This password reset link is missing or invalid"
         footer={
-          <Link to="/forgot-password" className="text-primary font-medium hover:underline">
-            Request a new link
-          </Link>
+          <>
+            <Link to="/forgot-password" className="text-primary font-medium hover:underline">
+              Request a new link
+            </Link>
+            <LegalFooter className="mt-6" />
+          </>
         }
       >
         <p className="text-sm text-foreground text-center">
@@ -58,6 +62,7 @@ export default function ResetPassword() {
       icon={Lock}
       title="New password"
       subtitle="Enter your new password below"
+      footer={<LegalFooter className="mt-6" />}
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
