@@ -73,7 +73,7 @@ User's self-reflection:
 - Next week focus: ${checkInAnswers.next || "—"}
 ` : "";
 
-    const prompt = `You are MomentumOS, a personal operating system for ambitious operators. Generate a concise, data-driven weekly review.
+    const prompt = `You are Forgeday, a personal operating system for ambitious operators. Generate a concise, data-driven weekly review.
 ${checkInContext}
 
 Week: ${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}
