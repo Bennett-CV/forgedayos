@@ -4,7 +4,6 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import LogActivity from './pages/LogActivity';
@@ -18,18 +17,27 @@ import Mindfulness from './pages/Mindfulness';
 import Onboarding from './pages/Onboarding';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Routes that render without authentication — no redirect to login
-const PUBLIC_ROUTES = ['/privacy', '/terms'];
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/privacy', '/terms'];
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user, checkAppState } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, user } = useAuth();
   const location = useLocation();
 
-  // Public legal pages render without auth — no redirect, no loading gate
+  // Public routes render without auth — login, register, legal pages
   if (PUBLIC_ROUTES.includes(location.pathname)) {
     return (
       <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfUse />} />
       </Routes>
@@ -45,50 +53,27 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    } else {
-      // Unknown/network error — show retry screen instead of blank crash
-      return (
-        <div className="fixed inset-0 flex flex-col items-center justify-center bg-background gap-4 p-8 text-center">
-          <div className="text-4xl">⚡</div>
-          <h1 className="text-xl font-bold text-foreground">Having trouble connecting</h1>
-          <p className="text-sm text-muted-foreground max-w-xs">Check your internet connection and try again.</p>
-          <button
-            onClick={checkAppState}
-            className="mt-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
-          >
-            Retry
-          </button>
-        </div>
-      );
-    }
-  }
-
   // Redirect new users to onboarding
   const needsOnboarding = user && !user.onboarding_completed;
 
-  // Render the main app
+  // Protected app routes — unauthenticated users land on /login
   return (
     <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={needsOnboarding ? <Navigate to="/onboarding" replace /> : <Dashboard />} />
-        <Route path="/log" element={<LogActivity />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/review" element={<WeeklyReview />} />
-        <Route path="/lifts" element={<Lifts />} />
-        <Route path="/nutrition" element={<Nutrition />} />
-        <Route path="/finance" element={<Finance />} />
-        <Route path="/mindfulness" element={<Mindfulness />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="*" element={<PageNotFound />} />
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={needsOnboarding ? <Navigate to="/onboarding" replace /> : <Dashboard />} />
+          <Route path="/log" element={<LogActivity />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/review" element={<WeeklyReview />} />
+          <Route path="/lifts" element={<Lifts />} />
+          <Route path="/nutrition" element={<Nutrition />} />
+          <Route path="/finance" element={<Finance />} />
+          <Route path="/mindfulness" element={<Mindfulness />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+        </Route>
       </Route>
+      <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
 };
