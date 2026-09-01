@@ -15,9 +15,16 @@ export default function Projects() {
   const [tab, setTab] = useState("active");
 
   const load = async () => {
-    if (!user?.email) return;
-    const data = await base44.entities.Project.filter({ created_by: user.email }, "-created_date", 100);
-    setProjects(data);
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const data = await base44.entities.Project.filter({ created_by: user.email }, "-created_date", 100);
+      setProjects(data);
+    } catch {
+      // best-effort
+    }
     setLoading(false);
   };
 

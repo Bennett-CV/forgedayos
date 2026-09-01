@@ -28,12 +28,16 @@ export default function Nutrition() {
 
   const load = async () => {
     if (!user?.email) return;
-    const [data, me] = await Promise.all([
-      base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 500),
-      base44.auth.me(),
-    ]);
-    setMeals(data);
-    setGoals(me?.nutrition_goals || null);
+    try {
+      const [data, me] = await Promise.all([
+        base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 500),
+        base44.auth.me(),
+      ]);
+      setMeals(data);
+      setGoals(me?.nutrition_goals || null);
+    } catch {
+      // best-effort
+    }
     setLoading(false);
   };
 

@@ -27,16 +27,23 @@ export default function WeeklyReview() {
   const weekEndStr = format(weekEnd, "yyyy-MM-dd");
 
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
     async function load() {
-      const [acts, projs, revs] = await Promise.all([
-        base44.entities.Activity.filter({ created_by: user.email }, "-date", 500),
-        base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
-        base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50),
-      ]);
-      setActivities(acts);
-      setProjects(projs);
-      setReviews(revs);
+      try {
+        const [acts, projs, revs] = await Promise.all([
+          base44.entities.Activity.filter({ created_by: user.email }, "-date", 500),
+          base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
+          base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50),
+        ]);
+        setActivities(acts);
+        setProjects(projs);
+        setReviews(revs);
+      } catch {
+        // best-effort
+      }
       setLoading(false);
     }
     load();

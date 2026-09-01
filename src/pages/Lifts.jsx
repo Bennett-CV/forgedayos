@@ -35,7 +35,10 @@ export default function Lifts() {
   );
 
   const load = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
     try {
       const [logs, programDays] = await Promise.all([
         base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 2000),

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
-import { Dumbbell, Plus, Trash2, Activity, Copy, ChevronDown, ChevronUp } from "lucide-react";
+import { Dumbbell, Plus, Trash2, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WORKOUT_PROGRAM } from "@/lib/workoutProgram";
@@ -105,9 +105,8 @@ export default function ProgramSetup({ onComplete }) {
             onClick={handleUseTemplate}
             className="editorial-card p-5 text-left hover:border-clay transition-all"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <Copy className="h-5 w-5 text-primary" />
-              <span className="font-bold text-foreground">Use a starter template</span>
+            <div className="mb-2">
+              <span className="font-semibold text-ink">Use a starter template</span>
             </div>
             <p className="text-sm text-muted-foreground">Load a pre-built 5-day dumbbell program (strength + cardio days). You can customize it before saving.</p>
           </button>
@@ -116,9 +115,8 @@ export default function ProgramSetup({ onComplete }) {
             onClick={handleBuildOwn}
             className="editorial-card p-5 text-left"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <Dumbbell className="h-5 w-5 text-muted-foreground" />
-              <span className="font-bold text-foreground">Build my own program</span>
+            <div className="mb-2">
+              <span className="font-semibold text-ink">Build my own program</span>
             </div>
             <p className="text-sm text-muted-foreground">Start from scratch and add your own exercises for each day.</p>
           </button>

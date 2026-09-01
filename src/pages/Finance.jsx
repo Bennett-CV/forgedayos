@@ -25,13 +25,20 @@ export default function Finance() {
   const isCurrentMonth = monthKey === format(new Date(), "yyyy-MM");
 
   const load = async () => {
-    if (!user?.email) return;
-    const [txns, cats] = await Promise.all([
-      base44.entities.Transaction.filter({ month: monthKey, created_by: user.email }),
-      base44.entities.BudgetCategory.filter({ created_by: user.email }),
-    ]);
-    setTransactions(txns);
-    setCategories(cats);
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const [txns, cats] = await Promise.all([
+        base44.entities.Transaction.filter({ month: monthKey, created_by: user.email }),
+        base44.entities.BudgetCategory.filter({ created_by: user.email }),
+      ]);
+      setTransactions(txns);
+      setCategories(cats);
+    } catch {
+      // best-effort
+    }
     setLoading(false);
   };
 

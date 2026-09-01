@@ -27,8 +27,12 @@ export default function Mindfulness() {
 
   const load = useCallback(async () => {
     if (!user?.email) return;
-    const data = await base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 200);
-    setEntries(data);
+    try {
+      const data = await base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 200);
+      setEntries(data);
+    } catch {
+      // best-effort
+    }
     setLoading(false);
   }, [user]);
 

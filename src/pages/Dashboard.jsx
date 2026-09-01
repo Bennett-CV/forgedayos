@@ -28,7 +28,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
     try {
       const [acts, projs] = await Promise.all([
         base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 500),

@@ -8,12 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { useAuth } from "@/lib/AuthContext";
 
 export default function LogActivity() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const focusedPillars = user?.focused_pillars || [];
   const [selectedPillar, setSelectedPillar] = useState(null);
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [customTitle, setCustomTitle] = useState("");
@@ -33,19 +30,22 @@ export default function LogActivity() {
     const today = format(new Date(), "yyyy-MM-dd");
     const earnedPoints = points ? parseInt(points) : (selectedPreset?.defaultPoints || 2);
 
-    await base44.entities.Activity.create({
-      pillar: selectedPillar,
-      title,
-      category: selectedPreset?.category || "custom",
-      value: value ? parseFloat(value) : undefined,
-      unit: selectedPreset?.unit || "",
-      points: earnedPoints,
-      date: today,
-      notes: notes || undefined,
-    });
-
-    setSuccess({ pillar: selectedPillar, title, points: earnedPoints });
-    toast.success(`+${earnedPoints} pts logged`);
+    try {
+      await base44.entities.Activity.create({
+        pillar: selectedPillar,
+        title,
+        category: selectedPreset?.category || "custom",
+        value: value ? parseFloat(value) : undefined,
+        unit: selectedPreset?.unit || "",
+        points: earnedPoints,
+        date: today,
+        notes: notes || undefined,
+      });
+      setSuccess({ pillar: selectedPillar, title, points: earnedPoints });
+      toast.success(`+${earnedPoints} pts logged`);
+    } catch {
+      toast.error("Could not save activity. Try again.");
+    }
     setSaving(false);
   };
 
@@ -96,22 +96,20 @@ export default function LogActivity() {
           {PILLAR_KEYS.map(key => {
             const p = PILLARS[key];
             const active = selectedPillar === key;
-            const focused = focusedPillars.includes(key);
-            return (
-              <button
-                key={key}
-                onClick={() => { setSelectedPillar(key); setSelectedPreset(null); setCustomTitle(""); setPoints(""); }}
-                className={`flex flex-col items-center gap-2 py-3 px-1 rounded-[4px] border bg-card min-h-[72px] ${
-                  active ? "border-clay" : "border-border"
-                }`}
-              >
-                <span className="h-[7px] w-[7px] rounded-full" style={{ background: p.color }} />
-                <span className={`text-[8px] font-bold uppercase tracking-[0.06em] text-center leading-tight ${active ? "text-ink" : "text-faint"}`}>
-                  {p.label}
-                </span>
-                {focused && <span className="h-1 w-1 rounded-full bg-clay" />}
-              </button>
-            );
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setSelectedPillar(key); setSelectedPreset(null); setCustomTitle(""); setPoints(""); }}
+                    className={`flex flex-col items-center gap-2 py-3 px-1 rounded-[4px] border bg-card min-h-[72px] ${
+                      active ? "border-clay" : "border-border"
+                    }`}
+                  >
+                    <span className="h-[7px] w-[7px] rounded-full" style={{ background: p.color }} />
+                    <span className={`text-[8px] font-bold uppercase tracking-[0.06em] text-center leading-tight ${active ? "text-ink" : "text-faint"}`}>
+                      {p.label}
+                    </span>
+                  </button>
+                );
           })}
         </div>
       </div>
