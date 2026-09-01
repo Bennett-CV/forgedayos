@@ -1,5 +1,4 @@
-import { format, startOfWeek } from "date-fns";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { format } from "date-fns";
 
 export default function ExerciseHistory({ exercise, allLogs }) {
   // Get all unique week_starts that have data for this exercise, sorted desc
@@ -68,8 +67,7 @@ export default function ExerciseHistory({ exercise, allLogs }) {
                   </td>
                   <td className="py-1.5 text-center">
                     {delta != null ? (
-                      <span className={`flex items-center justify-center gap-0.5 font-mono font-bold ${delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                        {delta > 0 ? <TrendingUp className="h-3 w-3" /> : delta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                      <span className={`font-mono font-semibold ${delta > 0 ? "text-success" : delta < 0 ? "text-overbudget" : "text-caption"}`}>
                         {delta > 0 ? "+" : ""}{delta.toFixed(1)}
                       </span>
                     ) : <span className="text-muted-foreground/30">—</span>}

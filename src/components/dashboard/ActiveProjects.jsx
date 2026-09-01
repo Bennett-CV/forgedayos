@@ -1,55 +1,51 @@
 import { motion } from "framer-motion";
 import { PILLARS } from "../../lib/constants";
-import { FolderKanban, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Progress } from "@/components/ui/progress";
 
 export default function ActiveProjects({ projects }) {
   const active = projects.filter(p => p.status === "active").slice(0, 3);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.35 }}
-      className="rounded-2xl border border-border bg-card"
+      transition={{ delay: 0.18 }}
     >
-      <div className="p-6 pb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FolderKanban className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Active Projects</h2>
-        </div>
-        <Link to="/projects" className="text-xs text-primary hover:underline flex items-center gap-1">
-          View all <ArrowRight className="h-3 w-3" />
+      <div className="flex items-center justify-between mb-3">
+        <p className="micro-label">Active Projects</p>
+        <Link to="/projects" className="text-[12px] font-semibold text-clay min-h-0 min-w-0">
+          View all
         </Link>
       </div>
-
-      <div className="px-4 pb-4 space-y-2">
-        {active.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">No active projects.</p>
-            <Link to="/projects" className="text-xs text-primary hover:underline mt-1 inline-block">
-              Create one →
-            </Link>
-          </div>
-        ) : (
-          active.map((project, i) => {
+      {active.length === 0 ? (
+        <div className="editorial-card px-4 py-6 text-center">
+          <p className="text-sm text-caption">No active projects.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {active.map((project, i) => {
             const pillar = PILLARS[project.pillar];
+            const pct = project.progress || 0;
+            const metric = project.target_value
+              ? `${project.current_value || 0} / ${project.target_value}`
+              : `${pct}%`;
             return (
-              <div key={project.id || i} className="p-3 rounded-xl bg-secondary/30 border border-border/50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-2 w-2 rounded-full`} style={{ background: pillar?.color }} />
-                    <span className="text-sm font-medium text-foreground">{project.name}</span>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-muted-foreground">{project.progress || 0}%</span>
+              <div key={project.id || i} className="editorial-card p-4">
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-[14px] font-semibold text-ink truncate pr-3">{project.name}</p>
+                  <span className="font-mono text-[12px] text-caption shrink-0">{metric}</span>
                 </div>
-                <Progress value={project.progress || 0} className="h-1.5" />
+                <div className="h-[3px] rounded-[2px] bg-track overflow-hidden">
+                  <div
+                    className="h-full rounded-[2px]"
+                    style={{ width: `${pct}%`, background: pillar?.color || "oklch(var(--clay))" }}
+                  />
+                </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </motion.div>
   );
 }

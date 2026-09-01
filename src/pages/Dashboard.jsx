@@ -2,9 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import CompoundingScore from "../components/dashboard/CompoundingScore";
 import PillarCard from "../components/dashboard/PillarCard";
 import MomentumChart from "../components/dashboard/MomentumChart";
@@ -16,6 +14,12 @@ import { PILLAR_KEYS } from "../lib/constants";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import EmptyStateDashboard from "../components/dashboard/EmptyStateDashboard";
+
+function greetingForHour(hour) {
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -45,66 +49,72 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-border border-t-clay rounded-full animate-spin" />
       </div>
     );
   }
 
   const today = format(new Date(), "EEEE, MMMM d");
   const isEmpty = activities.length === 0;
+  const firstName = user?.full_name?.split(" ")[0] || "there";
+  const greeting = greetingForHour(new Date().getHours());
 
   return (
     <>
       <PullToRefreshIndicator pullY={pullY} pullProgress={pullProgress} isRefreshing={isRefreshing} />
-      <div className="space-y-6 animate-slide-up">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
-          </div>
-          <Link to="/log">
-            <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold min-h-[44px]">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Log Activity</span>
-            </Button>
-          </Link>
+      <div className="space-y-[22px]">
+        <div>
+          <p className="text-[12px] text-caption">{today}</p>
+          <h1 className="mt-1 font-serif text-[26px] font-semibold tracking-tight text-ink leading-tight">
+            {greeting}, {firstName}.
+          </h1>
         </div>
 
-        {/* Empty state for new users */}
         {isEmpty ? (
           <EmptyStateDashboard user={user} />
         ) : (
           <>
-            {/* Compounding Score + Chart */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <CompoundingScore activities={activities} />
-              <MomentumChart activities={activities} />
-            </div>
+            <CompoundingScore activities={activities} />
+            <MomentumChart activities={activities} />
 
-            {/* 5 Pillars */}
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">The 5 Pillars</h2>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <p className="micro-label mb-3">The 5 Pillars</p>
+              <div className="grid grid-cols-5 gap-1.5">
                 {PILLAR_KEYS.map((pillar, i) => (
                   <PillarCard key={pillar} pillar={pillar} activities={activities} index={i} />
                 ))}
               </div>
             </div>
 
-            {/* Recent + Projects */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <RecentActivity activities={activities} />
-              <ActiveProjects projects={projects} />
-            </div>
+            <Link
+              to="/log"
+              className="flex items-center justify-center w-full min-h-[48px] rounded-[4px] bg-clay text-clay-fg text-[15px] font-semibold hover:bg-clay-hover"
+            >
+              + Log Activity
+            </Link>
 
-            {/* Goal Progress */}
+            <RecentActivity activities={activities} />
+            <ActiveProjects projects={projects} />
             <GoalProgress activities={activities} />
-
-            {/* Wealth Snapshot */}
             <WealthSnapshot />
           </>
         )}
+
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          {[
+            { to: "/review", label: "Review" },
+            { to: "/projects", label: "Projects" },
+            { to: "/finance", label: "Finance" },
+          ].map(link => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="flex items-center justify-center min-h-[44px] rounded-[4px] border border-border bg-card text-[11px] font-bold uppercase tracking-[0.12em] text-ink"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </>
   );

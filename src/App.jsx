@@ -48,7 +48,7 @@ const AuthenticatedApp = () => {
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[oklch(0.85_0.012_80)] border-t-[oklch(0.60_0.13_35)] rounded-full animate-spin"></div>
       </div>
     );
   }

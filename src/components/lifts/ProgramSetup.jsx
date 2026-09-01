@@ -96,14 +96,14 @@ export default function ProgramSetup({ onComplete }) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-2xl mx-auto">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-foreground">Set Up Your Lifting Program</h1>
+          <h1 className="page-title">Set Up Your Lifting Program</h1>
           <p className="text-sm text-muted-foreground mt-1">Build a 5-day program to track your lifts week over week.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
           <button
             onClick={handleUseTemplate}
-            className="rounded-2xl border border-primary/40 bg-primary/5 p-6 text-left hover:bg-primary/10 transition-all"
+            className="editorial-card p-5 text-left hover:border-clay transition-all"
           >
             <div className="flex items-center gap-3 mb-2">
               <Copy className="h-5 w-5 text-primary" />
@@ -114,7 +114,7 @@ export default function ProgramSetup({ onComplete }) {
 
           <button
             onClick={handleBuildOwn}
-            className="rounded-2xl border border-border bg-card p-6 text-left hover:bg-secondary/50 transition-all"
+            className="editorial-card p-5 text-left"
           >
             <div className="flex items-center gap-3 mb-2">
               <Dumbbell className="h-5 w-5 text-muted-foreground" />
@@ -131,14 +131,14 @@ export default function ProgramSetup({ onComplete }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-2xl font-black tracking-tight text-foreground">
+        <h1 className="page-title">
           {useTemplate ? "Customize Your Program" : "Build Your Program"}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Configure each day's exercises, sets, and reps.</p>
       </div>
 
       {days.map((day, dayIdx) => (
-        <div key={day.day} className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div key={day.day} className="editorial-card overflow-hidden">
           <button
             className="w-full flex items-center justify-between p-4 hover:bg-secondary/30 transition-colors"
             onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}

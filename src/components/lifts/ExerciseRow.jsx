@@ -1,12 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { format, startOfWeek } from "date-fns";
 import { Input } from "@/components/ui/input";
-import { TrendingUp, TrendingDown, Minus, Check } from "lucide-react";
 
 export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, currentLogs, onSaved }) {
   const numSets = sets;
-  const [dirty, setDirty] = useState(false);
 
   const getLog = (logsArr, setNum) =>
     logsArr?.find(l => l.exercise === exercise.name && l.set_number === setNum);
@@ -21,6 +19,7 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
       };
     })
   );
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     setSetData(
@@ -62,7 +61,6 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
         });
 
     saveLog.then(async () => {
-      // Roll up into Activity for dashboard scoring (once per day, only for current week)
       if (isCurrentWeek) {
         const category = exercise.isCardio ? "cardio" : "lifting";
         const existing = await base44.entities.Activity.filter({ date: today, category });
@@ -94,90 +92,61 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
     setDirty(false);
   };
 
-  // Compare avg weight this week vs last
-  const currentAvgWeight = currentLogs
+  const lastWeight = prevLogs
     ?.filter(l => l.exercise === exercise.name && l.weight > 0)
-    .reduce((s, l, _, arr) => s + l.weight / arr.length, 0) || 0;
-  const prevAvgWeight = prevLogs
-    ?.filter(l => l.exercise === exercise.name && l.weight > 0)
-    .reduce((s, l, _, arr) => s + l.weight / arr.length, 0) || 0;
+    .sort((a, b) => (b.set_number || 0) - (a.set_number || 0))[0]?.weight;
 
-  const delta = currentAvgWeight > 0 && prevAvgWeight > 0
-    ? currentAvgWeight - prevAvgWeight : null;
+  const placeholder = exercise.isAmrap ? "AMRAP" : exercise.reps ? String(exercise.reps) : "lbs";
 
   return (
-    <div className="py-3 border-b border-border/50 last:border-0">
+    <div className="py-3 border-b border-border last:border-0">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">{exercise.name}</span>
-          <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-            {exercise.isAmrap ? "AMRAP" : exercise.isCardio ? "60 min" : `${exercise.reps} reps`}
-          </span>
-        </div>
-        {delta !== null && (
-          <div className={`flex items-center gap-1 text-xs font-bold font-mono ${delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-            {delta > 0 ? <TrendingUp className="h-3 w-3" /> : delta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-            {delta > 0 ? "+" : ""}{delta.toFixed(1)} lbs vs last wk
-          </div>
+        <span className="text-[14px] font-semibold text-ink">{exercise.name}</span>
+        {lastWeight != null && (
+          <span className="font-mono text-[11px] text-caption">last: {lastWeight} lbs</span>
         )}
       </div>
 
       {!exercise.isCardio && (
         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${numSets}, 1fr)` }}>
-          {Array.from({ length: numSets }, (_, i) => {
-            const prevSet = getLog(prevLogs, i + 1);
-            return (
-              <div key={i} className="space-y-1">
-                <p className="text-[9px] uppercase tracking-widest text-muted-foreground text-center">Set {i + 1}</p>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="lbs"
-                  value={setData[i]?.weight || ""}
-                  onChange={e => updateField(i, "weight", e.target.value)}
-                  onFocus={e => e.target.select()}
-                  onBlur={() => handleSave(i)}
-                  className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
-                />
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="reps"
-                  value={setData[i]?.reps || ""}
-                  onChange={e => updateField(i, "reps", e.target.value.replace(/\D/g, ""))}
-                  onFocus={e => e.target.select()}
-                  onBlur={() => handleSave(i)}
-                  className="h-8 text-xs text-center bg-secondary/50 border-border font-mono px-1"
-                />
-                {prevSet ? (
-                  <p className="text-[9px] text-center text-muted-foreground font-mono">
-                    {prevSet.weight > 0
-                      ? `${prevSet.weight}×${prevSet.reps}`
-                      : prevSet.reps > 0
-                      ? `${prevSet.reps} reps`
-                      : "— last wk"}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
+          {Array.from({ length: numSets }, (_, i) => (
+            <div key={i} className="space-y-1">
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder={placeholder}
+                value={setData[i]?.weight || ""}
+                onChange={e => updateField(i, "weight", e.target.value)}
+                onFocus={e => e.target.select()}
+                onBlur={() => handleSave(i)}
+                className="h-10 text-[13px] text-center bg-secondary border-0 font-mono px-1"
+              />
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="reps"
+                value={setData[i]?.reps || ""}
+                onChange={e => updateField(i, "reps", e.target.value.replace(/\D/g, ""))}
+                onFocus={e => e.target.select()}
+                onBlur={() => handleSave(i)}
+                className="h-8 text-[11px] text-center bg-secondary border-0 font-mono px-1"
+              />
+            </div>
+          ))}
         </div>
       )}
 
       {exercise.isCardio && (
-        <div className="space-y-1 max-w-[120px]">
-          <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Duration (min)</p>
-          <Input
-            type="text"
-            inputMode="numeric"
-            placeholder="60"
-            value={setData[0]?.reps || ""}
-            onChange={e => updateField(0, "reps", e.target.value.replace(/\D/g, ""))}
-            onFocus={e => e.target.select()}
-            onBlur={() => handleSave(0)}
-            className="h-8 text-xs bg-secondary/50 border-border font-mono"
-          />
-        </div>
+        <Input
+          type="text"
+          inputMode="numeric"
+          placeholder="min"
+          value={setData[0]?.reps || ""}
+          onChange={e => updateField(0, "reps", e.target.value.replace(/\D/g, ""))}
+          onFocus={e => e.target.select()}
+          onBlur={() => handleSave(0)}
+          className="h-10 max-w-[120px] text-center bg-secondary border-0 font-mono"
+        />
       )}
 
       {dirty && (
@@ -185,17 +154,10 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
           type="button"
           onPointerDown={e => e.stopPropagation()}
           onClick={handleSaveAll}
-          className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg min-h-[36px]"
+          className="mt-2 text-[12px] font-semibold text-clay min-h-[36px]"
         >
-          <Check className="h-3 w-3" /> Save
+          Save
         </button>
-      )}
-
-      {/* Previous week comparison */}
-      {prevAvgWeight > 0 && (
-        <p className="text-[10px] text-muted-foreground mt-1.5">
-          Last week: {prevAvgWeight.toFixed(1)} lbs avg
-        </p>
       )}
     </div>
   );

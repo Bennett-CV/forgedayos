@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,81 +6,86 @@
 
 @layer base {
   :root {
-    --font-sans: 'Inter', system-ui, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    --page: 0.90 0.01 80;
+    --shell: 0.97 0.006 80;
+    --card: 0.995 0.004 80;
+    --secondary: 0.94 0.008 80;
+    --track: 0.88 0.01 80;
+    --border: 0.85 0.012 80;
+    --border-strong: 0.80 0.012 80;
+    --ink: 0.22 0.01 80;
+    --ink-secondary: 0.30 0.01 80;
+    --muted-ink: 0.40 0.014 80;
+    --caption: 0.48 0.014 80;
+    --faint: 0.55 0.012 80;
+    --clay: 0.60 0.13 35;
+    --clay-hover: 0.52 0.14 35;
+    --clay-fg: 0.98 0.006 80;
+    --destructive-border: 0.70 0.10 25;
+    --destructive-text: 0.50 0.14 25;
+    --overbudget: 0.55 0.16 25;
+    --pillar-career: 0.55 0.13 260;
+    --pillar-lifts: 0.50 0.13 150;
+    --pillar-nutrition: 0.55 0.13 70;
+    --pillar-finance: 0.52 0.13 210;
+    --pillar-mindfulness: 0.52 0.13 335;
 
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 44% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 44% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 173 80% 50%;
-    --primary-foreground: 222 47% 6%;
-    --secondary: 222 30% 14%;
-    --secondary-foreground: 210 40% 90%;
-    --muted: 222 30% 12%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 38 92% 60%;
-    --accent-foreground: 222 47% 6%;
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 222 30% 16%;
-    --input: 222 30% 16%;
-    --ring: 173 80% 50%;
-    --chart-1: 173 80% 50%;
-    --chart-2: 142 70% 50%;
-    --chart-3: 38 92% 60%;
-    --chart-4: 262 83% 65%;
-    --chart-5: 350 80% 60%;
-    --radius: 0.75rem;
-    --sidebar-background: 222 44% 8%;
-    --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 173 80% 50%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 222 30% 14%;
-    --sidebar-accent-foreground: 210 40% 90%;
-    --sidebar-border: 222 30% 16%;
-    --sidebar-ring: 173 80% 50%;
+    --background: var(--page);
+    --foreground: var(--ink);
+    --card-foreground: var(--ink);
+    --popover: var(--card);
+    --popover-foreground: var(--ink);
+    --primary: var(--clay);
+    --primary-foreground: var(--clay-fg);
+    --secondary-foreground: var(--ink-secondary);
+    --muted: var(--secondary);
+    --muted-foreground: var(--caption);
+    --accent: var(--clay);
+    --accent-foreground: var(--clay-fg);
+    --destructive: var(--destructive-text);
+    --destructive-foreground: var(--clay-fg);
+    --input: var(--border);
+    --ring: var(--clay);
+    --chart-1: var(--pillar-career);
+    --chart-2: var(--pillar-lifts);
+    --chart-3: var(--pillar-nutrition);
+    --chart-4: var(--pillar-finance);
+    --chart-5: var(--pillar-mindfulness);
+    --radius: 4px;
+    --sidebar-background: var(--shell);
+    --sidebar-foreground: var(--ink);
+    --sidebar-primary: var(--clay);
+    --sidebar-primary-foreground: var(--clay-fg);
+    --sidebar-accent: var(--secondary);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--clay);
 
-    --success: 142 70% 50%;
-    --warning: 38 92% 60%;
-    --info: 210 100% 60%;
+    --success: 0.50 0.13 150;
+    --warning: 0.55 0.13 70;
+    --info: 0.52 0.13 210;
   }
 
+  .midnight,
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 44% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 44% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 173 80% 50%;
-    --primary-foreground: 222 47% 6%;
-    --secondary: 222 30% 14%;
-    --secondary-foreground: 210 40% 90%;
-    --muted: 222 30% 12%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 38 92% 60%;
-    --accent-foreground: 222 47% 6%;
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 222 30% 16%;
-    --input: 222 30% 16%;
-    --ring: 173 80% 50%;
-    --chart-1: 173 80% 50%;
-    --chart-2: 142 70% 50%;
-    --chart-3: 38 92% 60%;
-    --chart-4: 262 83% 65%;
-    --chart-5: 350 80% 60%;
-    --sidebar-background: 222 44% 8%;
-    --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 173 80% 50%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 222 30% 14%;
-    --sidebar-accent-foreground: 210 40% 90%;
-    --sidebar-border: 222 30% 16%;
-    --sidebar-ring: 173 80% 50%;
+    --page: 0.18 0.012 80;
+    --shell: 0.22 0.012 80;
+    --card: 0.26 0.012 80;
+    --secondary: 0.30 0.012 80;
+    --track: 0.34 0.012 80;
+    --border: 0.38 0.014 80;
+    --border-strong: 0.44 0.014 80;
+    --ink: 0.94 0.008 80;
+    --ink-secondary: 0.86 0.01 80;
+    --muted-ink: 0.72 0.012 80;
+    --caption: 0.66 0.012 80;
+    --faint: 0.58 0.012 80;
+    --clay: 0.68 0.12 35;
+    --clay-hover: 0.74 0.12 35;
+    --clay-fg: 0.18 0.01 80;
+    --destructive-border: 0.55 0.12 25;
+    --destructive-text: 0.72 0.12 25;
+    --overbudget: 0.68 0.14 25;
   }
 }
 
@@ -89,7 +94,28 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-page text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  .micro-label {
+    @apply text-[10px] font-bold uppercase tracking-[0.16em] text-caption;
+  }
+  .page-title {
+    @apply font-serif text-2xl font-semibold tracking-tight text-ink;
+  }
+  .editorial-card {
+    @apply bg-card border border-border rounded-[4px];
+  }
+  .seg-track {
+    @apply flex items-center bg-secondary p-[3px] rounded-[4px];
+  }
+  .seg-item {
+    @apply flex-1 min-h-[38px] px-3 rounded-[4px] text-[13px] font-semibold text-caption transition-colors;
+  }
+  .seg-item-active {
+    @apply bg-card text-ink shadow-sm;
   }
 }
 
@@ -115,47 +141,6 @@ button, a, [role="button"] {
   -webkit-user-select: none;
 }
 
-/* ── Layout responsive breakpoint: sidebar at ≥768px ── */
-/* Below 768px: mobile header + bottom tabs visible, sidebar hidden */
-.sidebar-panel { display: none !important; }
-.mobile-header { display: block; }
-.mobile-tabs   { display: flex; }
-.app-main      { margin-left: 0; padding-top: 3.5rem; padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
-
-/* At ≥768px: sidebar visible, mobile chrome hidden */
-@media (min-width: 768px) {
-  .sidebar-panel { display: flex !important; }
-  .mobile-header { display: none !important; }
-  .mobile-tabs   { display: none !important; }
-  .app-main      { margin-left: 16rem; padding-top: 0; padding-bottom: 0; }
-}
-
-/* Light mode overrides */
-.light-mode {
-  --background: 0 0% 97%;
-  --foreground: 222 47% 8%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 8%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 8%;
-  --primary: 173 80% 38%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 20% 92%;
-  --secondary-foreground: 222 30% 20%;
-  --muted: 210 20% 94%;
-  --muted-foreground: 215 20% 40%;
-  --accent: 38 92% 50%;
-  --accent-foreground: 222 47% 6%;
-  --destructive: 0 72% 50%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 210 20% 86%;
-  --input: 210 20% 86%;
-  --ring: 173 80% 38%;
-  --sidebar-background: 0 0% 100%;
-  --sidebar-foreground: 222 47% 8%;
-  --sidebar-border: 210 20% 86%;
-}
-
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -165,9 +150,9 @@ button, a, [role="button"] {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(222 30% 20%);
+  background: oklch(0.80 0.012 80);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(222 30% 28%);
+  background: oklch(0.70 0.012 80);
 }

@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { motion } from "framer-motion";
-import { Plus, FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectForm from "../components/projects/ProjectForm";
 import ProjectCard from "../components/projects/ProjectCard";
 
@@ -35,22 +33,22 @@ export default function Projects() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-border border-t-clay rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Projects</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {projects.filter(p => p.status === "active").length} active initiatives
+          <h1 className="page-title">Projects</h1>
+          <p className="text-sm text-caption mt-0.5">
+            {projects.filter(p => p.status === "active").length} active
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-          <Plus className="h-4 w-4" /> New Project
+        <Button onClick={() => setShowForm(true)} className="bg-clay text-clay-fg hover:bg-clay-hover font-semibold">
+          New
         </Button>
       </div>
 
@@ -65,9 +63,8 @@ export default function Projects() {
 
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <div className="text-center py-16 rounded-2xl border border-dashed border-border">
-            <FolderKanban className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No {tab} projects yet.</p>
+          <div className="text-center py-16 editorial-card border-dashed">
+            <p className="text-sm text-caption">No {tab} projects yet.</p>
           </div>
         ) : (
           filtered.map(project => (

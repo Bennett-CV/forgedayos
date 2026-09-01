@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { motion } from "framer-motion";
-import { Target, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PILLARS } from "../../lib/constants";
 import { subDays, startOfMonth, format } from "date-fns";
@@ -34,25 +33,20 @@ export default function GoalProgress({ activities }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-border bg-card overflow-hidden"
+      className="editorial-card overflow-hidden"
     >
-      <div className="flex items-center justify-between p-4 pb-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-primary/20 flex items-center justify-center">
-            <Target className="h-4 w-4 text-primary" />
-          </div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Goal Progress</h2>
-        </div>
-        <Link to="/settings" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          Manage <ChevronRight className="h-3 w-3" />
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <p className="micro-label">Goal Progress</p>
+        <Link to="/settings" className="text-[12px] font-semibold text-clay min-h-0 min-w-0">
+          Manage
         </Link>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 pt-2 space-y-3">
         {targets.slice(0, 5).map(target => {
-          const config = PILLARS[target.pillar] || PILLARS["career"];
+          const config = PILLARS[target.pillar] || PILLARS.career;
           const current = getPeriodPoints(activities, target);
           const pct = Math.min(100, Math.round((current / target.target_value) * 100));
           const done = pct >= 100;
@@ -60,25 +54,24 @@ export default function GoalProgress({ activities }) {
           return (
             <div key={target.id} className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className={`inline-block h-2 w-2 rounded-full ${config.bgClass} border ${config.borderClass}`} />
-                  <span className="font-medium text-foreground">{target.metric_name}</span>
-                  <span className="text-muted-foreground capitalize">· {target.period}</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="inline-block h-[7px] w-[7px] rounded-full shrink-0" style={{ background: config.color }} />
+                  <span className="font-medium text-ink truncate">{target.metric_name}</span>
+                  <span className="text-caption capitalize">· {target.period}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className={`font-mono font-bold ${done ? "text-success" : config.textClass}`}>
-                    {Math.round(current)}
-                  </span>
-                  <span className="text-muted-foreground">/ {target.target_value} {target.unit || "pts"}</span>
-                  {done && <span className="ml-1">✓</span>}
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="font-mono font-semibold text-ink">{Math.round(current)}</span>
+                  <span className="text-caption">/ {target.target_value} {target.unit || "pts"}</span>
+                  {done && <span className="ml-1 text-success">Done</span>}
                 </div>
               </div>
-              <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+              <div className="h-[3px] rounded-[2px] bg-track overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${pct}%` }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
-                  className={`h-full rounded-full ${done ? "bg-success" : `bg-current ${config.textClass}`}`}
+                  className="h-full rounded-[2px]"
+                  style={{ background: done ? "var(--success)" : config.color }}
                 />
               </div>
             </div>

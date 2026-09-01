@@ -1,59 +1,42 @@
 import { format, parseISO } from "date-fns";
-import { Plus, Pencil, Sun, Moon, Brain } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
-const MOOD_EMOJI = { great: "🤩", good: "😊", neutral: "😐", low: "😔", rough: "😣" };
-const TYPE_ICON = { morning: Sun, evening: Moon, meditation: Brain };
 
 export default function MindfulnessLog({ entries, type, onAdd, onEdit }) {
-  const Icon = TYPE_ICON[type] || Brain;
-
   if (entries.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-        <Icon className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground mb-4">No {type} entries yet.</p>
-        <Button variant="outline" onClick={onAdd} className="gap-2">
-          <Plus className="h-4 w-4" /> Add First Entry
-        </Button>
+      <div className="editorial-card border-dashed px-4 py-8 text-center">
+        <p className="text-sm text-caption mb-3">No {type} entries yet.</p>
+        <button onClick={onAdd} className="text-[13px] font-semibold text-clay min-h-0">
+          Add first entry
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {entries.map(entry => (
-        <div key={entry.id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-muted-foreground">
-                {format(parseISO(entry.date), "EEEE, MMM d")}
-              </span>
-              {entry.mood && (
-                <span className="text-sm">{MOOD_EMOJI[entry.mood]}</span>
-              )}
-              {entry.duration_minutes && (
-                <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                  {entry.duration_minutes} min
-                </span>
-              )}
-            </div>
-            <button
-              onClick={() => onEdit(entry)}
-              className="text-muted-foreground hover:text-foreground transition-colors p-1"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
+        <button
+          key={entry.id}
+          onClick={() => onEdit(entry)}
+          className="editorial-card p-4 text-left w-full min-h-0"
+        >
+          <div className="flex items-center justify-between gap-3 mb-1.5">
+            <span className="text-[11px] text-caption">
+              {format(parseISO(entry.date), "MMM d")}
+            </span>
+            {entry.duration_minutes && (
+              <span className="font-mono text-[11px] text-caption">{entry.duration_minutes} min</span>
+            )}
+            {entry.pages_read && (
+              <span className="font-mono text-[11px] text-caption">{entry.pages_read} pages</span>
+            )}
           </div>
-          {entry.content && (
-            <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed line-clamp-4">
-              {entry.content}
-            </p>
+          {entry.content ? (
+            <p className="text-[14px] text-ink leading-relaxed line-clamp-4">{entry.content}</p>
+          ) : (
+            <p className="text-[13px] text-caption">No notes</p>
           )}
-          {!entry.content && (
-            <p className="text-xs text-muted-foreground italic">No notes</p>
-          )}
-        </div>
+        </button>
       ))}
     </div>
   );

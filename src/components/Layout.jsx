@@ -1,211 +1,93 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Plus, FolderKanban, FileText, Settings, Zap, Dumbbell, Utensils, Wallet, Sparkles, ChevronLeft } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState, useEffect } from "react";
-
-const NAV_ITEMS = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/log", label: "Log", icon: Plus },
-  { path: "/projects", label: "Projects", icon: FolderKanban },
-  { path: "/review", label: "Review", icon: FileText },
-  { path: "/lifts", label: "Lifts", icon: Dumbbell },
-  { path: "/nutrition", label: "Nutrition", icon: Utensils },
-  { path: "/finance", label: "Finance", icon: Wallet },
-  { path: "/mindfulness", label: "Mindfulness", icon: Sparkles },
-  { path: "/settings", label: "Settings", icon: Settings },
-];
 
 const BOTTOM_TABS = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/lifts", label: "Lifts", icon: Dumbbell },
-  { path: "/log", label: "Log", icon: Plus },
-  { path: "/nutrition", label: "Nutrition", icon: Utensils },
-  { path: "/mindfulness", label: "Mind", icon: Sparkles },
-  { path: "/settings", label: "Settings", icon: Settings },
+  { path: "/", label: "Today" },
+  { path: "/lifts", label: "Lifts" },
+  { path: "/log", label: "Log" },
+  { path: "/nutrition", label: "Food" },
+  { path: "/mindfulness", label: "Mind" },
 ];
 
-// Pages that are "child" pages — show Back button instead of logo on mobile
-const CHILD_PAGES = ["/projects", "/review", "/log"];
-
-function BottomTab({ item, active, currentPath, onNavigate }) {
+function BottomTab({ item, active }) {
   const navigate = useNavigate();
-  const Icon = item.icon;
 
   const handleTap = () => {
     if (active) {
-      if (currentPath === item.path) {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        navigate(item.path);
-      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      onNavigate(item.path);
+      navigate(item.path);
     }
   };
 
   return (
     <button
       onClick={handleTap}
-      className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[56px] transition-colors relative ${
-        active ? "text-primary" : "text-muted-foreground"
+      className={`flex-1 flex flex-col items-center justify-center min-h-[56px] transition-colors ${
+        active ? "text-ink" : "text-faint"
       }`}
     >
-      <Icon className="h-5 w-5" />
-      <span className="text-[10px] font-semibold tracking-wide">{item.label}</span>
-      {active && (
-        <motion.div
-          layoutId="bottomTabIndicator"
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full"
-        />
-      )}
+      <span
+        className="mb-1 h-[5px] w-[5px] rounded-full"
+        style={{ background: active ? "oklch(var(--clay))" : "transparent" }}
+      />
+      <span className="text-[10px] font-bold uppercase tracking-[0.12em]">{item.label}</span>
     </button>
   );
 }
 
 export default function Layout() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const isChildPage = CHILD_PAGES.includes(location.pathname);
-
-  const [tabHistory, setTabHistory] = useState({});
-  const [currentTab, setCurrentTab] = useState("/");
-
-  const showBackButton = (tabHistory[currentTab]?.length || 0) > 1 || (isChildPage && !BOTTOM_TABS.some(t => t.path === location.pathname));
-
-  const handleTabNavigate = (path) => {
-    const tabRoot = BOTTOM_TABS.find(t => t.path === path)?.path;
-    if (tabRoot) {
-      setCurrentTab(tabRoot);
-      setTabHistory(prev => {
-        const currentStack = prev[tabRoot] || [];
-        if (CHILD_PAGES.includes(path) || !BOTTOM_TABS.some(t => t.path === path)) {
-          return { ...prev, [tabRoot]: [...currentStack, location.pathname] };
-        }
-        return { ...prev, [tabRoot]: [path] };
-      });
-      navigate(path);
-    }
-  };
-
-  const handleBack = () => {
-    const stack = tabHistory[currentTab] || [];
-    if (stack.length > 1) {
-      const previousPath = stack[stack.length - 2];
-      setTabHistory(prev => ({ ...prev, [currentTab]: stack.slice(0, -1) }));
-      navigate(previousPath);
-    } else {
-      navigate(-1);
-    }
-  };
-
-  useEffect(() => {
-    const tabRoot = BOTTOM_TABS.find(t => location.pathname === t.path)?.path || "/";
-    setCurrentTab(tabRoot);
-    setTabHistory(prev => ({
-      ...prev,
-      [tabRoot]: prev[tabRoot] || [location.pathname]
-    }));
-  }, []);
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar — visible at ≥768px */}
-      <aside style={{ display: 'none' }} className="sidebar-panel w-64 flex-col border-r border-border bg-card fixed inset-y-0 left-0 z-30">
-        <div className="p-6 border-b border-border">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Zap className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold tracking-tight text-foreground">Forgeday</h1>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">Personal OS</p>
-            </div>
-          </Link>
-        </div>
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map(item => {
-            const active = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-h-[44px] ${
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-                {active && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="p-4 border-t border-border">
-          <div className="px-3 py-2 rounded-lg bg-secondary/50">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">System Status</p>
-            <p className="text-xs text-primary font-semibold">Operational</p>
-          </div>
-        </div>
-      </aside>
-
-      {/* Mobile Header — hidden at ≥768px */}
-      <div
-        className="mobile-header fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-b border-border"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
-      >
-        <div className="flex items-center px-4 h-14">
-          {showBackButton ? (
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-1 text-primary font-semibold text-sm min-h-[44px] min-w-[44px] -ml-2 px-2"
-            >
-              <ChevronLeft className="h-5 w-5" />
-              Back
-            </button>
-          ) : (
-            <Link to="/" className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-md bg-primary/20 flex items-center justify-center">
-                <Zap className="h-4 w-4 text-primary" />
-              </div>
-              <span className="font-bold text-sm">Forgeday</span>
+    <div className="min-h-screen bg-page flex justify-center">
+      <div className="relative w-full max-w-[460px] min-h-screen bg-shell flex flex-col shadow-[0_0_0_1px_oklch(var(--border))]">
+        <header
+          className="sticky top-0 z-40 bg-shell border-b border-border"
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
+        >
+          <div className="flex items-center justify-between px-[22px] h-[58px]">
+            <Link to="/" className="min-w-0 min-h-0">
+              <p className="font-serif text-[21px] font-semibold leading-none text-ink tracking-tight">Forgeday</p>
+              <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.22em] text-faint">Personal OS</p>
             </Link>
-          )}
-        </div>
+            <Link
+              to="/settings"
+              className="inline-flex items-center justify-center rounded-full border border-border px-[14px] py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink min-h-0"
+            >
+              Settings
+            </Link>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-x-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.18, ease: "easeInOut" }}
+              className="px-[22px] pt-5 pb-[110px]"
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        <nav
+          className="sticky bottom-0 z-40 bg-shell border-t border-border flex w-full mt-auto"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          {BOTTOM_TABS.map(item => (
+            <BottomTab
+              key={item.path}
+              item={item}
+              active={location.pathname === item.path}
+            />
+          ))}
+        </nav>
       </div>
-
-      {/* Main Content */}
-      <main className="app-main flex-1 overflow-x-hidden">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -16 }}
-            transition={{ duration: 0.18, ease: "easeInOut" }}
-            className="max-w-7xl mx-auto p-4 md:p-6"
-          >
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {/* Mobile Bottom Tab Bar — hidden at ≥768px */}
-      <nav
-        className="mobile-tabs fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border flex"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        {BOTTOM_TABS.map(item => (
-          <BottomTab
-            key={item.path}
-            item={item}
-            active={location.pathname === item.path}
-            currentPath={location.pathname}
-            onNavigate={handleTabNavigate}
-          />
-        ))}
-      </nav>
     </div>
   );
 }

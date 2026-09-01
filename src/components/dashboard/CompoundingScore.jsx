@@ -1,63 +1,70 @@
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Minus, Zap } from "lucide-react";
-import { calculateMomentumScore, calculateVelocity, getQTDScore, getStreak } from "../../lib/momentum";
-import StreakBadge from "./StreakBadge";
+import { calculateMomentumScore, getStreak } from "../../lib/momentum";
+import { subDays } from "date-fns";
+
+function ScoreRing({ value }) {
+  const size = 86;
+  const stroke = 6;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(value, 100)) / 100;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="oklch(var(--track))" strokeWidth={stroke} />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="oklch(var(--clay))"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - pct)}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+      <text
+        x="50%"
+        y="50%"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill="oklch(var(--ink))"
+        style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 26, fontWeight: 600 }}
+      >
+        {value}
+      </text>
+    </svg>
+  );
+}
 
 export default function CompoundingScore({ activities }) {
   const weekScore = calculateMomentumScore(activities, 7);
-  const monthScore = calculateMomentumScore(activities, 30);
-  const velocity = calculateVelocity(activities);
-  const qtdScore = getQTDScore(activities);
+  const lastWeekStart = subDays(new Date(), 14);
+  const lastWeekEnd = subDays(new Date(), 7);
+  const lastWeekScore = activities
+    .filter(a => {
+      const d = new Date(a.date);
+      return d >= lastWeekStart && d < lastWeekEnd;
+    })
+    .reduce((s, a) => s + (a.points || 0), 0);
+  const delta = weekScore - lastWeekScore;
   const streak = getStreak(activities);
-
-  const VelocityIcon = velocity > 0 ? TrendingUp : velocity < 0 ? TrendingDown : Minus;
-  const velocityColor = velocity > 0 ? "text-success" : velocity < 0 ? "text-destructive" : "text-muted-foreground";
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-border bg-card overflow-hidden"
+      className="editorial-card p-5 flex items-center gap-4"
     >
-      {/* Header with main score */}
-      <div className="p-6 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-primary" />
-            </div>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Compounding Score</h2>
-          </div>
-          <StreakBadge streak={streak} />
-        </div>
-
-        <div className="flex items-baseline gap-3">
-          <span className="text-5xl font-black tracking-tighter text-foreground font-mono">{weekScore}</span>
-          <span className="text-sm text-muted-foreground font-medium">pts / 7d</span>
-        </div>
-
-        <div className="flex items-center gap-2 mt-2">
-          <VelocityIcon className={`h-4 w-4 ${velocityColor}`} />
-          <span className={`text-sm font-semibold ${velocityColor}`}>
-            {velocity > 0 ? "+" : ""}{velocity}% vs last week
-          </span>
-        </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 border-t border-border">
-        <div className="p-4 text-center border-r border-border">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">7-Day</p>
-          <p className="text-lg font-bold font-mono text-foreground">{weekScore}</p>
-        </div>
-        <div className="p-4 text-center border-r border-border">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">30-Day</p>
-          <p className="text-lg font-bold font-mono text-foreground">{monthScore}</p>
-        </div>
-        <div className="p-4 text-center">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">QTD</p>
-          <p className="text-lg font-bold font-mono text-foreground">{qtdScore}</p>
-        </div>
+      <ScoreRing value={weekScore} />
+      <div className="min-w-0">
+        <p className="micro-label">Compounding Score</p>
+        <p className="mt-1.5 text-[13px] font-semibold text-clay">
+          {delta > 0 ? "+" : ""}{delta} vs last week
+        </p>
+        <p className="mt-1 text-[12px] text-caption">
+          This week, across 5 pillars{streak > 1 ? ` · ${streak}-day streak` : ""}.
+        </p>
       </div>
     </motion.div>
   );

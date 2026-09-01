@@ -1,58 +1,51 @@
 import { motion } from "framer-motion";
 import { PILLARS } from "../../lib/constants";
-import { format } from "date-fns";
-import { Clock } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 export default function RecentActivity({ activities }) {
   const recent = [...activities]
-    .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+    .sort((a, b) => new Date(b.created_date || b.date) - new Date(a.created_date || a.date))
     .slice(0, 8);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className="rounded-2xl border border-border bg-card"
+      transition={{ delay: 0.15 }}
     >
-      <div className="p-6 pb-3">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent Activity</h2>
+      <p className="micro-label mb-3">Recent Activity</p>
+      {recent.length === 0 ? (
+        <div className="editorial-card px-4 py-6 text-center">
+          <p className="text-sm text-caption">No activities yet.</p>
         </div>
-      </div>
-
-      <div className="px-4 pb-4">
-        {recent.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground">No activities yet. Start logging!</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {recent.map((activity, i) => {
-              const pillar = PILLARS[activity.pillar];
-              const Icon = pillar?.icon;
-              return (
-                <div
-                  key={activity.id || i}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-secondary/50 transition-colors"
-                >
-                  <div className={`h-8 w-8 rounded-lg ${pillar?.bgClass} flex items-center justify-center flex-shrink-0`}>
-                    {Icon && <Icon className={`h-4 w-4 ${pillar?.textClass}`} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{activity.title}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {activity.value ? `${activity.value} ${activity.unit || ''}` : ''} · {format(new Date(activity.date), 'MMM d')}
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold font-mono text-primary">+{activity.points}</span>
+      ) : (
+        <div className="editorial-card overflow-hidden">
+          {recent.map((activity, i) => {
+            const pillar = PILLARS[activity.pillar];
+            const when = activity.created_date || activity.date;
+            let rel = "";
+            try {
+              rel = formatDistanceToNow(new Date(when), { addSuffix: true }).replace("about ", "");
+            } catch {
+              rel = activity.date;
+            }
+            return (
+              <div
+                key={activity.id || i}
+                className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-border" : ""}`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-ink truncate">{activity.title}</p>
+                  <p className="text-[11px] text-caption mt-0.5">
+                    {pillar?.label || activity.pillar} · {rel}
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                <span className="font-mono text-[13px] font-medium text-clay shrink-0">+{activity.points}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </motion.div>
   );
 }
