@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 const BOTTOM_TABS = [
   { path: "/", label: "Today" },
   { path: "/lifts", label: "Lifts" },
-  { path: "/log", label: "Log" },
   { path: "/nutrition", label: "Food" },
   { path: "/mindfulness", label: "Mind" },
 ];

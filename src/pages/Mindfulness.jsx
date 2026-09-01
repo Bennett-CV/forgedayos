@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format } from "date-fns";
@@ -19,10 +20,13 @@ const POINTS = { morning: 3, evening: 3, meditation: 3, reading: 2 };
 
 export default function Mindfulness() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("morning");
-  const [composing, setComposing] = useState(false);
+  const composeParam = searchParams.get("compose");
+  const composeType = TABS.some(t => t.id === composeParam) ? composeParam : composeParam ? "morning" : null;
+  const [activeTab, setActiveTab] = useState(composeType || "morning");
+  const [composing, setComposing] = useState(!!composeParam);
   const [editingEntry, setEditingEntry] = useState(null);
 
   const load = useCallback(async () => {
@@ -37,6 +41,14 @@ export default function Mindfulness() {
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!composeParam) return;
+    const next = TABS.some(t => t.id === composeParam) ? composeParam : "morning";
+    setActiveTab(next);
+    setEditingEntry(null);
+    setComposing(true);
+  }, [composeParam]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 
@@ -124,18 +136,6 @@ export default function Mindfulness() {
               </button>
             );
           })}
-        </div>
-
-        <div className="seg-track">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setComposing(false); setEditingEntry(null); }}
-              className={`seg-item text-[11px] px-1 ${activeTab === tab.id ? "seg-item-active" : ""}`}
-            >
-              {tab.label}
-            </button>
-          ))}
         </div>
 
         {!composing ? (

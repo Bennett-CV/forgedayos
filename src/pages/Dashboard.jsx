@@ -14,6 +14,7 @@ import { PILLAR_KEYS } from "../lib/constants";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import EmptyStateDashboard from "../components/dashboard/EmptyStateDashboard";
+import { CaptureCTA } from "../components/capture/CaptureChooser";
 
 function greetingForHour(hour) {
   if (hour < 12) return "Good morning";
@@ -89,12 +90,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <Link
-              to="/log"
-              className="flex items-center justify-center w-full min-h-[48px] rounded-[4px] bg-clay text-clay-fg text-[15px] font-semibold hover:bg-clay-hover"
-            >
-              + Log Activity
-            </Link>
+            <CaptureCTA label="+ Log" />
 
             <RecentActivity activities={activities} />
             <ActiveProjects projects={projects} />

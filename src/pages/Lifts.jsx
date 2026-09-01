@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format, startOfWeek, subWeeks } from "date-fns";
@@ -23,7 +24,8 @@ export default function Lifts() {
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(1);
-  const [view, setView] = useState("log");
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState(searchParams.get("view") === "history" ? "history" : "log");
 
   const weekStart = format(
     startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }),
@@ -54,6 +56,12 @@ export default function Lifts() {
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (searchParams.get("view") === "log" || searchParams.get("log")) {
+      setView("log");
+    }
+  }, [searchParams]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 

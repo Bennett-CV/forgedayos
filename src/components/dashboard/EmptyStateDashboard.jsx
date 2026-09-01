@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
 import { PILLARS } from "../../lib/constants";
+import { CaptureCTA } from "../capture/CaptureChooser";
 
 export default function EmptyStateDashboard({ user }) {
   const focusedPillars = user?.focused_pillars || [];
@@ -14,12 +14,7 @@ export default function EmptyStateDashboard({ user }) {
           Focus: {focusedPillars.map(k => PILLARS[k]?.label).filter(Boolean).join(", ")}
         </p>
       )}
-      <Link
-        to="/log"
-        className="inline-flex items-center justify-center w-full min-h-[44px] rounded-[4px] bg-clay text-clay-fg text-[14px] font-semibold hover:bg-clay-hover"
-      >
-        + Log Activity
-      </Link>
+      <CaptureCTA label="+ Log" />
     </div>
   );
 }

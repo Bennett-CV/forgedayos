@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import EditMealModal from "./EditMealModal";
 
-export default function MealSection({ mealType, meals, onAdd, onDeleted }) {
+export default function MealSection({ mealType, meals, onAdd, onDeleted, adding }) {
   const [editingMeal, setEditingMeal] = useState(null);
 
   const handleDelete = async (id) => {
@@ -20,7 +20,7 @@ export default function MealSection({ mealType, meals, onAdd, onDeleted }) {
           onClick={() => onAdd(mealType)}
           className="text-[12px] font-semibold text-clay min-h-0 min-w-0"
         >
-          + Add
+          {adding ? "Adding" : "+ Add"}
         </button>
       </div>
 

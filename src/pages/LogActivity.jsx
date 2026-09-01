@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { PILLARS, PILLAR_KEYS, ACTIVITY_PRESETS } from "../lib/constants";
@@ -8,10 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { CAPTURE_DESTINATIONS } from "../components/capture/CaptureChooser";
+
+function initialPillar(searchParams) {
+  const fromQuery = searchParams.get("pillar");
+  if (fromQuery && PILLAR_KEYS.includes(fromQuery)) return fromQuery;
+  return "career";
+}
 
 export default function LogActivity() {
   const navigate = useNavigate();
-  const [selectedPillar, setSelectedPillar] = useState(null);
+  const [searchParams] = useSearchParams();
+  const [selectedPillar, setSelectedPillar] = useState(() => initialPillar(searchParams));
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [customTitle, setCustomTitle] = useState("");
   const [value, setValue] = useState("");
@@ -50,7 +58,7 @@ export default function LogActivity() {
   };
 
   const reset = () => {
-    setSelectedPillar(null);
+    setSelectedPillar(initialPillar(searchParams));
     setSelectedPreset(null);
     setCustomTitle("");
     setValue("");
@@ -88,7 +96,23 @@ export default function LogActivity() {
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">Log Activity</h1>
+      <h1 className="page-title">Other activity</h1>
+
+      <div>
+        <p className="micro-label mb-2">Looking for a meal, lift, or note?</p>
+        <div className="grid grid-cols-3 gap-1.5">
+          {CAPTURE_DESTINATIONS.filter(d => d.key !== "other").map(dest => (
+            <button
+              key={dest.key}
+              type="button"
+              onClick={() => navigate(dest.to)}
+              className="editorial-card py-2.5 px-2 text-[12px] font-semibold text-ink min-h-[44px]"
+            >
+              {dest.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div>
         <p className="micro-label mb-2">Pillar</p>
@@ -96,20 +120,20 @@ export default function LogActivity() {
           {PILLAR_KEYS.map(key => {
             const p = PILLARS[key];
             const active = selectedPillar === key;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => { setSelectedPillar(key); setSelectedPreset(null); setCustomTitle(""); setPoints(""); }}
-                    className={`flex flex-col items-center gap-2 py-3 px-1 rounded-[4px] border bg-card min-h-[72px] ${
-                      active ? "border-clay" : "border-border"
-                    }`}
-                  >
-                    <span className="h-[7px] w-[7px] rounded-full" style={{ background: p.color }} />
-                    <span className={`text-[8px] font-bold uppercase tracking-[0.06em] text-center leading-tight ${active ? "text-ink" : "text-faint"}`}>
-                      {p.label}
-                    </span>
-                  </button>
-                );
+            return (
+              <button
+                key={key}
+                onClick={() => { setSelectedPillar(key); setSelectedPreset(null); setCustomTitle(""); setPoints(""); }}
+                className={`flex flex-col items-center gap-2 py-3 px-1 rounded-[4px] border bg-card min-h-[72px] ${
+                  active ? "border-clay" : "border-border"
+                }`}
+              >
+                <span className="h-[7px] w-[7px] rounded-full" style={{ background: p.color }} />
+                <span className={`text-[8px] font-bold uppercase tracking-[0.06em] text-center leading-tight ${active ? "text-ink" : "text-faint"}`}>
+                  {p.label}
+                </span>
+              </button>
+            );
           })}
         </div>
       </div>

@@ -1,27 +1,34 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format, subDays } from "date-fns";
 import { motion } from "framer-motion";
-import AddFoodModal from "../components/nutrition/AddFoodModal";
+import AddFoodForm from "../components/nutrition/AddFoodForm";
 import MealSection from "../components/nutrition/MealSection";
 import DailyMacroSummary from "../components/nutrition/DailyMacroSummary";
 import WeightTab from "../components/nutrition/WeightTab.jsx";
 import GoalSetter from "../components/nutrition/GoalSetter";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const MEAL_ORDER = ["breakfast", "lunch", "dinner", "snack"];
 
+function addParamToMeal(add) {
+  if (!add) return null;
+  if (MEAL_ORDER.includes(add)) return add;
+  if (add === "1" || add === "true" || add === "meal") return "breakfast";
+  return null;
+}
+
 export default function Nutrition() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("nutrition");
   const [dateOffset, setDateOffset] = useState(0);
   const [meals, setMeals] = useState([]);
   const [goals, setGoals] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [activeMealType, setActiveMealType] = useState("breakfast");
-  const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [addingType, setAddingType] = useState(() => addParamToMeal(searchParams.get("add")));
+  const [showGoals, setShowGoals] = useState(false);
 
   const currentDate = format(subDays(new Date(), dateOffset), "yyyy-MM-dd");
   const displayDate = format(subDays(new Date(), dateOffset), "EEEE, MMMM d");
@@ -43,11 +50,19 @@ export default function Nutrition() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    const next = addParamToMeal(searchParams.get("add"));
+    if (next) {
+      setActiveTab("nutrition");
+      setAddingType(next);
+    }
+  }, [searchParams]);
+
   const dayMeals = meals.filter(m => m.date === currentDate);
 
   const handleAdd = (mealType) => {
-    setActiveMealType(mealType);
-    setModalOpen(true);
+    setActiveTab("nutrition");
+    setAddingType(mealType);
   };
 
   if (loading) {
@@ -63,12 +78,24 @@ export default function Nutrition() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="page-title">Nutrition</h1>
         <button
-          onClick={() => setGoalModalOpen(true)}
+          onClick={() => setShowGoals(g => !g)}
           className="text-[11px] font-bold uppercase tracking-[0.12em] text-caption min-h-0"
         >
-          Goals
+          {showGoals ? "Hide goals" : "Goals"}
         </button>
       </div>
+
+      {showGoals && (
+        <div className="editorial-card p-4">
+          <GoalSetter onComplete={(data) => {
+            if (data) {
+              setGoals(data.goals);
+              setMeals(data.meals);
+            }
+            setShowGoals(false);
+          }} />
+        </div>
+      )}
 
       <div className="seg-track">
         {[
@@ -108,6 +135,15 @@ export default function Nutrition() {
 
           <DailyMacroSummary meals={dayMeals} goals={goals} />
 
+          {addingType && (
+            <AddFoodForm
+              mealType={addingType}
+              date={currentDate}
+              onAdded={() => { setAddingType(null); load(); }}
+              onCancel={() => setAddingType(null)}
+            />
+          )}
+
           <motion.div
             key={currentDate}
             initial={{ opacity: 0, y: 8 }}
@@ -121,40 +157,14 @@ export default function Nutrition() {
                 meals={dayMeals.filter(m => m.meal_type === mealType)}
                 onAdd={handleAdd}
                 onDeleted={load}
+                adding={addingType === mealType}
               />
             ))}
           </motion.div>
-
-          <AddFoodModal
-            open={modalOpen}
-            onClose={() => setModalOpen(false)}
-            onAdded={load}
-            defaultMealType={activeMealType}
-            date={currentDate}
-            recentMeals={meals}
-          />
         </>
       )}
 
       {activeTab === "weight" && <WeightTab />}
-
-      <Dialog open={goalModalOpen} onOpenChange={setGoalModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-serif">Set Your Fitness Goals</DialogTitle>
-            <DialogDescription>
-              Enter your body metrics and goals to get personalized nutrition recommendations.
-            </DialogDescription>
-          </DialogHeader>
-          <GoalSetter onComplete={(data) => {
-            if (data) {
-              setGoals(data.goals);
-              setMeals(data.meals);
-            }
-            setGoalModalOpen(false);
-          }} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
