@@ -90,13 +90,14 @@ export default function Nutrition() {
 
       {showGoals && (
         <div className="editorial-card p-4">
-          <GoalSetter onComplete={(data) => {
-            if (data) {
-              setGoals(data.goals);
-              setMeals(data.meals);
-            }
-            setShowGoals(false);
-          }} />
+          <GoalSetter
+            goals={goals}
+            onComplete={(data) => {
+              if (data?.goals) setGoals(data.goals);
+              if (data?.meals) setMeals(data.meals);
+              if (data?.close) setShowGoals(false);
+            }}
+          />
         </div>
       )}
 
