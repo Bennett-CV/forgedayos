@@ -23,9 +23,12 @@ export default function Lifts() {
   const [allLogs, setAllLogs] = useState([]);
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState(1);
   const [searchParams] = useSearchParams();
   const [view, setView] = useState(searchParams.get("view") === "history" ? "history" : "log");
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const d = Number(searchParams.get("day"));
+    return d >= 1 && d <= 5 ? d : 1;
+  });
 
   const weekStart = format(
     startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }),
@@ -61,6 +64,8 @@ export default function Lifts() {
     if (searchParams.get("view") === "log" || searchParams.get("log")) {
       setView("log");
     }
+    const d = Number(searchParams.get("day"));
+    if (d >= 1 && d <= 5) setSelectedDay(d);
   }, [searchParams]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
