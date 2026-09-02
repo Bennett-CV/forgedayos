@@ -9,6 +9,7 @@ import ExerciseHistory from "../components/lifts/ExerciseHistory";
 import ProgramSetup from "../components/lifts/ProgramSetup";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
+import { toast } from "sonner";
 
 function dayFocus(prog) {
   if (!prog) return "";
@@ -29,6 +30,8 @@ export default function Lifts() {
     const d = Number(searchParams.get("day"));
     return d >= 1 && d <= 5 ? d : 1;
   });
+  const [confirmReplace, setConfirmReplace] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const weekStart = format(
     startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }),
@@ -70,6 +73,30 @@ export default function Lifts() {
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 
+  const handleSetupComplete = () => {
+    setView("log");
+    setWeekOffset(0);
+    setSelectedDay(1);
+    setConfirmReplace(false);
+    load();
+  };
+
+  const startNewProgram = async () => {
+    if (!program?.length) return;
+    setResetting(true);
+    try {
+      await Promise.all(
+        program.filter(d => d.id).map(d => base44.entities.WorkoutProgram.delete(d.id))
+      );
+      setProgram(null);
+      setConfirmReplace(false);
+      setView("log");
+    } catch {
+      toast.error("Could not start a new program. Try again.");
+    }
+    setResetting(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -79,7 +106,7 @@ export default function Lifts() {
   }
 
   if (!program) {
-    return <ProgramSetup onComplete={load} />;
+    return <ProgramSetup onComplete={handleSetupComplete} />;
   }
 
   const programByDay = {};
@@ -93,8 +120,43 @@ export default function Lifts() {
     <>
       <PullToRefreshIndicator pullY={pullY} pullProgress={pullProgress} isRefreshing={isRefreshing} />
       <div className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="page-title">Lifts</h1>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="page-title">Lifts</h1>
+            {confirmReplace ? (
+              <div className="mt-2 space-y-2">
+                <p className="text-[12px] text-caption">
+                  This replaces your current 5-day template. Lift history is kept.
+                </p>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    disabled={resetting}
+                    onClick={startNewProgram}
+                    className="text-[11px] font-bold uppercase tracking-[0.12em] text-clay min-h-0 min-w-0"
+                  >
+                    {resetting ? "Replacing…" : "Replace"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={resetting}
+                    onClick={() => setConfirmReplace(false)}
+                    className="text-[11px] font-bold uppercase tracking-[0.12em] text-caption min-h-0 min-w-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmReplace(true)}
+                className="mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-caption min-h-0 min-w-0"
+              >
+                New program
+              </button>
+            )}
+          </div>
           <div className="seg-track w-[160px] shrink-0">
             <button
               onClick={() => setView("log")}
