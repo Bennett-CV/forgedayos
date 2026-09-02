@@ -6,36 +6,36 @@ export default function MonthlyOverview({ totalIncome, totalExpenses, totalBudge
 
   return (
     <div className="grid grid-cols-3 gap-3">
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Income</p>
-        <p className="text-xl font-black font-mono text-green-500">
+      <div className="editorial-card p-4">
+        <p className="micro-label mb-1">Income</p>
+        <p className="text-[18px] font-semibold font-mono text-success">
           ${totalIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}
         </p>
       </div>
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Expenses</p>
-        <p className="text-xl font-black font-mono text-destructive">
+      <div className="editorial-card p-4">
+        <p className="micro-label mb-1">Expenses</p>
+        <p className="text-[18px] font-semibold font-mono text-overbudget">
           ${totalExpenses.toLocaleString("en-US", { maximumFractionDigits: 0 })}
         </p>
       </div>
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">Net</p>
-        <p className={cn("text-xl font-black font-mono", net >= 0 ? "text-primary" : "text-destructive")}>
+      <div className="editorial-card p-4">
+        <p className="micro-label mb-1">Net</p>
+        <p className={cn("text-[18px] font-semibold font-mono", net >= 0 ? "text-clay" : "text-overbudget")}>
           {net >= 0 ? "+" : ""}${net.toLocaleString("en-US", { maximumFractionDigits: 0 })}
         </p>
       </div>
 
       {totalBudgeted > 0 && (
-        <div className="col-span-3 rounded-2xl border border-border bg-card p-4 space-y-2">
+        <div className="col-span-3 editorial-card p-4 space-y-2">
           <div className="flex justify-between text-xs font-semibold">
             <span className="text-muted-foreground">Budget Used</span>
             <span className={budgetUsedPct >= 100 ? "text-destructive" : "text-foreground"}>
               {budgetUsedPct.toFixed(0)}%
             </span>
           </div>
-          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+          <div className="h-[4px] bg-track rounded-[2px] overflow-hidden">
             <div
-              className={cn("h-full rounded-full transition-all duration-500", budgetUsedPct >= 100 ? "bg-destructive" : "bg-primary")}
+              className={cn("h-full rounded-[2px] transition-all duration-500", budgetUsedPct >= 100 ? "bg-overbudget" : "bg-clay")}
               style={{ width: `${budgetUsedPct}%` }}
             />
           </div>

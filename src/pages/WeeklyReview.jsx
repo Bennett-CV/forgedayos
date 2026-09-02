@@ -3,7 +3,6 @@ import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
-import { FileText, Sparkles, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PILLARS, PILLAR_KEYS } from "../lib/constants";
 import ReactMarkdown from "react-markdown";
@@ -28,16 +27,23 @@ export default function WeeklyReview() {
   const weekEndStr = format(weekEnd, "yyyy-MM-dd");
 
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
     async function load() {
-      const [acts, projs, revs] = await Promise.all([
-        base44.entities.Activity.filter({ created_by: user.email }, "-date", 500),
-        base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
-        base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50),
-      ]);
-      setActivities(acts);
-      setProjects(projs);
-      setReviews(revs);
+      try {
+        const [acts, projs, revs] = await Promise.all([
+          base44.entities.Activity.filter({ created_by: user.email }, "-date", 500),
+          base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
+          base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50),
+        ]);
+        setActivities(acts);
+        setProjects(projs);
+        setReviews(revs);
+      } catch {
+        // best-effort
+      }
       setLoading(false);
     }
     load();
@@ -138,44 +144,43 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-border border-t-clay rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-slide-up max-w-3xl mx-auto">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Weekly Review</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">AI-generated performance summary</p>
+        <h1 className="page-title">Weekly Review</h1>
+        <p className="text-sm text-caption mt-0.5">Performance summary</p>
       </div>
 
-      {/* Week Navigator */}
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
-        <button onClick={() => setWeekOffset(o => o + 1)} className="p-2 rounded-lg hover:bg-secondary transition-colors">
-          <ChevronLeft className="h-5 w-5" />
+      <div className="flex items-center justify-between editorial-card px-3 py-2">
+        <button onClick={() => setWeekOffset(o => o + 1)} className="text-[13px] font-semibold text-caption min-w-[44px]">
+          Prev
         </button>
         <div className="text-center">
-          <p className="text-sm font-bold">{format(weekStart, "MMM d")} – {format(weekEnd, "MMM d, yyyy")}</p>
-          <p className="text-xs text-muted-foreground">{weekActivities.length} activities · {totalPoints} pts</p>
+          <p className="text-[13px] font-semibold text-ink">{format(weekStart, "MMM d")} – {format(weekEnd, "MMM d")}</p>
+          <p className="text-[11px] text-caption">{weekActivities.length} activities · {totalPoints} pts</p>
         </div>
         <button
           onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
           disabled={weekOffset === 0}
-          className="p-2 rounded-lg hover:bg-secondary transition-colors disabled:opacity-30"
+          className="text-[13px] font-semibold text-caption min-w-[44px] disabled:opacity-30"
         >
-          <ChevronRight className="h-5 w-5" />
+          Next
         </button>
       </div>
 
-      {/* Pillar Summary */}
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-1.5">
         {PILLAR_KEYS.map(k => {
           const p = PILLARS[k];
           return (
-            <div key={k} className={`rounded-xl border ${p.borderClass} ${p.bgClass} p-3 text-center`}>
-              <p className={`text-lg font-black font-mono ${p.textClass}`}>{pillarPoints[k]}</p>
-              <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold">{p.label.slice(0, 6)}</p>
+            <div key={k} className="editorial-card p-3 text-center flex flex-col items-center gap-1.5">
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: p.color }} />
+              <p className="text-[16px] font-semibold font-mono text-ink">{pillarPoints[k]}</p>
+              <p className="text-[8px] uppercase tracking-[0.08em] text-faint font-bold">{p.label}</p>
             </div>
           );
         })}
@@ -191,33 +196,26 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border bg-card p-6"
+          className="editorial-card p-5"
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Review</h2>
-            </div>
+            <p className="micro-label">Review</p>
             <Button variant="outline" size="sm" onClick={() => setShowCheckIn(true)} disabled={generating} className="text-xs">
-              {generating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
-              Regenerate
+              {generating ? "Working…" : "Regenerate"}
             </Button>
           </div>
-          <div className="prose prose-sm prose-invert max-w-none">
+          <div className="prose prose-sm max-w-none text-ink">
             <ReactMarkdown>{currentReview.summary}</ReactMarkdown>
           </div>
         </motion.div>
       ) : generating ? (
-        <div className="text-center py-12 rounded-2xl border border-border bg-card">
-          <Loader2 className="h-8 w-8 text-primary animate-spin mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Generating your review...</p>
+        <div className="text-center py-12 editorial-card">
+          <p className="text-sm text-caption">Generating your review…</p>
         </div>
       ) : (
-        <div className="text-center py-12 rounded-2xl border border-dashed border-border">
-          <Sparkles className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground mb-4">No review for this week yet.</p>
-          <Button onClick={() => setShowCheckIn(true)} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-            <Sparkles className="h-4 w-4" />
+        <div className="text-center py-12 editorial-card border-dashed">
+          <p className="text-sm text-caption mb-4">No review for this week yet.</p>
+          <Button onClick={() => setShowCheckIn(true)} className="bg-clay text-clay-fg hover:bg-clay-hover">
             Start Weekly Review
           </Button>
         </div>

@@ -1,34 +1,41 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { motion } from "framer-motion";
 import { PILLARS, PILLAR_KEYS } from "../lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Settings, Utensils, UserX, Zap, LogOut, Sun, Moon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/AuthContext";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 
+const APP_VERSION = "2.1.0";
+
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [nutritionGoals, setNutritionGoals] = useState({ calories: "", protein_g: "", carbs_g: "", fat_g: "" });
   const [savingGoals, setSavingGoals] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem("theme");
+    if (stored === "dark" || stored === "midnight") return "midnight";
+    return "paper";
+  });
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "light") {
-      root.classList.add("light-mode");
+    if (theme === "midnight") {
+      root.classList.add("midnight");
+      localStorage.setItem("theme", "midnight");
     } else {
-      root.classList.remove("light-mode");
+      root.classList.remove("midnight");
+      localStorage.setItem("theme", "paper");
     }
-    localStorage.setItem("theme", theme);
   }, [theme]);
 
   const load = async () => {
@@ -91,60 +98,79 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-border border-t-clay rounded-full animate-spin" />
       </div>
     );
   }
 
+  const name = user?.full_name || "Account";
+  const email = user?.email || "";
+  const initial = name.charAt(0).toUpperCase();
+  const focused = (user?.focused_pillars || []).map(k => PILLARS[k]?.label).filter(Boolean);
+
   return (
-    <div className="space-y-6 animate-slide-up max-w-2xl mx-auto">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Configure your pillar targets & KPIs</p>
+    <div className="space-y-5">
+      <h1 className="page-title">Settings</h1>
+
+      <div className="editorial-card p-4 flex items-center gap-3">
+        <div className="h-11 w-11 rounded-full bg-secondary flex items-center justify-center text-[16px] font-semibold text-ink shrink-0">
+          {initial}
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button variant="outline" onClick={() => navigate("/onboarding")} className="gap-2">
-            <Zap className="h-4 w-4 text-primary" /> Setup Wizard
-          </Button>
-          <Button variant="outline" onClick={() => base44.auth.logout()} className="gap-2 text-muted-foreground hover:text-foreground">
-            <LogOut className="h-4 w-4" /> Log Out
-          </Button>
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold text-ink truncate">{name}</p>
+          <p className="text-[12px] text-caption truncate">{email}</p>
         </div>
       </div>
 
-      {/* Theme Toggle */}
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-0.5">Appearance</h2>
-            <p className="text-xs text-muted-foreground">Switch between dark and light mode</p>
+      <div className="editorial-card overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <span className="text-[14px] text-ink">Theme</span>
+          <div className="seg-track w-[168px]">
+            <button
+              onClick={() => setTheme("paper")}
+              className={`seg-item text-[11px] ${theme === "paper" ? "seg-item-active" : ""}`}
+            >
+              Paper
+            </button>
+            <button
+              onClick={() => setTheme("midnight")}
+              className={`seg-item text-[11px] ${theme === "midnight" ? "seg-item-active" : ""}`}
+            >
+              Midnight
+            </button>
           </div>
-          <div className="flex items-center gap-1 rounded-xl bg-secondary/50 p-1 border border-border">
-            {[
-              { value: "dark", label: "Dark", Icon: Moon },
-              { value: "light", label: "Light", Icon: Sun },
-            ].map(({ value, label, Icon }) => (
-              <button
-                key={value}
-                onClick={() => setTheme(value)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                  theme === value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" /> {label}
-              </button>
-            ))}
-          </div>
+        </div>
+        <div className="flex items-center justify-between px-4 py-3.5 border-t border-border">
+          <span className="text-[14px] text-ink">Focused Pillars</span>
+          <span className="text-[13px] text-caption text-right max-w-[55%]">
+            {focused.length ? focused.join(", ") : "All"}
+          </span>
+        </div>
+        <div className="flex items-center justify-between px-4 py-3.5 border-t border-border">
+          <span className="text-[14px] text-ink">App Version</span>
+          <span className="font-mono text-[13px] text-caption">{APP_VERSION}</span>
         </div>
       </div>
 
-      {/* Nutrition Goals */}
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Utensils className="h-4 w-4 text-chart-3" />
-          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Daily Nutrition Goals</h2>
-        </div>
+      <button
+        onClick={() => base44.auth.logout()}
+        className="w-full min-h-[48px] rounded-[4px] border text-[14px] font-semibold"
+        style={{ borderColor: "oklch(var(--destructive-border))", color: "oklch(var(--destructive-text))" }}
+      >
+        Sign Out
+      </button>
+
+      <div className="pt-2">
+        <button
+          onClick={() => navigate("/onboarding")}
+          className="text-[12px] font-semibold text-clay min-h-0"
+        >
+          Setup wizard
+        </button>
+      </div>
+
+      <div className="editorial-card p-5">
+        <p className="micro-label mb-4">Daily Nutrition Goals</p>
         <div className="grid grid-cols-2 gap-3 mb-4">
           {[
             { key: "calories", label: "Calories", unit: "kcal", placeholder: "e.g. 2500" },
@@ -153,40 +179,38 @@ export default function SettingsPage() {
             { key: "fat_g", label: "Fat", unit: "g", placeholder: "e.g. 80" },
           ].map(({ key, label, unit, placeholder }) => (
             <div key={key}>
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">{label} ({unit})</label>
+              <label className="micro-label mb-1.5 block">{label} ({unit})</label>
               <Input
                 type="number"
                 placeholder={placeholder}
                 value={nutritionGoals[key]}
                 onChange={e => setNutritionGoals(g => ({ ...g, [key]: e.target.value }))}
-                className="bg-secondary/50 border-border font-mono"
               />
             </div>
           ))}
         </div>
-        <Button onClick={handleSaveGoals} disabled={savingGoals} className="gap-2">
+        <Button onClick={handleSaveGoals} disabled={savingGoals} className="bg-clay text-clay-fg hover:bg-clay-hover">
           Save Goals
         </Button>
       </div>
 
-      {/* Add New Target */}
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Add Target</h2>
+      <div className="editorial-card p-5">
+        <p className="micro-label mb-4">Add Target</p>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Pillar</label>
+              <label className="micro-label mb-1.5 block">Pillar</label>
               <Select value={newTarget.pillar} onValueChange={v => setNewTarget(t => ({ ...t, pillar: v }))}>
-                <SelectTrigger className="bg-secondary/50 border-border"><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Select..." /></SelectTrigger>
                 <SelectContent>
                   {PILLAR_KEYS.map(k => <SelectItem key={k} value={k}>{PILLARS[k].label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Period</label>
+              <label className="micro-label mb-1.5 block">Period</label>
               <Select value={newTarget.period} onValueChange={v => setNewTarget(t => ({ ...t, period: v }))}>
-                <SelectTrigger className="bg-secondary/50 border-border"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
@@ -198,66 +222,61 @@ export default function SettingsPage() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Metric Name</label>
+              <label className="micro-label mb-1.5 block">Metric</label>
               <Input
                 value={newTarget.metric_name}
                 onChange={e => setNewTarget(t => ({ ...t, metric_name: e.target.value }))}
-                placeholder="e.g., Miles Run"
-                className="bg-secondary/50 border-border"
+                placeholder="Miles Run"
+                className="font-sans"
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Target</label>
+              <label className="micro-label mb-1.5 block">Target</label>
               <Input
                 type="number"
                 value={newTarget.target_value}
                 onChange={e => setNewTarget(t => ({ ...t, target_value: e.target.value }))}
                 placeholder="20"
-                className="bg-secondary/50 border-border font-mono"
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Unit</label>
+              <label className="micro-label mb-1.5 block">Unit</label>
               <Input
                 value={newTarget.unit}
                 onChange={e => setNewTarget(t => ({ ...t, unit: e.target.value }))}
                 placeholder="miles"
-                className="bg-secondary/50 border-border"
+                className="font-sans"
               />
             </div>
           </div>
-          <Button onClick={handleAdd} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-            <Plus className="h-4 w-4" /> Add Target
+          <Button onClick={handleAdd} className="bg-clay text-clay-fg hover:bg-clay-hover">
+            Add Target
           </Button>
         </div>
       </div>
 
-      {/* Existing Targets */}
       {PILLAR_KEYS.map(pillarKey => {
         const pillarTargets = targets.filter(t => t.pillar === pillarKey);
         if (pillarTargets.length === 0) return null;
         const p = PILLARS[pillarKey];
-        const Icon = p.icon;
 
         return (
-          <div key={pillarKey} className="rounded-2xl border border-border bg-card p-5">
+          <div key={pillarKey} className="editorial-card p-4">
             <div className="flex items-center gap-2 mb-3">
-              <div className={`h-8 w-8 rounded-lg ${p.bgClass} flex items-center justify-center`}>
-                <Icon className={`h-4 w-4 ${p.textClass}`} />
-              </div>
-              <h3 className="text-sm font-bold text-foreground">{p.label}</h3>
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: p.color }} />
+              <h3 className="text-[14px] font-semibold text-ink">{p.label}</h3>
             </div>
             <div className="space-y-2">
               {pillarTargets.map(target => (
-                <div key={target.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/30">
+                <div key={target.id} className="flex items-center justify-between px-3 py-2.5 rounded-[4px] bg-secondary">
                   <div>
-                    <span className="text-sm font-medium text-foreground">{target.metric_name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">
+                    <span className="text-sm font-medium text-ink">{target.metric_name}</span>
+                    <span className="text-xs text-caption ml-2">
                       {target.target_value} {target.unit} / {target.period}
                     </span>
                   </div>
-                  <button onClick={() => handleDelete(target.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors">
-                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                  <button onClick={() => handleDelete(target.id)} className="text-[12px] font-semibold text-destructive min-h-0 min-w-0">
+                    Remove
                   </button>
                 </div>
               ))}
@@ -266,29 +285,18 @@ export default function SettingsPage() {
         );
       })}
 
-      {targets.length === 0 && (
-        <div className="text-center py-12 rounded-2xl border border-dashed border-border">
-          <Settings className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No targets set yet. Add your first KPI above.</p>
-        </div>
-      )}
-
-      {/* Delete Account */}
-      <div className="rounded-2xl border border-destructive/30 bg-card p-6">
-        <div className="flex items-center gap-2 mb-2">
-          <UserX className="h-4 w-4 text-destructive" />
-          <h2 className="text-sm font-bold uppercase tracking-wider text-destructive">Danger Zone</h2>
-        </div>
-        <p className="text-xs text-muted-foreground mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+      <div className="editorial-card p-5" style={{ borderColor: "oklch(var(--destructive-border))" }}>
+        <p className="micro-label mb-2" style={{ color: "oklch(var(--destructive-text))" }}>Danger Zone</p>
+        <p className="text-xs text-caption mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" className="gap-2 min-h-[44px]">
-              <UserX className="h-4 w-4" /> Delete Account
+            <Button variant="destructive" className="min-h-[44px]">
+              Delete Account
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent className="bg-card border-border">
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Account</AlertDialogTitle>
+              <AlertDialogTitle className="font-serif">Delete Account</AlertDialogTitle>
               <AlertDialogDescription>
                 This will permanently delete your account and all your data — activities, projects, meals, workouts, and reviews. This cannot be undone.
               </AlertDialogDescription>

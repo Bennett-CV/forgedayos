@@ -1,41 +1,57 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format, subDays } from "date-fns";
-import { Sun, Moon, Brain, BookOpen, Plus, ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
-import MindfulnessEntryModal from "../components/mindfulness/MindfulnessEntryModal";
+import MindfulnessComposer from "../components/mindfulness/MindfulnessComposer";
 import MindfulnessLog from "../components/mindfulness/MindfulnessLog";
 
 const TABS = [
-  { id: "morning", label: "Morning", icon: Sun },
-  { id: "evening", label: "Evening", icon: Moon },
-  { id: "meditation", label: "Meditation", icon: Brain },
-  { id: "reading", label: "Reading", icon: BookOpen },
+  { id: "morning", label: "Morning" },
+  { id: "evening", label: "Evening" },
+  { id: "meditation", label: "Meditation" },
+  { id: "reading", label: "Reading" },
 ];
 
 const POINTS = { morning: 3, evening: 3, meditation: 3, reading: 2 };
 
 export default function Mindfulness() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("morning");
-  const [modalOpen, setModalOpen] = useState(false);
+  const composeParam = searchParams.get("compose");
+  const composeType = TABS.some(t => t.id === composeParam) ? composeParam : composeParam ? "morning" : null;
+  const [activeTab, setActiveTab] = useState(composeType || "morning");
+  const [composing, setComposing] = useState(!!composeParam);
   const [editingEntry, setEditingEntry] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   const load = useCallback(async () => {
-    if (!user?.email) return;
-    const data = await base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 200);
-    setEntries(data);
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const data = await base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 200);
+      setEntries(data);
+    } catch {
+      // best-effort
+    }
     setLoading(false);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!composeParam) return;
+    const next = TABS.some(t => t.id === composeParam) ? composeParam : "morning";
+    setActiveTab(next);
+    setEditingEntry(null);
+    setComposing(true);
+  }, [composeParam]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 
@@ -49,7 +65,6 @@ export default function Mindfulness() {
       toast.success("Entry updated");
     } else {
       await base44.entities.JournalEntry.create({ ...data, date: today });
-      // Roll up into Activity for dashboard scoring
       const existing = await base44.entities.Activity.filter({ date: today, category: data.type, created_by: user.email });
       if (existing.length === 0) {
         let activityTitle;
@@ -71,28 +86,29 @@ export default function Mindfulness() {
       toast.success("Logged!");
     }
     setEditingEntry(null);
-    setModalOpen(false);
+    setComposing(false);
     load();
   };
 
   const openNew = (type) => {
     setActiveTab(type);
     setEditingEntry(null);
-    setModalOpen(true);
+    setComposing(true);
   };
 
   const openEdit = (entry) => {
     setEditingEntry(entry);
     setActiveTab(entry.type);
-    setModalOpen(true);
+    setComposing(true);
   };
 
   const tabEntries = entries.filter(e => e.type === activeTab);
+  const activeLabel = TABS.find(t => t.id === activeTab)?.label || "Morning";
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-border border-t-clay rounded-full animate-spin" />
       </div>
     );
   }
@@ -100,73 +116,52 @@ export default function Mindfulness() {
   return (
     <>
       <PullToRefreshIndicator pullY={pullY} pullProgress={pullProgress} isRefreshing={isRefreshing} />
-      <div className="space-y-5 animate-slide-up max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Mindfulness</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Journals & meditation</p>
-          </div>
-          <Button onClick={() => openNew(activeTab)} className="gap-2 min-h-[44px]">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Log</span>
-          </Button>
-        </div>
+      <div className="space-y-5">
+        <h1 className="page-title">Mindfulness</h1>
 
-        {/* Today's streak pills */}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           {TABS.map(tab => {
+            const active = activeTab === tab.id;
             const done = hasToday(tab.id);
-            const Icon = tab.icon;
-            return (
-              <div
-                key={tab.id}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  done
-                    ? "bg-primary/10 border-primary/30 text-primary"
-                    : "bg-secondary/50 border-border text-muted-foreground"
-                }`}
-              >
-                {done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
-                {tab.label}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 rounded-xl bg-secondary/50 p-1 border border-border">
-          {TABS.map(tab => {
-            const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                onClick={() => { setActiveTab(tab.id); setComposing(false); setEditingEntry(null); }}
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border text-[13px] font-semibold min-h-[40px] min-w-0 ${
+                  active ? "border-clay text-ink bg-card" : "border-border text-caption bg-card"
                 }`}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <span
+                  className="h-[6px] w-[6px] rounded-full"
+                  style={{ background: active ? "oklch(var(--clay))" : done ? "oklch(var(--pillar-mindfulness))" : "oklch(var(--border-strong))" }}
+                />
                 {tab.label}
               </button>
             );
           })}
         </div>
 
-        {/* Log for active tab */}
+        {!composing ? (
+          <button
+            onClick={() => openNew(activeTab)}
+            className="flex items-center justify-center w-full min-h-[48px] rounded-[4px] bg-clay text-clay-fg text-[15px] font-semibold hover:bg-clay-hover"
+          >
+            + Log {activeLabel}
+          </button>
+        ) : (
+          <MindfulnessComposer
+            type={activeTab}
+            entry={editingEntry}
+            onSave={handleSave}
+            onCancel={() => { setComposing(false); setEditingEntry(null); }}
+          />
+        )}
+
         <MindfulnessLog
           entries={tabEntries}
           type={activeTab}
           onAdd={() => openNew(activeTab)}
           onEdit={openEdit}
-        />
-
-        <MindfulnessEntryModal
-          open={modalOpen}
-          type={activeTab}
-          entry={editingEntry}
-          onClose={() => { setModalOpen(false); setEditingEntry(null); }}
-          onSave={handleSave}
         />
       </div>
     </>

@@ -1,71 +1,95 @@
 /** @type {import('tailwindcss').Config} */
+const oklch = (token) => `oklch(var(${token}) / <alpha-value>)`;
+
 module.exports = {
     darkMode: ["class"],
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
   	extend: {
       fontFamily: {
-        sans: ['var(--font-sans)'],
-        mono: ['var(--font-mono)'],
+        sans: ['Manrope', 'system-ui', 'sans-serif'],
+        serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
   		borderRadius: {
   			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			md: 'var(--radius)',
+  			sm: 'var(--radius)',
+        none: '0',
   		},
   		colors: {
-  			background: 'hsl(var(--background))',
-  			foreground: 'hsl(var(--foreground))',
+        page: oklch('--page'),
+        shell: oklch('--shell'),
+        ink: oklch('--ink'),
+        caption: oklch('--caption'),
+        faint: oklch('--faint'),
+        clay: {
+          DEFAULT: oklch('--clay'),
+          hover: oklch('--clay-hover'),
+          fg: oklch('--clay-fg'),
+        },
+        track: oklch('--track'),
+        strong: oklch('--border-strong'),
+        pillar: {
+          career: oklch('--pillar-career'),
+          lifts: oklch('--pillar-lifts'),
+          nutrition: oklch('--pillar-nutrition'),
+          finance: oklch('--pillar-finance'),
+          mindfulness: oklch('--pillar-mindfulness'),
+        },
+  			background: oklch('--background'),
+  			foreground: oklch('--foreground'),
   			card: {
-  				DEFAULT: 'hsl(var(--card))',
-  				foreground: 'hsl(var(--card-foreground))'
+  				DEFAULT: oklch('--card'),
+  				foreground: oklch('--card-foreground')
   			},
   			popover: {
-  				DEFAULT: 'hsl(var(--popover))',
-  				foreground: 'hsl(var(--popover-foreground))'
+  				DEFAULT: oklch('--popover'),
+  				foreground: oklch('--popover-foreground')
   			},
   			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
+  				DEFAULT: oklch('--primary'),
+  				foreground: oklch('--primary-foreground')
   			},
   			secondary: {
-  				DEFAULT: 'hsl(var(--secondary))',
-  				foreground: 'hsl(var(--secondary-foreground))'
+  				DEFAULT: oklch('--secondary'),
+  				foreground: oklch('--secondary-foreground')
   			},
   			muted: {
-  				DEFAULT: 'hsl(var(--muted))',
-  				foreground: 'hsl(var(--muted-foreground))'
+  				DEFAULT: oklch('--muted'),
+  				foreground: oklch('--muted-foreground')
   			},
   			accent: {
-  				DEFAULT: 'hsl(var(--accent))',
-  				foreground: 'hsl(var(--accent-foreground))'
+  				DEFAULT: oklch('--accent'),
+  				foreground: oklch('--accent-foreground')
   			},
   			destructive: {
-  				DEFAULT: 'hsl(var(--destructive))',
-  				foreground: 'hsl(var(--destructive-foreground))'
+  				DEFAULT: oklch('--destructive'),
+  				foreground: oklch('--destructive-foreground')
   			},
-  			border: 'hsl(var(--border))',
-  			input: 'hsl(var(--input))',
-  			ring: 'hsl(var(--ring))',
-        success: 'hsl(var(--success))',
-        warning: 'hsl(var(--warning))',
-        info: 'hsl(var(--info))',
+  			border: oklch('--border'),
+  			input: oklch('--input'),
+  			ring: oklch('--ring'),
+        success: oklch('--success'),
+        warning: oklch('--warning'),
+        info: oklch('--info'),
+        overbudget: oklch('--overbudget'),
   			chart: {
-  				'1': 'hsl(var(--chart-1))',
-  				'2': 'hsl(var(--chart-2))',
-  				'3': 'hsl(var(--chart-3))',
-  				'4': 'hsl(var(--chart-4))',
-  				'5': 'hsl(var(--chart-5))'
+  				'1': oklch('--chart-1'),
+  				'2': oklch('--chart-2'),
+  				'3': oklch('--chart-3'),
+  				'4': oklch('--chart-4'),
+  				'5': oklch('--chart-5')
   			},
   			sidebar: {
-  				DEFAULT: 'hsl(var(--sidebar-background))',
-  				foreground: 'hsl(var(--sidebar-foreground))',
-  				primary: 'hsl(var(--sidebar-primary))',
-  				'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-  				accent: 'hsl(var(--sidebar-accent))',
-  				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-  				border: 'hsl(var(--sidebar-border))',
-  				ring: 'hsl(var(--sidebar-ring))'
+  				DEFAULT: oklch('--sidebar-background'),
+  				foreground: oklch('--sidebar-foreground'),
+  				primary: oklch('--sidebar-primary'),
+  				'primary-foreground': oklch('--sidebar-primary-foreground'),
+  				accent: oklch('--sidebar-accent'),
+  				'accent-foreground': oklch('--sidebar-accent-foreground'),
+  				border: oklch('--sidebar-border'),
+  				ring: oklch('--sidebar-ring')
   			}
   		},
   		keyframes: {

@@ -43,7 +43,7 @@ export default function ProjectCard({ project, onUpdate, onDelete }) {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+    <div className="editorial-card overflow-hidden">
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">

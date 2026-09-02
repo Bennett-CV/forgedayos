@@ -1,23 +1,37 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format, startOfWeek, subWeeks } from "date-fns";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Dumbbell, Activity, History, ClipboardList } from "lucide-react";
 import ExerciseRow from "../components/lifts/ExerciseRow";
 import ExerciseHistory from "../components/lifts/ExerciseHistory";
 import ProgramSetup from "../components/lifts/ProgramSetup";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
+import { toast } from "sonner";
+
+function dayFocus(prog) {
+  if (!prog) return "";
+  const label = (prog.label || "").replace(/^day\s*\d+\s*/i, "").trim();
+  if (label) return label;
+  return prog.type === "cardio" ? "Cardio" : "Strength";
+}
 
 export default function Lifts() {
   const { user } = useAuth();
   const [weekOffset, setWeekOffset] = useState(0);
   const [allLogs, setAllLogs] = useState([]);
-  const [program, setProgram] = useState(null); // array of 5 day objects or null if not set up
+  const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState(1);
-  const [view, setView] = useState("log");
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState(searchParams.get("view") === "history" ? "history" : "log");
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const d = Number(searchParams.get("day"));
+    return d >= 1 && d <= 5 ? d : 1;
+  });
+  const [confirmReplace, setConfirmReplace] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const weekStart = format(
     startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }),
@@ -29,14 +43,16 @@ export default function Lifts() {
   );
 
   const load = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
     try {
       const [logs, programDays] = await Promise.all([
         base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 2000),
         base44.entities.WorkoutProgram.filter({ created_by: user.email }, "day", 10),
       ]);
       setAllLogs(logs);
-      // Strictly ensure only this user's program days are used
       const myDays = programDays.filter(d => d.created_by === user.email);
       setProgram(myDays.length > 0 ? myDays : null);
     } catch {
@@ -47,22 +63,52 @@ export default function Lifts() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (searchParams.get("view") === "log" || searchParams.get("log")) {
+      setView("log");
+    }
+    const d = Number(searchParams.get("day"));
+    if (d >= 1 && d <= 5) setSelectedDay(d);
+  }, [searchParams]);
+
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
+
+  const handleSetupComplete = () => {
+    setView("log");
+    setWeekOffset(0);
+    setSelectedDay(1);
+    setConfirmReplace(false);
+    load();
+  };
+
+  const startNewProgram = async () => {
+    if (!program?.length) return;
+    setResetting(true);
+    try {
+      await Promise.all(
+        program.filter(d => d.id).map(d => base44.entities.WorkoutProgram.delete(d.id))
+      );
+      setProgram(null);
+      setConfirmReplace(false);
+      setView("log");
+    } catch {
+      toast.error("Could not start a new program. Try again.");
+    }
+    setResetting(false);
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-border border-t-clay rounded-full animate-spin" />
       </div>
     );
   }
 
-  // New user with no program — show setup
   if (!program) {
-    return <ProgramSetup onComplete={load} />;
+    return <ProgramSetup onComplete={handleSetupComplete} />;
   }
 
-  // Build a lookup by day number
   const programByDay = {};
   program.forEach(d => { programByDay[d.day] = d; });
 
@@ -73,79 +119,102 @@ export default function Lifts() {
   return (
     <>
       <PullToRefreshIndicator pullY={pullY} pullProgress={pullProgress} isRefreshing={isRefreshing} />
-      <div className="space-y-6 animate-slide-up max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground">Lifts</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {allLogs.length > 0
-                ? `${[...new Set(allLogs.map(l => l.week_start))].length} weeks of history`
-                : "Track week-over-week progress"}
-            </p>
+      <div className="space-y-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="page-title">Lifts</h1>
+            {confirmReplace ? (
+              <div className="mt-2 space-y-2">
+                <p className="text-[12px] text-caption">
+                  This replaces your current 5-day template. Lift history is kept.
+                </p>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    disabled={resetting}
+                    onClick={startNewProgram}
+                    className="text-[11px] font-bold uppercase tracking-[0.12em] text-clay min-h-0 min-w-0"
+                  >
+                    {resetting ? "Replacing…" : "Replace"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={resetting}
+                    onClick={() => setConfirmReplace(false)}
+                    className="text-[11px] font-bold uppercase tracking-[0.12em] text-caption min-h-0 min-w-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmReplace(true)}
+                className="mt-2 text-[11px] font-bold uppercase tracking-[0.12em] text-caption min-h-0 min-w-0"
+              >
+                New program
+              </button>
+            )}
           </div>
-          <div className="flex items-center gap-1 bg-secondary/50 rounded-xl p-1">
+          <div className="seg-track w-[160px] shrink-0">
             <button
               onClick={() => setView("log")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all min-h-[44px] ${view === "log" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              className={`seg-item ${view === "log" ? "seg-item-active" : ""}`}
             >
-              <ClipboardList className="h-3.5 w-3.5" /> Log
+              Log
             </button>
             <button
               onClick={() => setView("history")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all min-h-[44px] ${view === "history" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              className={`seg-item ${view === "history" ? "seg-item-active" : ""}`}
             >
-              <History className="h-3.5 w-3.5" /> History
+              History
             </button>
           </div>
         </div>
 
-        {/* Day Tabs */}
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-1.5">
           {[1, 2, 3, 4, 5].map(day => {
             const prog = programByDay[day];
             if (!prog) return null;
-            const isCardio = prog.type === "cardio";
-            const hasData = allLogs.some(l => l.day === day);
             const active = selectedDay === day;
             return (
               <button
                 key={day}
                 onClick={() => setSelectedDay(day)}
-                className={`rounded-xl border p-3 text-center transition-all min-h-[44px] ${
-                  active ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-secondary/50 text-muted-foreground"
+                className={`rounded-[4px] border bg-card py-2.5 px-1 text-center min-h-[56px] ${
+                  active ? "border-clay" : "border-border"
                 }`}
               >
-                <div className="flex justify-center mb-1">
-                  {isCardio
-                    ? <Activity className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                    : <Dumbbell className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                  }
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider">Day {day}</p>
-                {hasData && <div className="h-1 w-1 rounded-full bg-success mx-auto mt-1" />}
+                <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-faint">Day {day}</p>
+                <p className={`text-[12px] font-semibold mt-0.5 truncate ${active ? "text-clay" : "text-ink"}`}>
+                  {dayFocus(prog)}
+                </p>
               </button>
             );
           })}
         </div>
 
-        {/* LOG VIEW */}
         {view === "log" && dayProgram && (
           <>
-            <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
-              <button onClick={() => setWeekOffset(o => o + 1)} className="p-2 rounded-lg hover:bg-secondary transition-colors min-h-[44px] min-w-[44px]">
-                <ChevronLeft className="h-5 w-5" />
+            <div className="flex items-center justify-between editorial-card px-3 py-2">
+              <button onClick={() => setWeekOffset(o => o + 1)} className="text-[13px] font-semibold text-caption min-w-[44px]">
+                Prev
               </button>
               <div className="text-center">
-                <p className="text-sm font-bold">Week of {format(startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }), "MMM d, yyyy")}</p>
-                <p className="text-xs text-muted-foreground">{currentWeekLogs.filter(l => l.day === selectedDay).length} sets logged this day</p>
+                <p className="text-[13px] font-semibold text-ink">
+                  Week of {format(startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }), "MMM d")}
+                </p>
+                <p className="text-[11px] text-caption">
+                  {currentWeekLogs.filter(l => l.day === selectedDay).length} sets
+                </p>
               </div>
               <button
                 onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
                 disabled={weekOffset === 0}
-                className="p-2 rounded-lg hover:bg-secondary transition-colors disabled:opacity-30 min-h-[44px] min-w-[44px]"
+                className="text-[13px] font-semibold text-caption min-w-[44px] disabled:opacity-30"
               >
-                <ChevronRight className="h-5 w-5" />
+                Next
               </button>
             </div>
 
@@ -153,19 +222,15 @@ export default function Lifts() {
               key={`log-${selectedDay}-${weekOffset}`}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-border bg-card p-5"
+              className="editorial-card p-4"
             >
-              <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-[15px] font-semibold text-ink">
+                {dayFocus(dayProgram)} — {dayProgram.type === "cardio" ? "Cardio" : "Strength"}
+              </h2>
+              <p className="text-[12px] text-caption mt-1 mb-4">
                 {dayProgram.type === "cardio"
-                  ? <Activity className="h-5 w-5 text-chart-3" />
-                  : <Dumbbell className="h-5 w-5 text-primary" />
-                }
-                <h2 className="text-base font-bold text-foreground">
-                  {dayProgram.label || `Day ${selectedDay}`} — {dayProgram.type === "cardio" ? "Cardio" : "Strength"}
-                </h2>
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                {dayProgram.type === "cardio" ? "Log your cardio duration below." : "Enter weight (lbs) and reps. Auto-saves on blur."}
+                  ? "Type, time, and distance."
+                  : "Weight (lbs) and reps for each set."}
               </p>
               <div>
                 {(dayProgram.exercises || []).map(exercise => (
@@ -184,39 +249,33 @@ export default function Lifts() {
           </>
         )}
 
-        {/* HISTORY VIEW */}
         {view === "history" && dayProgram && (
           <motion.div
             key={`history-${selectedDay}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-border bg-card p-5"
+            className="editorial-card p-4"
           >
-            <div className="flex items-center gap-2 mb-1">
-              <History className="h-5 w-5 text-primary" />
-              <h2 className="text-base font-bold text-foreground">{dayProgram.label || `Day ${selectedDay}`} — Full History</h2>
-            </div>
-            <p className="text-xs text-muted-foreground mb-4">
-              All-time weight tracking. Shows avg lbs per set and week-over-week delta (Δ).
+            <h2 className="text-[15px] font-semibold text-ink mb-1">{dayFocus(dayProgram)} — History</h2>
+            <p className="text-[12px] text-caption mb-4">
+              {dayProgram.type === "cardio"
+                ? "Best session · last 8 weeks."
+                : "Best set · last 8 weeks."}
             </p>
             <div>
-              {(dayProgram.exercises || [])
-                .filter(e => !e.isCardio)
-                .map(exercise => (
+              {(dayProgram.exercises || []).map(exercise => {
+                const cardio = exercise.isCardio || dayProgram.type === "cardio";
+                return (
                   <ExerciseHistory
                     key={exercise.name}
-                    exercise={{ ...exercise, _day: selectedDay }}
+                    exercise={{ ...exercise, isCardio: cardio, _day: selectedDay }}
                     allLogs={allLogs.filter(l => l.day === selectedDay)}
+                    variant={cardio ? "cardio" : "strength"}
                   />
-                ))}
-              {dayProgram.type === "cardio" && (
-                <ExerciseHistory
-                  exercise={{ name: "Cardio", sets: 1, _day: selectedDay }}
-                  allLogs={allLogs.filter(l => l.day === selectedDay)}
-                />
-              )}
+                );
+              })}
               {allLogs.filter(l => l.day === selectedDay).length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">No history logged for Day {selectedDay} yet.</p>
+                <p className="text-sm text-caption text-center py-8">No history for Day {selectedDay} yet.</p>
               )}
             </div>
           </motion.div>
