@@ -1,3 +1,22 @@
+function hasTarget(n) {
+  return n != null && Number(n) > 0;
+}
+
+function MacroStat({ label, eaten, target }) {
+  return (
+    <div className="text-center">
+      <p className="font-mono text-[15px] font-semibold text-ink leading-none">
+        {Math.round(eaten)}
+        {hasTarget(target) && (
+          <span className="text-[12px] text-caption font-medium"> / {Math.round(target)}g</span>
+        )}
+        {!hasTarget(target) && <span className="text-[12px] font-medium">g</span>}
+      </p>
+      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-faint mt-1">{label}</p>
+    </div>
+  );
+}
+
 export default function DailyMacroSummary({ meals, goals }) {
   const totals = meals.reduce(
     (acc, m) => ({
@@ -9,7 +28,7 @@ export default function DailyMacroSummary({ meals, goals }) {
     { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
   );
 
-  const calorieGoal = goals?.calories || 0;
+  const calorieGoal = hasTarget(goals?.calories) ? Number(goals.calories) : 0;
   const pct = calorieGoal > 0 ? Math.min(100, (totals.calories / calorieGoal) * 100) : 0;
   const over = calorieGoal > 0 && totals.calories > calorieGoal;
 
@@ -19,12 +38,11 @@ export default function DailyMacroSummary({ meals, goals }) {
         <span className="font-mono text-[22px] font-semibold text-ink">
           {Math.round(totals.calories).toLocaleString()}
         </span>
-        {calorieGoal > 0 && (
+        {calorieGoal > 0 ? (
           <span className="text-[13px] text-caption font-mono">
             / {calorieGoal.toLocaleString()} kcal
           </span>
-        )}
-        {calorieGoal === 0 && (
+        ) : (
           <span className="text-[13px] text-caption">kcal</span>
         )}
       </div>
@@ -32,22 +50,15 @@ export default function DailyMacroSummary({ meals, goals }) {
         <div
           className="h-full rounded-[2px]"
           style={{
-            width: `${calorieGoal > 0 ? pct : Math.min(100, totals.calories > 0 ? 40 : 0)}%`,
+            width: `${calorieGoal > 0 ? pct : 0}%`,
             background: over ? "oklch(var(--overbudget))" : "oklch(var(--clay))",
           }}
         />
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2">
-        {[
-          { label: "Protein", value: totals.protein_g },
-          { label: "Carbs", value: totals.carbs_g },
-          { label: "Fat", value: totals.fat_g },
-        ].map(m => (
-          <div key={m.label} className="text-center">
-            <p className="font-mono text-[15px] font-semibold text-ink">{Math.round(m.value)}g</p>
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-faint mt-0.5">{m.label}</p>
-          </div>
-        ))}
+        <MacroStat label="Protein" eaten={totals.protein_g} target={goals?.protein_g} />
+        <MacroStat label="Carbs" eaten={totals.carbs_g} target={goals?.carbs_g} />
+        <MacroStat label="Fat" eaten={totals.fat_g} target={goals?.fat_g} />
       </div>
     </div>
   );
