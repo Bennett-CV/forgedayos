@@ -34,7 +34,10 @@ export default function Nutrition() {
   const displayDate = format(subDays(new Date(), dateOffset), "EEEE, MMMM d");
 
   const load = async () => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
     try {
       const [data, me] = await Promise.all([
         base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 500),

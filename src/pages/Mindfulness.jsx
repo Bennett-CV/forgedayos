@@ -30,7 +30,10 @@ export default function Mindfulness() {
   const [editingEntry, setEditingEntry] = useState(null);
 
   const load = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
     try {
       const data = await base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 200);
       setEntries(data);
