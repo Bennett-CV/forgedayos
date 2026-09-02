@@ -197,8 +197,8 @@ export default function Lifts() {
             <h2 className="text-[15px] font-semibold text-ink mb-1">{dayFocus(dayProgram)} — History</h2>
             <p className="text-[12px] text-caption mb-4">
               {dayProgram.type === "cardio"
-                ? "Duration over time · last 8 weeks in the table."
-                : "Best set over time · last 8 weeks in the table."}
+                ? "Best session · last 8 weeks."
+                : "Best set · last 8 weeks."}
             </p>
             <div>
               {(dayProgram.exercises || []).map(exercise => {

@@ -66,23 +66,33 @@ export function cardioTypeLabel(id) {
   return CARDIO_TYPES.find(t => t.id === id)?.label || "Cardio";
 }
 
-/** Heaviest logged set that week; ties go to more reps. Ignores 0/empty. */
-export function bestSetForWeek(logs) {
+/** All-time heaviest set; ties go to more reps. Ignores 0/empty. */
+export function bestSetAllTime(logs) {
   let best = null;
   for (const l of logs || []) {
     const weight = l.weight > 0 ? Number(l.weight) : null;
     if (weight == null) continue;
     const reps = l.reps > 0 ? Number(l.reps) : 0;
     if (!best || weight > best.weight || (weight === best.weight && reps > best.reps)) {
-      best = { weight, reps };
+      best = { weight, reps, week: l.week_start };
     }
   }
   return best;
 }
 
-/** Prefer duration (minutes); fall back to distance (miles). */
-export function cardioProgressForWeek(log) {
-  const minutes = log?.reps > 0 ? Number(log.reps) : null;
-  const miles = log?.weight > 0 ? Number(log.weight) : null;
-  return { minutes, miles };
+/** Longest duration if any time was logged; otherwise farthest distance. */
+export function bestCardioAllTime(logs) {
+  let bestDur = null;
+  let bestDist = null;
+  for (const l of logs || []) {
+    const minutes = l.reps > 0 ? Number(l.reps) : null;
+    const miles = l.weight > 0 ? Number(l.weight) : null;
+    if (minutes != null && (!bestDur || minutes > bestDur.value)) {
+      bestDur = { kind: "duration", value: minutes, week: l.week_start };
+    }
+    if (miles != null && (!bestDist || miles > bestDist.value)) {
+      bestDist = { kind: "distance", value: miles, week: l.week_start };
+    }
+  }
+  return bestDur || bestDist;
 }
