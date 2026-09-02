@@ -65,3 +65,24 @@ export function parseCardioType(notes) {
 export function cardioTypeLabel(id) {
   return CARDIO_TYPES.find(t => t.id === id)?.label || "Cardio";
 }
+
+/** Heaviest logged set that week; ties go to more reps. Ignores 0/empty. */
+export function bestSetForWeek(logs) {
+  let best = null;
+  for (const l of logs || []) {
+    const weight = l.weight > 0 ? Number(l.weight) : null;
+    if (weight == null) continue;
+    const reps = l.reps > 0 ? Number(l.reps) : 0;
+    if (!best || weight > best.weight || (weight === best.weight && reps > best.reps)) {
+      best = { weight, reps };
+    }
+  }
+  return best;
+}
+
+/** Prefer duration (minutes); fall back to distance (miles). */
+export function cardioProgressForWeek(log) {
+  const minutes = log?.reps > 0 ? Number(log.reps) : null;
+  const miles = log?.weight > 0 ? Number(log.weight) : null;
+  return { minutes, miles };
+}
