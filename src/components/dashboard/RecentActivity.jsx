@@ -2,6 +2,20 @@ import { motion } from "framer-motion";
 import { PILLARS } from "../../lib/constants";
 import { formatDistanceToNow } from "date-fns";
 
+function relativeLabel(when) {
+  if (!when) return "";
+  const raw = String(when);
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw);
+  const d = dateOnly ? new Date(`${raw}T12:00:00`) : new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+  if (d.getTime() > Date.now()) return "today";
+  try {
+    return formatDistanceToNow(d, { addSuffix: true }).replace("about ", "");
+  } catch {
+    return raw;
+  }
+}
+
 export default function RecentActivity({ activities }) {
   const recent = [...activities]
     .sort((a, b) => new Date(b.created_date || b.date) - new Date(a.created_date || a.date))
@@ -22,13 +36,7 @@ export default function RecentActivity({ activities }) {
         <div className="editorial-card overflow-hidden">
           {recent.map((activity, i) => {
             const pillar = PILLARS[activity.pillar];
-            const when = activity.created_date || activity.date;
-            let rel = "";
-            try {
-              rel = formatDistanceToNow(new Date(when), { addSuffix: true }).replace("about ", "");
-            } catch {
-              rel = activity.date;
-            }
+            const rel = relativeLabel(activity.created_date || activity.date);
             return (
               <div
                 key={activity.id || i}

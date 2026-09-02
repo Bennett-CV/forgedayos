@@ -34,11 +34,12 @@ export default function WealthSnapshot() {
   const changePct = data.totalIncome > 0
     ? ((net / data.totalIncome) * 100)
     : 0;
-  const sparkMax = Math.max(1, ...data.spark.map(v => Math.abs(v)));
+  const bars = (data.spark.length > 0 ? data.spark : [2, 4, 3, 5, 4, 6, 5]).slice(-8);
+  const sparkMax = Math.max(1, ...bars.map(v => Math.abs(Number(v) || 0)));
 
   return (
-    <div className="editorial-card p-5 flex items-center justify-between gap-4">
-      <div className="min-w-0">
+    <div className="editorial-card p-5 overflow-hidden flex items-center justify-between gap-4">
+      <div className="min-w-0 flex-1">
         <p className="micro-label">Net Worth</p>
         <p className="mt-1.5 font-serif text-[22px] font-semibold text-ink leading-none">
           ${net.toLocaleString("en-US", { maximumFractionDigits: 0 })}
@@ -47,14 +48,17 @@ export default function WealthSnapshot() {
           {changePct >= 0 ? "+" : ""}{changePct.toFixed(1)}% this month
         </p>
       </div>
-      <div className="flex items-end gap-[3px] h-10 shrink-0">
-        {(data.spark.length > 0 ? data.spark : [2, 4, 3, 5, 4, 6, 5]).slice(-8).map((v, i) => (
-          <div
-            key={i}
-            className="w-[5px] rounded-[1px] bg-pillar-finance"
-            style={{ height: `${Math.max(6, Math.round((Math.abs(v) / sparkMax) * 40))}px`, opacity: 0.85 }}
-          />
-        ))}
+      <div className="relative h-10 w-[72px] shrink-0 overflow-hidden flex items-end gap-[3px] self-center">
+        {bars.map((v, i) => {
+          const h = Math.min(40, Math.max(6, Math.round((Math.abs(Number(v) || 0) / sparkMax) * 40)));
+          return (
+            <div
+              key={i}
+              className="w-[5px] max-h-full rounded-[1px] bg-pillar-finance shrink-0"
+              style={{ height: h, opacity: 0.85 }}
+            />
+          );
+        })}
       </div>
     </div>
   );

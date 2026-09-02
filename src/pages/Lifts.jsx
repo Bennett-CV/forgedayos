@@ -162,8 +162,8 @@ export default function Lifts() {
               </h2>
               <p className="text-[12px] text-caption mt-1 mb-4">
                 {dayProgram.type === "cardio"
-                  ? "Log duration below."
-                  : "Enter weight (lbs) and reps — autosaves on blur."}
+                  ? "Type, time, and distance."
+                  : "Weight (lbs) and reps for each set."}
               </p>
               <div>
                 {(dayProgram.exercises || []).map(exercise => (
@@ -190,23 +190,23 @@ export default function Lifts() {
             className="editorial-card p-4"
           >
             <h2 className="text-[15px] font-semibold text-ink mb-1">{dayFocus(dayProgram)} — History</h2>
-            <p className="text-[12px] text-caption mb-4">Avg lbs per set and week-over-week delta.</p>
+            <p className="text-[12px] text-caption mb-4">
+              {dayProgram.type === "cardio"
+                ? "Time and distance by week."
+                : "Avg lbs per set and week-over-week delta."}
+            </p>
             <div>
-              {(dayProgram.exercises || [])
-                .filter(e => !e.isCardio)
-                .map(exercise => (
+              {(dayProgram.exercises || []).map(exercise => {
+                const cardio = exercise.isCardio || dayProgram.type === "cardio";
+                return (
                   <ExerciseHistory
                     key={exercise.name}
-                    exercise={{ ...exercise, _day: selectedDay }}
+                    exercise={{ ...exercise, isCardio: cardio, _day: selectedDay }}
                     allLogs={allLogs.filter(l => l.day === selectedDay)}
+                    variant={cardio ? "cardio" : "strength"}
                   />
-                ))}
-              {dayProgram.type === "cardio" && (
-                <ExerciseHistory
-                  exercise={{ name: "Cardio", sets: 1, _day: selectedDay }}
-                  allLogs={allLogs.filter(l => l.day === selectedDay)}
-                />
-              )}
+                );
+              })}
               {allLogs.filter(l => l.day === selectedDay).length === 0 && (
                 <p className="text-sm text-caption text-center py-8">No history for Day {selectedDay} yet.</p>
               )}
