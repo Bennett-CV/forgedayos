@@ -82,9 +82,9 @@ export default function BudgetCategoryBar({ category, spent, onUpdated }) {
         </div>
       </div>
 
-      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+      <div className="h-[4px] bg-track rounded-[2px] overflow-hidden">
         <div
-          className={cn("h-full rounded-full transition-all duration-500", over ? "bg-destructive" : "bg-primary")}
+          className={cn("h-full rounded-[2px] transition-all duration-500", over ? "bg-overbudget" : "bg-clay")}
           style={{ width: `${pct}%` }}
         />
       </div>

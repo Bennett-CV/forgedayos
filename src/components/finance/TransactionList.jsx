@@ -32,7 +32,7 @@ function TransactionRow({ t, onDeleted, onUpdated }) {
   };
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
+    <div className="flex items-center justify-between editorial-card px-4 py-3">
       <div className="flex items-center gap-3 min-w-0">
         <div className={cn(
           "h-8 w-8 rounded-lg flex items-center justify-center text-sm shrink-0",

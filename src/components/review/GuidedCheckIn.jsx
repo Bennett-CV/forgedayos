@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Sparkles } from "lucide-react";
 
 const PROMPTS = [
   { key: "win",       label: "🏆 Biggest win this week?",                placeholder: "Something you're proud of..." },
@@ -27,7 +26,7 @@ export default function GuidedCheckIn({ onComplete }) {
   const isLast = step === PROMPTS.length - 1;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+    <div className="editorial-card p-5 space-y-5">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Guided Check-In</h3>
         <span className="text-xs text-muted-foreground font-mono">{step + 1} / {PROMPTS.length}</span>
@@ -72,12 +71,8 @@ export default function GuidedCheckIn({ onComplete }) {
         >
           Skip check-in
         </button>
-        <Button onClick={handleNext} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-          {isLast ? (
-            <><Sparkles className="h-4 w-4" /> Generate Review</>
-          ) : (
-            <>Next <ChevronRight className="h-4 w-4" /></>
-          )}
+        <Button onClick={handleNext} className="bg-clay text-clay-fg hover:bg-clay-hover">
+          {isLast ? "Generate Review" : "Next"}
         </Button>
       </div>
     </div>

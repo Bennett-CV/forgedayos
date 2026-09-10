@@ -4,7 +4,6 @@ import { useAuth } from "@/lib/AuthContext";
 import { format, subDays } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingDown, TrendingUp, Minus, Scale } from "lucide-react";
 import { toast } from "sonner";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -13,9 +12,9 @@ import {
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border border-border rounded-lg px-3 py-2 text-xs">
-      <p className="font-bold text-foreground">{payload[0].value} lbs</p>
-      <p className="text-muted-foreground">{payload[0].payload.label}</p>
+    <div className="bg-card border border-border rounded-[4px] px-3 py-2 text-xs">
+      <p className="font-semibold font-mono text-ink">{payload[0].value} lbs</p>
+      <p className="text-caption">{payload[0].payload.label}</p>
     </div>
   );
 };
@@ -54,10 +53,9 @@ export default function WeightTab() {
     setSaving(false);
   };
 
-  // Stats
   const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date));
   const latest = sorted[sorted.length - 1];
-  const weekAgo = sorted.find(l => l.date <= format(subDays(new Date(), 7), "yyyy-MM-dd") && 
+  const weekAgo = sorted.find(l => l.date <= format(subDays(new Date(), 7), "yyyy-MM-dd") &&
     sorted.indexOf(l) === sorted.filter(x => x.date <= format(subDays(new Date(), 7), "yyyy-MM-dd")).length - 1);
   const monthAgo = sorted.find(l => l.date <= format(subDays(new Date(), 30), "yyyy-MM-dd") &&
     sorted.indexOf(l) === sorted.filter(x => x.date <= format(subDays(new Date(), 30), "yyyy-MM-dd")).length - 1);
@@ -73,36 +71,33 @@ export default function WeightTab() {
 
   const DeltaBadge = ({ delta, label }) => {
     if (delta === null) return (
-      <div className="bg-secondary/50 rounded-xl p-3 text-center">
-        <p className="text-lg font-black text-muted-foreground">—</p>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{label}</p>
+      <div className="bg-secondary rounded-[4px] p-3 text-center">
+        <p className="font-mono text-[16px] font-semibold text-caption">—</p>
+        <p className="micro-label mt-1">{label}</p>
       </div>
     );
-    const Icon = delta < 0 ? TrendingDown : delta > 0 ? TrendingUp : Minus;
-    const color = delta < 0 ? "text-success" : delta > 0 ? "text-destructive" : "text-muted-foreground";
+    const color = delta < 0 ? "text-success" : delta > 0 ? "text-overbudget" : "text-caption";
     return (
-      <div className="bg-secondary/50 rounded-xl p-3 text-center">
-        <div className={`flex items-center justify-center gap-1 font-black font-mono text-lg ${color}`}>
-          <Icon className="h-4 w-4" />
+      <div className="bg-secondary rounded-[4px] p-3 text-center">
+        <p className={`font-mono text-[16px] font-semibold ${color}`}>
           {delta > 0 ? "+" : ""}{delta.toFixed(1)}
-        </div>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{label}</p>
+        </p>
+        <p className="micro-label mt-1">{label}</p>
       </div>
     );
   };
 
   if (loading) return (
     <div className="flex items-center justify-center py-16">
-      <div className="w-7 h-7 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+      <div className="w-7 h-7 border-4 border-border border-t-clay rounded-full animate-spin" />
     </div>
   );
 
   return (
     <div className="space-y-5">
-      {/* Log Weight */}
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          {todayLog ? `Today's weight: ${todayLog.weight_lbs} lbs — update?` : "Log today's weight"}
+      <div className="editorial-card p-4 space-y-3">
+        <p className="micro-label">
+          {todayLog ? `Today: ${todayLog.weight_lbs} lbs` : "Log today's weight"}
         </p>
         <div className="flex gap-2">
           <Input
@@ -112,44 +107,40 @@ export default function WeightTab() {
             value={weightInput}
             onChange={e => setWeightInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSave()}
-            className="bg-secondary/50 border-border font-mono"
           />
-          <Button onClick={handleSave} disabled={saving || !weightInput} className="shrink-0 gap-2">
-            <Plus className="h-4 w-4" />
+          <Button onClick={handleSave} disabled={saving || !weightInput} className="shrink-0 bg-clay text-clay-fg hover:bg-clay-hover">
             {todayLog ? "Update" : "Log"}
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
       {latest && (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-secondary/50 rounded-xl p-3 text-center">
-            <p className="text-lg font-black font-mono text-primary">{latest.weight_lbs}</p>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Current (lbs)</p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-secondary rounded-[4px] p-3 text-center">
+            <p className="font-mono text-[16px] font-semibold text-ink">{latest.weight_lbs}</p>
+            <p className="micro-label mt-1">Current</p>
           </div>
           <DeltaBadge delta={delta7} label="7-day" />
           <DeltaBadge delta={delta30} label="30-day" />
         </div>
       )}
 
-      {/* Chart */}
       {chartData.length > 1 ? (
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">Last 30 Days</p>
+        <div className="editorial-card p-4">
+          <p className="micro-label mb-4">Last 30 Days</p>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--border))" />
               <XAxis
                 dataKey="label"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                tick={{ fill: "oklch(var(--caption))", fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
                 interval="preserveStartEnd"
               />
               <YAxis
                 domain={["auto", "auto"]}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                tick={{ fill: "oklch(var(--caption))", fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
                 width={36}
@@ -158,34 +149,32 @@ export default function WeightTab() {
               <Line
                 type="monotone"
                 dataKey="weight"
-                stroke="hsl(var(--primary))"
+                stroke="oklch(var(--clay))"
                 strokeWidth={2}
-                dot={{ fill: "hsl(var(--primary))", r: 3 }}
+                dot={{ fill: "oklch(var(--clay))", r: 3 }}
                 activeDot={{ r: 5 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
       ) : logs.length === 0 ? (
-        <div className="text-center py-12 rounded-2xl border border-dashed border-border">
-          <Scale className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No weight logged yet. Start tracking above.</p>
+        <div className="text-center py-10 editorial-card border-dashed">
+          <p className="text-sm text-caption">No weight logged yet.</p>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground text-center py-4">Log at least 2 entries to see your trend chart.</p>
+        <p className="text-xs text-caption text-center py-4">Log at least 2 entries to see the trend.</p>
       )}
 
-      {/* Log History */}
       {logs.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="editorial-card overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">History</p>
+            <p className="micro-label">History</p>
           </div>
-          <div className="divide-y divide-border/50 max-h-64 overflow-y-auto">
-            {[...logs].sort((a, b) => b.date.localeCompare(a.date)).map(log => (
-              <div key={log.id} className="flex items-center justify-between px-4 py-2.5">
-                <p className="text-xs text-muted-foreground">{format(new Date(log.date + "T12:00:00"), "EEE, MMM d")}</p>
-                <p className="text-sm font-bold font-mono text-foreground">{log.weight_lbs} lbs</p>
+          <div className="max-h-64 overflow-y-auto">
+            {[...logs].sort((a, b) => b.date.localeCompare(a.date)).map((log, i) => (
+              <div key={log.id} className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
+                <p className="text-[12px] text-caption">{format(new Date(log.date + "T12:00:00"), "EEE, MMM d")}</p>
+                <p className="text-[13px] font-semibold font-mono text-ink">{log.weight_lbs} lbs</p>
               </div>
             ))}
           </div>
