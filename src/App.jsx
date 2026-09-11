@@ -53,7 +53,8 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Redirect new users to onboarding
+  // New users see the wizard on Today. Do not bounce `/` → `/onboarding`
+  // (that remount used to look like a step change after tab switches).
   const needsOnboarding = user && !user.onboarding_completed;
 
   // Protected app routes — unauthenticated users land on /login
@@ -61,7 +62,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<Layout />}>
-          <Route path="/" element={needsOnboarding ? <Navigate to="/onboarding" replace /> : <Dashboard />} />
+          <Route path="/" element={needsOnboarding ? <Onboarding /> : <Dashboard />} />
           <Route path="/log" element={<LogActivity />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/review" element={<WeeklyReview />} />
