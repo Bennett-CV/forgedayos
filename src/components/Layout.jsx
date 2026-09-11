@@ -1,5 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { useAuth } from "@/lib/AuthContext";
+import { isOnboardingWizardRoute } from "@/lib/onboardingState";
 
 const BOTTOM_TABS = [
   { path: "/", label: "Today" },
@@ -37,6 +39,8 @@ function BottomTab({ item, active }) {
 
 export default function Layout() {
   const location = useLocation();
+  const { user } = useAuth();
+  const wizardActive = isOnboardingWizardRoute(location.pathname, user);
 
   return (
     <div className="min-h-screen bg-page flex justify-center">
@@ -60,18 +64,24 @@ export default function Layout() {
         </header>
 
         <main className="flex-1 overflow-x-hidden">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 }}
-              transition={{ duration: 0.18, ease: "easeInOut" }}
-              className="px-[22px] pt-5 pb-[110px]"
-            >
+          {wizardActive ? (
+            <div className="px-[22px] pt-5 pb-[110px]">
               <Outlet />
-            </motion.div>
-          </AnimatePresence>
+            </div>
+          ) : (
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.18, ease: "easeInOut" }}
+                className="px-[22px] pt-5 pb-[110px]"
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          )}
         </main>
 
         <nav
@@ -82,7 +92,9 @@ export default function Layout() {
             <BottomTab
               key={item.path}
               item={item}
-              active={location.pathname === item.path}
+              active={item.path === "/"
+                ? location.pathname === "/" || location.pathname === "/onboarding"
+                : location.pathname === item.path}
             />
           ))}
         </nav>

@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { motion, AnimatePresence } from "framer-motion";
-import { Zap, ChevronRight, ChevronLeft, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/AuthContext";
+import { Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PILLARS, PILLAR_KEYS } from "@/lib/constants";
+import {
+  clearOnboardingDraft,
+  loadOnboardingDraft,
+  saveOnboardingDraft,
+} from "@/lib/onboardingState";
 
 const STEPS = ["Welcome", "Pillars", "Profile", "Goals"];
 
@@ -20,15 +24,25 @@ const ACTIVITY_LEVELS = [
 
 export default function Onboarding({ onComplete }) {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const { user } = useAuth();
+  const [draft, setDraft] = useState(() => loadOnboardingDraft());
   const [saving, setSaving] = useState(false);
+  const [savingPillars, setSavingPillars] = useState(false);
 
-  const [pillars, setPillars] = useState([]);
-  const [profile, setProfile] = useState({ age: "", gender: "", weight_lbs: "", height_ft: "", height_in: "" });
-  const [goals, setGoals] = useState({ calories: "", protein_g: "", carbs_g: "", fat_g: "", workout_days: 4, activity_level: "moderate" });
+  const { step, pillars, profile, goals } = draft;
+
+  useEffect(() => {
+    saveOnboardingDraft(draft);
+  }, [draft]);
+
+  const updateDraft = (patch) => {
+    setDraft(prev => ({ ...prev, ...patch }));
+  };
 
   const togglePillar = (key) => {
-    setPillars(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+    updateDraft({
+      pillars: pillars.includes(key) ? pillars.filter(k => k !== key) : [...pillars, key],
+    });
   };
 
   const handleFinish = async () => {
@@ -55,98 +69,117 @@ export default function Onboarding({ onComplete }) {
       };
       await base44.auth.updateMe(updateData);
 
-      // Log starting weight if provided
       if (profile.weight_lbs) {
         const today = new Date().toISOString().split("T")[0];
         await base44.entities.WeightLog.create({ date: today, weight_lbs: parseFloat(profile.weight_lbs), notes: "Starting weight" });
       }
 
+      clearOnboardingDraft();
       toast.success("You're all set! Welcome to Forgeday.");
       onComplete?.();
       window.location.href = "/";
-    } catch (err) {
+    } catch {
       toast.error("Failed to save. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const canProceed = () => {
-    if (step === 1) return pillars.length > 0;
-    return true;
+  const persistPillars = async () => {
+    setSavingPillars(true);
+    try {
+      await base44.auth.updateMe({ focused_pillars: pillars });
+    } catch {
+      toast.error("Couldn't save pillars yet. They'll be saved when you finish setup.");
+    } finally {
+      setSavingPillars(false);
+    }
   };
 
+  const handleGetStarted = () => {
+    updateDraft({ step: 1 });
+  };
+
+  const handleContinue = async () => {
+    if (step === 1) {
+      if (pillars.length === 0) return;
+      await persistPillars();
+      updateDraft({ step: 2 });
+      return;
+    }
+    if (step === 2) {
+      updateDraft({ step: 3 });
+    }
+  };
+
+  const handleBack = () => {
+    if (step <= 0) return;
+    updateDraft({ step: step - 1 });
+  };
+
+  const canContinue = step !== 1 || pillars.length > 0;
+  const alreadyCompleted = Boolean(user?.onboarding_completed);
+
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-safe pt-6 pb-4 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
-            <Zap className="h-4 w-4 text-primary" />
-          </div>
-          <span className="font-black text-sm tracking-tight">Forgeday</span>
-        </div>
-        {/* Step dots */}
-        <div className="flex items-center gap-1.5">
-          {STEPS.map((_, i) => (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-1.5" aria-label={`Step ${step + 1} of ${STEPS.length}`}>
+          {STEPS.map((label, i) => (
             <div
-              key={i}
+              key={label}
               className={`rounded-full transition-all duration-300 ${
-                i === step ? "w-5 h-2 bg-primary" : i < step ? "w-2 h-2 bg-primary/50" : "w-2 h-2 bg-border"
+                i === step ? "w-5 h-2 bg-clay" : i < step ? "w-2 h-2 bg-clay/50" : "w-2 h-2 bg-border"
               }`}
             />
           ))}
         </div>
-        {step > 0 && step < 4 && (
-          <button onClick={() => navigate("/")} className="text-xs text-muted-foreground underline min-h-[44px] min-w-[44px] flex items-center justify-end">
+        {step > 0 && alreadyCompleted && (
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="text-[12px] font-semibold text-caption underline min-h-[44px] min-w-[44px] flex items-center justify-end"
+          >
             Skip
           </button>
         )}
-        {step === 0 && <div className="w-16" />}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.2 }}
-          >
-            {step === 0 && <StepWelcome />}
-            {step === 1 && <StepPillars pillars={pillars} togglePillar={togglePillar} />}
-            {step === 2 && <StepProfile profile={profile} setProfile={setProfile} />}
-            {step === 3 && <StepGoals goals={goals} setGoals={setGoals} />}
-          </motion.div>
-        </AnimatePresence>
+      <div>
+        {step === 0 && <StepWelcome />}
+        {step === 1 && <StepPillars pillars={pillars} togglePillar={togglePillar} />}
+        {step === 2 && <StepProfile profile={profile} setProfile={next => updateDraft({ profile: typeof next === "function" ? next(profile) : next })} />}
+        {step === 3 && <StepGoals goals={goals} setGoals={next => updateDraft({ goals: typeof next === "function" ? next(goals) : next })} />}
       </div>
 
-      {/* Footer nav */}
-      <div className="px-6 pb-safe pb-8 pt-4 border-t border-border shrink-0 flex items-center justify-between gap-4">
+      <div className="mt-8 pt-4 border-t border-border flex items-center justify-between gap-3">
         {step > 0 ? (
-          <Button variant="outline" onClick={() => setStep(s => s - 1)} className="gap-1 min-h-[48px]">
-            <ChevronLeft className="h-4 w-4" /> Back
-          </Button>
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center justify-center min-h-[48px] px-4 rounded-[4px] border border-border text-[14px] font-semibold text-ink"
+          >
+            Back
+          </button>
         ) : <div />}
 
         {step < 3 ? (
-          <Button
-            onClick={() => setStep(s => s + 1)}
-            disabled={!canProceed()}
-            className="gap-1 min-h-[48px] flex-1 max-w-xs ml-auto"
+          <button
+            type="button"
+            onClick={step === 0 ? handleGetStarted : handleContinue}
+            disabled={!canContinue || savingPillars}
+            className="inline-flex items-center justify-center min-h-[48px] px-5 rounded-[4px] bg-clay text-clay-fg text-[15px] font-semibold hover:bg-clay-hover disabled:opacity-50 disabled:pointer-events-none flex-1 max-w-xs ml-auto"
           >
-            {step === 0 ? "Get Started" : "Continue"} <ChevronRight className="h-4 w-4" />
-          </Button>
+            {savingPillars ? "Saving..." : step === 0 ? "Get Started" : "Continue"}
+          </button>
         ) : (
-          <Button
+          <button
+            type="button"
             onClick={handleFinish}
             disabled={saving}
-            className="gap-1 min-h-[48px] flex-1 max-w-xs ml-auto"
+            className="inline-flex items-center justify-center min-h-[48px] px-5 rounded-[4px] bg-clay text-clay-fg text-[15px] font-semibold hover:bg-clay-hover disabled:opacity-50 disabled:pointer-events-none flex-1 max-w-xs ml-auto"
           >
-            {saving ? "Saving..." : <><Check className="h-4 w-4" /> Finish Setup</>}
-          </Button>
+            {saving ? "Saving..." : "Finish Setup"}
+          </button>
         )}
       </div>
     </div>
@@ -155,15 +188,12 @@ export default function Onboarding({ onComplete }) {
 
 function StepWelcome() {
   return (
-    <div className="flex flex-col items-center text-center pt-8 max-w-sm mx-auto">
-      <div className="h-20 w-20 rounded-2xl bg-primary/20 flex items-center justify-center mb-6">
-        <Zap className="h-10 w-10 text-primary" />
-      </div>
-      <h1 className="text-3xl font-black tracking-tight mb-3">Welcome to Forgeday</h1>
-      <p className="text-muted-foreground text-base leading-relaxed">
+    <div className="pt-2">
+      <h1 className="font-serif text-[28px] font-semibold tracking-tight text-ink leading-tight">Welcome to Forgeday</h1>
+      <p className="mt-3 text-[15px] text-caption leading-relaxed">
         Your personal operating system for fitness, nutrition, finance, and growth.
       </p>
-      <p className="text-muted-foreground text-sm mt-4 leading-relaxed">
+      <p className="mt-3 text-[14px] text-faint leading-relaxed">
         Let's take 2 minutes to set up your profile and goals so the app is personalized to you.
       </p>
     </div>
@@ -172,10 +202,10 @@ function StepWelcome() {
 
 function StepPillars({ pillars, togglePillar }) {
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-black tracking-tight mb-1">Choose your pillars</h2>
-      <p className="text-muted-foreground text-sm mb-6">Select the areas you want to focus on. You can always change this later.</p>
-      <div className="space-y-3">
+    <div>
+      <h2 className="font-serif text-[26px] font-semibold tracking-tight text-ink">Choose your pillars</h2>
+      <p className="mt-1 text-[14px] text-caption mb-5">Select the areas you want to focus on. You can always change this later.</p>
+      <div className="space-y-2">
         {PILLAR_KEYS.map(key => {
           const p = PILLARS[key];
           const Icon = p.icon;
@@ -183,19 +213,20 @@ function StepPillars({ pillars, togglePillar }) {
           return (
             <button
               key={key}
+              type="button"
               onClick={() => togglePillar(key)}
-              className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl border-2 transition-all text-left min-h-[64px] ${
-                selected ? "border-primary bg-primary/10" : "border-border bg-card hover:border-border/80"
+              className={`w-full flex items-center gap-4 px-4 py-4 rounded-[4px] border transition-colors text-left min-h-[64px] ${
+                selected ? "border-clay bg-card" : "border-border bg-card"
               }`}
             >
-              <div className={`h-10 w-10 rounded-lg ${p.bgClass} flex items-center justify-center shrink-0`}>
-                <Icon className={`h-5 w-5 ${p.textClass}`} />
+              <div className="h-10 w-10 rounded-[4px] bg-secondary flex items-center justify-center shrink-0">
+                <Icon className="h-5 w-5 text-ink" />
               </div>
               <div className="flex-1">
-                <p className="font-bold text-sm text-foreground">{p.label}</p>
-                <p className="text-xs text-muted-foreground">{p.description || p.label}</p>
+                <p className="font-semibold text-[14px] text-ink">{p.label}</p>
+                <p className="text-[12px] text-caption">{p.description || p.label}</p>
               </div>
-              {selected && <Check className="h-5 w-5 text-primary shrink-0" />}
+              {selected && <Check className="h-5 w-5 text-clay shrink-0" />}
             </button>
           );
         })}
@@ -207,36 +238,37 @@ function StepPillars({ pillars, togglePillar }) {
 function StepProfile({ profile, setProfile }) {
   const set = (key, val) => setProfile(p => ({ ...p, [key]: val }));
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-black tracking-tight mb-1">Your profile</h2>
-      <p className="text-muted-foreground text-sm mb-6">Used to personalize your nutrition targets and goals.</p>
+    <div>
+      <h2 className="font-serif text-[26px] font-semibold tracking-tight text-ink">Your profile</h2>
+      <p className="mt-1 text-[14px] text-caption mb-5">Used to personalize your nutrition targets and goals.</p>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Age</label>
-            <Input type="number" placeholder="e.g. 28" value={profile.age} onChange={e => set("age", e.target.value)} className="bg-secondary/50 border-border" />
+            <label className="micro-label mb-1.5 block">Age</label>
+            <Input type="number" placeholder="e.g. 28" value={profile.age} onChange={e => set("age", e.target.value)} />
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Weight (lbs)</label>
-            <Input type="number" placeholder="e.g. 185" value={profile.weight_lbs} onChange={e => set("weight_lbs", e.target.value)} className="bg-secondary/50 border-border" />
+            <label className="micro-label mb-1.5 block">Weight (lbs)</label>
+            <Input type="number" placeholder="e.g. 185" value={profile.weight_lbs} onChange={e => set("weight_lbs", e.target.value)} />
           </div>
         </div>
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Height</label>
+          <label className="micro-label mb-1.5 block">Height</label>
           <div className="grid grid-cols-2 gap-3">
-            <Input type="number" placeholder="Feet (e.g. 5)" value={profile.height_ft} onChange={e => set("height_ft", e.target.value)} className="bg-secondary/50 border-border" />
-            <Input type="number" placeholder="Inches (e.g. 11)" value={profile.height_in} onChange={e => set("height_in", e.target.value)} className="bg-secondary/50 border-border" />
+            <Input type="number" placeholder="Feet (e.g. 5)" value={profile.height_ft} onChange={e => set("height_ft", e.target.value)} />
+            <Input type="number" placeholder="Inches (e.g. 11)" value={profile.height_in} onChange={e => set("height_in", e.target.value)} />
           </div>
         </div>
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-1.5 block">Gender</label>
+          <label className="micro-label mb-1.5 block">Gender</label>
           <div className="grid grid-cols-3 gap-2">
             {["male", "female", "other"].map(g => (
               <button
                 key={g}
+                type="button"
                 onClick={() => set("gender", g)}
-                className={`capitalize text-sm font-semibold py-3 rounded-lg border-2 transition-all min-h-[44px] ${
-                  profile.gender === g ? "border-primary bg-primary/10 text-primary" : "border-border bg-secondary/30 text-muted-foreground"
+                className={`capitalize text-sm font-semibold py-3 rounded-[4px] border transition-colors min-h-[44px] ${
+                  profile.gender === g ? "border-clay bg-card text-ink" : "border-border bg-secondary text-caption"
                 }`}
               >
                 {g}
@@ -252,39 +284,39 @@ function StepProfile({ profile, setProfile }) {
 function StepGoals({ goals, setGoals }) {
   const set = (key, val) => setGoals(g => ({ ...g, [key]: val }));
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-black tracking-tight mb-1">Your goals</h2>
-      <p className="text-muted-foreground text-sm mb-6">Set your daily nutrition targets and workout frequency.</p>
+    <div>
+      <h2 className="font-serif text-[26px] font-semibold tracking-tight text-ink">Your goals</h2>
+      <p className="mt-1 text-[14px] text-caption mb-5">Set your daily nutrition targets and workout frequency.</p>
       <div className="space-y-5">
-        {/* Activity level */}
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2 block">Activity Level</label>
+          <label className="micro-label mb-2 block">Activity Level</label>
           <div className="space-y-2">
             {ACTIVITY_LEVELS.map(a => (
               <button
                 key={a.value}
+                type="button"
                 onClick={() => set("activity_level", a.value)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border-2 transition-all min-h-[52px] text-left ${
-                  goals.activity_level === a.value ? "border-primary bg-primary/10" : "border-border bg-secondary/30"
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-[4px] border transition-colors min-h-[52px] text-left ${
+                  goals.activity_level === a.value ? "border-clay bg-card" : "border-border bg-secondary"
                 }`}
               >
-                <span className="font-semibold text-sm text-foreground">{a.label}</span>
-                <span className="text-xs text-muted-foreground">{a.desc}</span>
+                <span className="font-semibold text-sm text-ink">{a.label}</span>
+                <span className="text-xs text-caption">{a.desc}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Workout days */}
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2 block">Workout Days / Week</label>
+          <label className="micro-label mb-2 block">Workout Days / Week</label>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5, 6, 7].map(d => (
               <button
                 key={d}
+                type="button"
                 onClick={() => set("workout_days", d)}
-                className={`flex-1 py-3 rounded-lg font-bold text-sm border-2 transition-all min-h-[44px] ${
-                  goals.workout_days === d ? "border-primary bg-primary/10 text-primary" : "border-border bg-secondary/30 text-muted-foreground"
+                className={`flex-1 py-3 rounded-[4px] font-bold text-sm border transition-colors min-h-[44px] ${
+                  goals.workout_days === d ? "border-clay bg-card text-ink" : "border-border bg-secondary text-caption"
                 }`}
               >
                 {d}
@@ -293,9 +325,8 @@ function StepGoals({ goals, setGoals }) {
           </div>
         </div>
 
-        {/* Nutrition goals */}
         <div>
-          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2 block">Daily Nutrition Targets (optional)</label>
+          <label className="micro-label mb-2 block">Daily Nutrition Targets (optional)</label>
           <div className="grid grid-cols-2 gap-3">
             {[
               { key: "calories", label: "Calories", placeholder: "e.g. 2500" },
@@ -304,13 +335,12 @@ function StepGoals({ goals, setGoals }) {
               { key: "fat_g", label: "Fat (g)", placeholder: "e.g. 80" },
             ].map(({ key, label, placeholder }) => (
               <div key={key}>
-                <label className="text-[10px] text-muted-foreground mb-1 block">{label}</label>
+                <label className="text-[10px] text-caption mb-1 block">{label}</label>
                 <Input
                   type="number"
                   placeholder={placeholder}
                   value={goals[key]}
                   onChange={e => set(key, e.target.value)}
-                  className="bg-secondary/50 border-border font-mono"
                 />
               </div>
             ))}
