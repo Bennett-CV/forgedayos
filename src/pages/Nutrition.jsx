@@ -166,7 +166,7 @@ export default function Nutrition() {
           <DailyMacroSummary meals={dayMeals} goals={goals} />
 
           {(addingType || editingMeal) && (
-            <div ref={formRef}>
+            <div ref={formRef} className="scroll-mt-[72px]">
               <AddFoodForm
                 key={editingMeal?.id || `add-${addingType}`}
                 mealType={editingMeal?.meal_type || addingType}
