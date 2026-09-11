@@ -7,14 +7,28 @@ import { toast } from "sonner";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
-export default function AddFoodForm({ mealType: initialType, date, onAdded, onCancel }) {
-  const [mealType, setMealType] = useState(initialType || "breakfast");
-  const [name, setName] = useState("");
-  const [calories, setCalories] = useState("");
-  const [protein, setProtein] = useState("");
-  const [carbs, setCarbs] = useState("");
-  const [fat, setFat] = useState("");
+function fieldValue(v) {
+  if (v == null || v === "") return "";
+  return String(v);
+}
+
+export default function AddFoodForm({
+  mealType: initialType,
+  date,
+  existingMeal,
+  onAdded,
+  onCancel,
+  onDeleted,
+}) {
+  const isEdit = Boolean(existingMeal?.id);
+  const [mealType, setMealType] = useState(existingMeal?.meal_type || initialType || "breakfast");
+  const [name, setName] = useState(existingMeal?.food_name || existingMeal?.food_description || "");
+  const [calories, setCalories] = useState(fieldValue(existingMeal?.calories));
+  const [protein, setProtein] = useState(fieldValue(existingMeal?.protein_g));
+  const [carbs, setCarbs] = useState(fieldValue(existingMeal?.carbs_g));
+  const [fat, setFat] = useState(fieldValue(existingMeal?.fat_g));
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleSave = async () => {
     if (!name.trim() || !calories) {
@@ -22,37 +36,60 @@ export default function AddFoodForm({ mealType: initialType, date, onAdded, onCa
       return;
     }
     setSaving(true);
-    const mealDate = date || format(new Date(), "yyyy-MM-dd");
+    const mealDate = existingMeal?.date || date || format(new Date(), "yyyy-MM-dd");
+    const payload = {
+      date: mealDate,
+      meal_type: mealType,
+      food_description: name.trim(),
+      food_name: name.trim(),
+      calories: parseFloat(calories) || 0,
+      protein_g: parseFloat(protein) || 0,
+      carbs_g: parseFloat(carbs) || 0,
+      fat_g: parseFloat(fat) || 0,
+    };
     try {
-      await base44.entities.Meal.create({
-        date: mealDate,
-        meal_type: mealType,
-        food_description: name.trim(),
-        food_name: name.trim(),
-        quantity: 1,
-        calories: parseFloat(calories) || 0,
-        protein_g: parseFloat(protein) || 0,
-        carbs_g: parseFloat(carbs) || 0,
-        fat_g: parseFloat(fat) || 0,
-        serving_size: "custom",
-        serving_size_g: null,
-      });
-      await base44.entities.Activity.create({
-        pillar: "nutrition",
-        category: "nutrition",
-        title: `Logged ${mealType}: ${name.trim()}`,
-        points: 2,
-        date: mealDate,
-      });
-      toast.success("Food logged!");
-      setName("");
-      setCalories("");
-      setProtein("");
-      setCarbs("");
-      setFat("");
+      if (isEdit) {
+        await base44.entities.Meal.update(existingMeal.id, payload);
+        toast.success("Food updated");
+      } else {
+        await base44.entities.Meal.create({
+          ...payload,
+          quantity: 1,
+          serving_size: "custom",
+          serving_size_g: null,
+        });
+        await base44.entities.Activity.create({
+          pillar: "nutrition",
+          category: "nutrition",
+          title: `Logged ${mealType}: ${name.trim()}`,
+          points: 2,
+          date: mealDate,
+        });
+        toast.success("Food logged!");
+        setName("");
+        setCalories("");
+        setProtein("");
+        setCarbs("");
+        setFat("");
+      }
       onAdded?.();
     } catch {
-      toast.error("Failed to save meal.");
+      toast.error(isEdit ? "Failed to update meal." : "Failed to save meal.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isEdit || saving) return;
+    setSaving(true);
+    try {
+      await base44.entities.Meal.delete(existingMeal.id);
+      toast.success("Removed");
+      onDeleted?.();
+    } catch {
+      toast.error("Could not delete meal.");
+      setConfirmDelete(false);
     } finally {
       setSaving(false);
     }
@@ -60,7 +97,7 @@ export default function AddFoodForm({ mealType: initialType, date, onAdded, onCa
 
   return (
     <div className="editorial-card p-4 space-y-3">
-      <p className="micro-label">Add food</p>
+      <p className="micro-label">{isEdit ? "Edit food" : "Add food"}</p>
       <div className="grid grid-cols-4 gap-1.5">
         {MEAL_TYPES.map(m => (
           <button
@@ -133,9 +170,39 @@ export default function AddFoodForm({ mealType: initialType, date, onAdded, onCa
           disabled={saving}
           className="min-h-[44px] bg-clay text-clay-fg hover:bg-clay-hover font-semibold"
         >
-          {saving ? "Saving…" : "Log food"}
+          {saving ? "Saving…" : isEdit ? "Save changes" : "Log food"}
         </Button>
       </div>
+      {isEdit && !confirmDelete && (
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(true)}
+          className="w-full text-[13px] font-semibold text-destructive min-h-[44px]"
+        >
+          Delete entry
+        </button>
+      )}
+      {isEdit && confirmDelete && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setConfirmDelete(false)}
+            className="min-h-[44px]"
+            disabled={saving}
+          >
+            Keep
+          </Button>
+          <Button
+            type="button"
+            onClick={handleDelete}
+            disabled={saving}
+            className="min-h-[44px] bg-destructive text-destructive-foreground hover:bg-destructive/90 font-semibold"
+          >
+            {saving ? "Removing…" : "Remove"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
