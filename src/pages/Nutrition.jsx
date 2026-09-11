@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -28,7 +28,9 @@ export default function Nutrition() {
   const [goals, setGoals] = useState(null);
   const [loading, setLoading] = useState(true);
   const [addingType, setAddingType] = useState(() => addParamToMeal(searchParams.get("add")));
+  const [editingMeal, setEditingMeal] = useState(null);
   const [showGoals, setShowGoals] = useState(false);
+  const formRef = useRef(null);
 
   const currentDate = format(subDays(new Date(), dateOffset), "yyyy-MM-dd");
   const displayDate = format(subDays(new Date(), dateOffset), "EEEE, MMMM d");
@@ -57,16 +59,40 @@ export default function Nutrition() {
     const next = addParamToMeal(searchParams.get("add"));
     if (next) {
       setActiveTab("nutrition");
+      setEditingMeal(null);
       setAddingType(next);
     }
   }, [searchParams]);
 
   const dayMeals = meals.filter(m => m.date === currentDate);
 
+  const closeForm = () => {
+    setAddingType(null);
+    setEditingMeal(null);
+  };
+
   const handleAdd = (mealType) => {
     setActiveTab("nutrition");
+    setEditingMeal(null);
     setAddingType(mealType);
   };
+
+  const handleEdit = (meal) => {
+    setActiveTab("nutrition");
+    setAddingType(null);
+    setEditingMeal(prev => (prev?.id === meal.id ? null : meal));
+  };
+
+  const handleListDeleted = (id) => {
+    setEditingMeal(prev => (prev?.id === id ? null : prev));
+    load();
+  };
+
+  useEffect(() => {
+    if (addingType || editingMeal) {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [addingType, editingMeal]);
 
   if (loading) {
     return (
@@ -139,13 +165,18 @@ export default function Nutrition() {
 
           <DailyMacroSummary meals={dayMeals} goals={goals} />
 
-          {addingType && (
-            <AddFoodForm
-              mealType={addingType}
-              date={currentDate}
-              onAdded={() => { setAddingType(null); load(); }}
-              onCancel={() => setAddingType(null)}
-            />
+          {(addingType || editingMeal) && (
+            <div ref={formRef}>
+              <AddFoodForm
+                key={editingMeal?.id || `add-${addingType}`}
+                mealType={editingMeal?.meal_type || addingType}
+                existingMeal={editingMeal}
+                date={editingMeal?.date || currentDate}
+                onAdded={() => { closeForm(); load(); }}
+                onCancel={closeForm}
+                onDeleted={() => { closeForm(); load(); }}
+              />
+            </div>
           )}
 
           <motion.div
@@ -160,8 +191,10 @@ export default function Nutrition() {
                 mealType={mealType}
                 meals={dayMeals.filter(m => m.meal_type === mealType)}
                 onAdd={handleAdd}
-                onDeleted={load}
+                onEdit={handleEdit}
+                onDeleted={handleListDeleted}
                 adding={addingType === mealType}
+                editingId={editingMeal?.id}
               />
             ))}
           </motion.div>
