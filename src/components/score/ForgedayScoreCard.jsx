@@ -58,17 +58,17 @@ export default function ForgedayScoreCard({ score, compact = false }) {
           {visible.map(key => {
             const pillar = score.pillars[key];
             return (
-              <div key={key}>
-                <div className="flex items-baseline justify-between gap-3 mb-1">
-                  <p className="text-[13px] font-semibold text-ink">{pillar.label}</p>
-                  <p className="font-mono text-[12px] text-caption">
-                    {pillar.score == null ? "—" : pillar.score}
-                    <span className="ml-1 text-[10px] uppercase tracking-[0.12em]">
-                      {Math.round((pillar.weight || 0) * 100)}%
-                    </span>
-                  </p>
+              <div key={key} className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-semibold text-ink mb-1">{pillar.label}</p>
+                  <Bar value={pillar.score} />
                 </div>
-                <Bar value={pillar.score} />
+                <p className="font-mono text-[12px] text-caption w-[52px] text-right shrink-0">
+                  {pillar.score == null ? "—" : pillar.score}
+                  <span className="block text-[9px] uppercase tracking-[0.12em]">
+                    {Math.round((pillar.weight || 0) * 100)}% wt
+                  </span>
+                </p>
               </div>
             );
           })}
