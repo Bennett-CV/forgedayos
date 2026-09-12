@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { getDailyPoints } from "../../lib/momentum";
+import { formatLocalDate } from "@/lib/localDate";
 
 export default function MomentumChart({ activities }) {
   const data = getDailyPoints(activities, 7);
@@ -15,7 +16,7 @@ export default function MomentumChart({ activities }) {
       <div className="flex items-end justify-between gap-1.5 h-[72px]">
         {data.map((d) => {
           const h = Math.max(6, Math.round((d.points / max) * 64));
-          const initial = d.label.slice(-2).trim() ? new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "narrow" }) : "";
+          const initial = formatLocalDate(d.date, "EEEEE");
           return (
             <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
               <div

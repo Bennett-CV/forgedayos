@@ -26,12 +26,17 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 // Routes that render without authentication — no redirect to login
 const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/privacy', '/terms'];
 
+function normalizePath(pathname) {
+  if (!pathname || pathname === '/') return pathname || '/';
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, user } = useAuth();
   const location = useLocation();
 
   // Public routes render without auth — login, register, legal pages
-  if (PUBLIC_ROUTES.includes(location.pathname)) {
+  if (PUBLIC_ROUTES.includes(normalizePath(location.pathname))) {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -39,7 +44,9 @@ const AuthenticatedApp = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/privacy/" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfUse />} />
+        <Route path="/terms/" element={<TermsOfUse />} />
       </Routes>
     );
   }

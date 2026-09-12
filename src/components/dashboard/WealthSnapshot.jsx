@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format } from "date-fns";
+import { localMonthKey } from "@/lib/localDate";
 
 export default function WealthSnapshot() {
   const { user } = useAuth();
@@ -9,7 +9,7 @@ export default function WealthSnapshot() {
 
   useEffect(() => {
     if (!user?.email) return;
-    const monthKey = format(new Date(), "yyyy-MM");
+    const monthKey = localMonthKey(new Date());
     Promise.all([
       base44.entities.Transaction.filter({ month: monthKey, created_by: user.email }),
       base44.entities.BudgetCategory.filter({ type: "expense", created_by: user.email }),

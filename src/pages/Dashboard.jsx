@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { formatLocalDate } from "@/lib/localDate";
+import { greetingFirstName, greetingForHour } from "@/lib/greetingName";
 import CompoundingScore from "../components/dashboard/CompoundingScore";
 import PillarCard from "../components/dashboard/PillarCard";
 import MomentumChart from "../components/dashboard/MomentumChart";
@@ -15,12 +16,6 @@ import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import EmptyStateDashboard from "../components/dashboard/EmptyStateDashboard";
 import { CaptureCTA } from "../components/capture/CaptureChooser";
-
-function greetingForHour(hour) {
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -58,9 +53,9 @@ export default function Dashboard() {
     );
   }
 
-  const today = format(new Date(), "EEEE, MMMM d");
+  const today = formatLocalDate(new Date(), "EEEE, MMMM d");
   const isEmpty = activities.length === 0;
-  const firstName = user?.full_name?.split(" ")[0] || "there";
+  const firstName = greetingFirstName(user);
   const greeting = greetingForHour(new Date().getHours());
 
   return (

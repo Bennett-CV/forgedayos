@@ -11,6 +11,8 @@ import {
   loadOnboardingDraft,
   saveOnboardingDraft,
 } from "@/lib/onboardingState";
+import { localToday } from "@/lib/localDate";
+import { greetingFirstName, rememberGreetingFirstName } from "@/lib/greetingName";
 
 const STEPS = ["Welcome", "Pillars", "Profile", "Goals"];
 
@@ -35,6 +37,16 @@ export default function Onboarding({ onComplete }) {
     saveOnboardingDraft(draft);
   }, [draft]);
 
+  useEffect(() => {
+    if (!user) return;
+    setDraft(prev => {
+      if (prev.profile.first_name) return prev;
+      const existing = greetingFirstName(user);
+      if (!existing || existing === "there") return prev;
+      return { ...prev, profile: { ...prev.profile, first_name: existing } };
+    });
+  }, [user]);
+
   const updateDraft = (patch) => {
     setDraft(prev => ({ ...prev, ...patch }));
   };
@@ -52,6 +64,7 @@ export default function Onboarding({ onComplete }) {
         onboarding_completed: true,
         focused_pillars: pillars,
         profile: {
+          first_name: profile.first_name?.trim() || null,
           age: profile.age ? parseInt(profile.age) : null,
           gender: profile.gender || null,
           weight_lbs: profile.weight_lbs ? parseFloat(profile.weight_lbs) : null,
@@ -69,9 +82,16 @@ export default function Onboarding({ onComplete }) {
       };
       await base44.auth.updateMe(updateData);
 
+      if (profile.first_name?.trim()) {
+        rememberGreetingFirstName(profile.first_name.trim());
+      }
+
       if (profile.weight_lbs) {
-        const today = new Date().toISOString().split("T")[0];
-        await base44.entities.WeightLog.create({ date: today, weight_lbs: parseFloat(profile.weight_lbs), notes: "Starting weight" });
+        await base44.entities.WeightLog.create({
+          date: localToday(),
+          weight_lbs: parseFloat(profile.weight_lbs),
+          notes: "Starting weight",
+        });
       }
 
       clearOnboardingDraft();
@@ -242,6 +262,16 @@ function StepProfile({ profile, setProfile }) {
       <h2 className="font-serif text-[26px] font-semibold tracking-tight text-ink">Your profile</h2>
       <p className="mt-1 text-[14px] text-caption mb-5">Used to personalize your nutrition targets and goals.</p>
       <div className="space-y-4">
+        <div>
+          <label className="micro-label mb-1.5 block">First name</label>
+          <Input
+            type="text"
+            autoComplete="given-name"
+            placeholder="e.g. Christian"
+            value={profile.first_name || ""}
+            onChange={e => set("first_name", e.target.value)}
+          />
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="micro-label mb-1.5 block">Age</label>

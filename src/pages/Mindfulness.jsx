@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format } from "date-fns";
 import { toast } from "sonner";
+import { localToday, isSameLocalDay } from "@/lib/localDate";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import MindfulnessComposer from "../components/mindfulness/MindfulnessComposer";
@@ -55,8 +55,8 @@ export default function Mindfulness() {
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 
-  const today = format(new Date(), "yyyy-MM-dd");
-  const todayEntries = entries.filter(e => e.date === today);
+  const today = localToday();
+  const todayEntries = entries.filter(e => isSameLocalDay(e.date, today));
   const hasToday = (type) => todayEntries.some(e => e.type === type);
 
   const handleSave = async (data) => {

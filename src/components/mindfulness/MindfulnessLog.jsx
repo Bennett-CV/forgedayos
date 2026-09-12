@@ -1,4 +1,4 @@
-import { format, parseISO } from "date-fns";
+import { formatLocalDate } from "@/lib/localDate";
 
 export default function MindfulnessLog({ entries, type, onAdd, onEdit }) {
   if (entries.length === 0) {
@@ -22,7 +22,7 @@ export default function MindfulnessLog({ entries, type, onAdd, onEdit }) {
         >
           <div className="flex items-center justify-between gap-3 mb-1.5">
             <span className="text-[11px] text-caption">
-              {format(parseISO(entry.date), "MMM d")}
+              {formatLocalDate(entry.date, "MMM d")}
             </span>
             {entry.duration_minutes && (
               <span className="font-mono text-[11px] text-caption">{entry.duration_minutes} min</span>

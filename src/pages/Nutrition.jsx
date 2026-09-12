@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format, subDays } from "date-fns";
+import { formatLocalDate, localDaysAgoKey, isSameLocalDay } from "@/lib/localDate";
 import { motion } from "framer-motion";
 import AddFoodForm from "../components/nutrition/AddFoodForm";
 import MealSection from "../components/nutrition/MealSection";
@@ -32,8 +32,8 @@ export default function Nutrition() {
   const [showGoals, setShowGoals] = useState(false);
   const formRef = useRef(null);
 
-  const currentDate = format(subDays(new Date(), dateOffset), "yyyy-MM-dd");
-  const displayDate = format(subDays(new Date(), dateOffset), "EEEE, MMMM d");
+  const currentDate = localDaysAgoKey(dateOffset);
+  const displayDate = formatLocalDate(currentDate, "EEEE, MMMM d");
 
   const load = async () => {
     if (!user?.email) {
@@ -64,7 +64,7 @@ export default function Nutrition() {
     }
   }, [searchParams]);
 
-  const dayMeals = meals.filter(m => m.date === currentDate);
+  const dayMeals = meals.filter(m => isSameLocalDay(m.date, currentDate));
 
   const closeForm = () => {
     setAddingType(null);
@@ -152,7 +152,7 @@ export default function Nutrition() {
               <p className="text-[13px] font-semibold text-ink">
                 {dateOffset === 0 ? "Today" : dateOffset === 1 ? "Yesterday" : displayDate}
               </p>
-              <p className="text-[11px] text-caption">{format(subDays(new Date(), dateOffset), "MMM d")}</p>
+              <p className="text-[11px] text-caption">{formatLocalDate(currentDate, "MMM d")}</p>
             </div>
             <button
               onClick={() => setDateOffset(o => Math.max(0, o - 1))}

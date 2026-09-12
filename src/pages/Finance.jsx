@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format, subMonths, addMonths } from "date-fns";
+import { localMonthKey } from "@/lib/localDate";
 import { Button } from "@/components/ui/button";
 import MonthlyOverview from "../components/finance/MonthlyOverview";
 import BudgetCategoryBar from "../components/finance/BudgetCategoryBar";
@@ -20,9 +21,9 @@ export default function Finance() {
   const [manageOpen, setManageOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
 
-  const monthKey = format(currentMonth, "yyyy-MM");
+  const monthKey = localMonthKey(currentMonth);
   const displayMonth = format(currentMonth, "MMMM yyyy");
-  const isCurrentMonth = monthKey === format(new Date(), "yyyy-MM");
+  const isCurrentMonth = monthKey === localMonthKey(new Date());
 
   const load = async () => {
     if (!user?.email) {

@@ -1,6 +1,7 @@
+import { Link } from "react-router-dom";
 import { Zap, ArrowLeft } from "lucide-react";
 
-const LAST_UPDATED = "August 30, 2026";
+const LAST_UPDATED = "September 12, 2026";
 
 function Section({ title, children }) {
   return (
@@ -17,12 +18,12 @@ export default function PrivacyPolicy() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-card/95 backdrop-blur-xl border-b border-border">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
-          <a
-            href="/"
+          <Link
+            to="/"
             className="flex items-center gap-1 text-primary font-semibold text-sm min-h-[44px] -ml-2 px-2"
           >
             <ArrowLeft className="h-4 w-4" /> Back
-          </a>
+          </Link>
           <div className="flex items-center gap-2 ml-auto">
             <div className="h-7 w-7 rounded-md bg-primary/20 flex items-center justify-center">
               <Zap className="h-4 w-4 text-primary" />
@@ -65,10 +66,11 @@ export default function PrivacyPolicy() {
         <Section title="Data Sharing">
           <p>
             Forgeday is built and hosted on Base44, and your data is stored on Base44
-            infrastructure. We do not sell your personal information to third parties for
-            advertising. We may share data with service providers that help us operate the
-            Service (such as hosting, analytics, and AI providers) under appropriate
-            confidentiality obligations, and where required by law.
+            infrastructure. We do not sell your personal information, and we do not share it
+            with data brokers or advertisers. We may share data with service providers that
+            help us operate the Service (such as hosting, product analytics, and AI providers
+            used for features like weekly review) under appropriate confidentiality
+            obligations, and where required by law.
           </p>
         </Section>
 

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MoreHorizontal, Pause, Play, Check, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/localDate";
 
 export default function ProjectCard({ project, onUpdate, onDelete }) {
   const [expanded, setExpanded] = useState(false);
@@ -57,7 +57,7 @@ export default function ProjectCard({ project, onUpdate, onDelete }) {
                 {project.target_date && (
                   <>
                     <span className="text-muted-foreground text-[10px]">·</span>
-                    <span className="text-[10px] text-muted-foreground">Due {format(new Date(project.target_date), 'MMM d')}</span>
+                    <span className="text-[10px] text-muted-foreground">Due {formatLocalDate(project.target_date, "MMM d")}</span>
                   </>
                 )}
               </div>

@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { format } from "date-fns";
+import { localToday, normalizeDateKey } from "@/lib/localDate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, Check, ChevronLeft, Clock, PenLine } from "lucide-react";
 import { toast } from "sonner";
@@ -157,7 +156,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
   async function handleSave() {
     if (saving) return;
     setSaving(true);
-    const mealDate = date || format(new Date(), "yyyy-MM-dd");
+    const mealDate = normalizeDateKey(date) || localToday();
     try {
       if (view === "manual") {
         if (!manual.name || !manual.calories) { toast.error("Name and calories are required."); setSaving(false); return; }
