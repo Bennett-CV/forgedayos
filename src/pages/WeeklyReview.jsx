@@ -200,7 +200,7 @@ export default function WeeklyReview() {
       </div>
 
       <div className="flex items-center justify-between editorial-card px-3 py-2">
-        <button onClick={() => setWeekOffset(o => o + 1)} className="text-[13px] font-semibold text-caption min-w-[44px]">
+        <button type="button" onClick={() => setWeekOffset(o => o + 1)} className="text-[13px] font-semibold text-caption min-w-[44px]">
           Prev
         </button>
         <div className="text-center">

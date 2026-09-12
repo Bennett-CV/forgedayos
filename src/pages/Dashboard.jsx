@@ -105,7 +105,8 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
+  const refresh = useCallback(() => load(), [load]);
+  const { pullY, pullProgress, isRefreshing } = usePullToRefresh(refresh);
 
   if (loading) {
     return (
