@@ -5,6 +5,8 @@ import { formatLocalDate, localToday, localDaysAgoKey, normalizeDateKey } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { weightCoaching } from "@/lib/weightCoaching";
+import WeightCoachingCard from "./WeightCoachingCard";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
@@ -25,16 +27,23 @@ export default function WeightTab() {
   const [loading, setLoading] = useState(true);
   const [weightInput, setWeightInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   const today = localToday();
 
   const load = async () => {
-    if (!user?.email) return;
-    const data = await base44.entities.WeightLog.filter({ created_by: user.email }, "-date", 90);
-    setLogs(data);
-    setLoading(false);
+    if (!user?.email) { setLoading(false); return; }
+    try {
+      const data = await base44.entities.WeightLog.filter({ created_by: user.email }, "-date", 90);
+      setLogs(data);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [user]);
@@ -42,17 +51,29 @@ export default function WeightTab() {
   const todayLog = logs.find(l => normalizeDateKey(l.date) === today);
 
   const handleSave = async () => {
-    if (!weightInput) return;
-    setSaving(true);
-    if (todayLog) {
-      await base44.entities.WeightLog.update(todayLog.id, { weight_lbs: parseFloat(weightInput) });
-    } else {
-      await base44.entities.WeightLog.create({ date: today, weight_lbs: parseFloat(weightInput) });
+    if (saving || loadError || !user?.email) return;
+    const weight = Number(weightInput);
+    if (!Number.isFinite(weight) || weight <= 0) {
+      toast.error("Enter a weight greater than zero.");
+      return;
     }
-    toast.success("Weight logged!");
-    setWeightInput("");
-    await load();
-    setSaving(false);
+    setSaving(true);
+    try {
+      const saveDate = localToday();
+      const existingLog = logs.find(log => normalizeDateKey(log.date) === saveDate);
+      if (existingLog) {
+        await base44.entities.WeightLog.update(existingLog.id, { weight_lbs: weight });
+      } else {
+        await base44.entities.WeightLog.create({ date: saveDate, weight_lbs: weight });
+      }
+      toast.success("Weight logged!");
+      setWeightInput("");
+      await load();
+    } catch {
+      toast.error("Couldn't save your weight. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -79,6 +100,8 @@ export default function WeightTab() {
 
   const delta7 = latest && weekAgo ? latest.weight_lbs - weekAgo.weight_lbs : null;
   const delta30 = latest && monthAgo ? latest.weight_lbs - monthAgo.weight_lbs : null;
+
+  const coaching = weightCoaching({ logs, user, today });
 
   const chartData = sorted.slice(-30).map(l => ({
     date: normalizeDateKey(l.date),
@@ -112,6 +135,12 @@ export default function WeightTab() {
 
   return (
     <div className="space-y-5">
+      {loadError && (
+        <div role="alert" className="editorial-card p-4 text-sm text-caption">
+          <p>Couldn't load your weight history. Retry before logging to avoid duplicate entries.</p>
+          <Button variant="outline" onClick={load} className="mt-2">Retry</Button>
+        </div>
+      )}
       <div className="editorial-card p-4 space-y-3">
         <p className="micro-label">
           {todayLog ? `Today: ${todayLog.weight_lbs} lbs` : "Log today's weight"}
@@ -119,17 +148,21 @@ export default function WeightTab() {
         <div className="flex gap-2">
           <Input
             type="number"
+            aria-label="Weight in pounds"
+            min="0.1"
             step="0.1"
             placeholder={todayLog ? String(todayLog.weight_lbs) : "e.g. 185.5"}
             value={weightInput}
             onChange={e => setWeightInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSave()}
           />
-          <Button onClick={handleSave} disabled={saving || !weightInput} className="shrink-0 bg-clay text-clay-fg hover:bg-clay-hover">
-            {todayLog ? "Update" : "Log"}
+          <Button onClick={handleSave} disabled={saving || loadError || !user?.email || !weightInput} className="shrink-0 bg-clay text-clay-fg hover:bg-clay-hover">
+            {saving ? "Saving…" : todayLog ? "Update" : "Log"}
           </Button>
         </div>
       </div>
+
+      <WeightCoachingCard coaching={coaching} />
 
       {latest && (
         <div className="grid grid-cols-3 gap-2">

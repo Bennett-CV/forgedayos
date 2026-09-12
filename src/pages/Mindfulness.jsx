@@ -8,6 +8,8 @@ import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import MindfulnessComposer from "../components/mindfulness/MindfulnessComposer";
 import MindfulnessLog from "../components/mindfulness/MindfulnessLog";
+import BooksShelf from "../components/mindfulness/BooksShelf";
+import { normalizeBooks } from "@/lib/books";
 
 const TABS = [
   { id: "morning", label: "Morning" },
@@ -19,7 +21,7 @@ const TABS = [
 const POINTS = { morning: 3, evening: 3, meditation: 3, reading: 2 };
 
 export default function Mindfulness() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [searchParams] = useSearchParams();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +30,8 @@ export default function Mindfulness() {
   const [activeTab, setActiveTab] = useState(composeType || "morning");
   const [composing, setComposing] = useState(!!composeParam);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [books, setBooks] = useState(() => normalizeBooks(user?.books));
+  const [savingBooks, setSavingBooks] = useState(false);
 
   const load = useCallback(async () => {
     if (!user?.email) {
@@ -44,6 +48,19 @@ export default function Mindfulness() {
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setBooks(normalizeBooks(user?.books)); }, [user]);
+
+  const saveBooks = async (next) => {
+    setBooks(next);
+    setSavingBooks(true);
+    try {
+      await base44.auth.updateMe({ books: next });
+      await refreshUser?.();
+    } catch {
+      toast.error("Could not save books.");
+    }
+    setSavingBooks(false);
+  };
 
   useEffect(() => {
     if (!composeParam) return;
@@ -152,10 +169,15 @@ export default function Mindfulness() {
           <MindfulnessComposer
             type={activeTab}
             entry={editingEntry}
+            books={books}
             onSave={handleSave}
             onCancel={() => { setComposing(false); setEditingEntry(null); }}
           />
         )}
+
+        {activeTab === "reading" ? (
+          <BooksShelf books={books} onSave={saveBooks} saving={savingBooks} />
+        ) : null}
 
         <MindfulnessLog
           entries={tabEntries}

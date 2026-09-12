@@ -10,6 +10,7 @@ import LogActivity from './pages/LogActivity';
 import Projects from './pages/Projects';
 import WeeklyReview from './pages/WeeklyReview';
 import SettingsPage from './pages/SettingsPage';
+import Score from './pages/Score';
 import Lifts from './pages/Lifts';
 import Nutrition from './pages/Nutrition';
 import Finance from './pages/Finance';
@@ -73,6 +74,7 @@ const AuthenticatedApp = () => {
           <Route path="/log" element={<LogActivity />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/review" element={<WeeklyReview />} />
+          <Route path="/score" element={<Score />} />
           <Route path="/lifts" element={<Lifts />} />
           <Route path="/nutrition" element={<Nutrition />} />
           <Route path="/finance" element={<Finance />} />

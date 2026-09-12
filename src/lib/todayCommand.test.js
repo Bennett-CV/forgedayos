@@ -78,7 +78,54 @@ test("snapshot: logged day produces X of Y and protein insight", () => {
   assert.equal(snap.completeCount, 3);
   assert.equal(snap.totalCount, 3);
   assert.match(snap.insight, /Protein is light/);
-  assert.equal(snap.next, null);
+  assert.equal(snap.next.label, "Add protein (40 / 180g)");
+});
+
+test("snapshot: reading a book names the next mind action", () => {
+  const snap = buildTodaySnapshot({
+    user: { focused_pillars: ["mindfulness"] },
+    today: "2026-09-14",
+    now: new Date(2026, 8, 14, 10, 0, 0),
+    weekStart: "2026-09-14",
+    weekdayMon0: 0,
+    journalEntries: [{ date: "2026-09-14", type: "morning" }],
+    books: [{ id: "1", title: "Atomic Habits", status: "reading" }],
+  });
+  assert.equal(snap.next.label, "Log reading — Atomic Habits");
+});
+
+test("snapshot: stale weigh-in becomes next when daily work is done", () => {
+  const snap = buildTodaySnapshot({
+    user: {
+      focused_pillars: ["nutrition"],
+      fitness_goal: "lose_weight",
+      nutrition_goals: { calories: 2000, protein_g: 150 },
+    },
+    today: "2026-09-14",
+    now: new Date(2026, 8, 14, 11, 0, 0),
+    weekStart: "2026-09-14",
+    weekdayMon0: 0,
+    meals: [{ date: "2026-09-14", calories: 600, protein_g: 40 }],
+    weightLogs: [{ date: "2026-09-01", weight_lbs: 184 }],
+  });
+  assert.equal(snap.next.label, "Log your weight");
+  assert.equal(snap.next.href, "/nutrition?tab=weight");
+});
+
+test("snapshot: behind weekly lift goal mid-week asks to catch up", () => {
+  const snap = buildTodaySnapshot({
+    user: {
+      focused_pillars: ["lifts"],
+      workout_days_per_week: 4,
+    },
+    today: "2026-09-17",
+    now: new Date(2026, 8, 17, 10, 0, 0),
+    weekStart: "2026-09-14",
+    weekdayMon0: 3,
+    workoutProgram: [{ day: 1 }, { day: 2 }, { day: 3 }],
+  });
+  assert.equal(snap.items.find(i => i.key === "lifts").detail, "Rest day");
+  assert.equal(snap.next.label, "Catch up a lift session");
 });
 
 test("snapshot: spending appears when transactions exist", () => {

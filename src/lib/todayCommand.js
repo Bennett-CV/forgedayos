@@ -1,4 +1,5 @@
-import { isSameLocalDay, normalizeDateKey } from "./localDate.js";
+import { isSameLocalDay, normalizeDateKey, localDaysAgoKey } from "./localDate.js";
+import { readingBookLabel, normalizeBooks } from "./books.js";
 
 export const DAILY_KEYS = ["lifts", "nutrition", "mindfulness", "finance"];
 
@@ -99,6 +100,8 @@ export function buildTodaySnapshot({
   transactions = [],
   activities = [],
   reviews = [],
+  weightLogs = [],
+  books = [],
   weekStart,
   weekdayMon0,
 } = {}) {
@@ -226,6 +229,15 @@ export function buildTodaySnapshot({
     todayMind,
     reviewReady,
     allComplete: totalCount > 0 && completeCount === totalCount,
+    user,
+    today,
+    weekdayMon0: weekday,
+    weekSessions,
+    proteinGoal,
+    protein: totals.protein_g,
+    mealsLogged: todayMeals.length,
+    weightLogs,
+    books: books.length ? books : user?.books,
   });
 
   const insight = pickInsight({
@@ -251,7 +263,7 @@ export function buildTodaySnapshot({
   };
 }
 
-function pickNextAction({
+export function pickNextAction({
   items,
   hasProgram,
   restDay,
@@ -260,6 +272,15 @@ function pickNextAction({
   todayMind,
   reviewReady,
   allComplete,
+  user,
+  today,
+  weekdayMon0 = 0,
+  weekSessions = 0,
+  proteinGoal = 0,
+  protein = 0,
+  mealsLogged = 0,
+  weightLogs = [],
+  books = [],
 }) {
   const lifts = items.find(i => i.key === "lifts");
   const nutrition = items.find(i => i.key === "nutrition");
@@ -280,17 +301,56 @@ function pickNextAction({
     return { label: hint.label, href: nutrition.href };
   }
   if (mind && !mind.complete) {
-    const hint = mindHint(hour, todayMind);
+    const hint = mindHint(hour, todayMind || []);
+    const readingTitle = readingBookLabel(books);
+    if (hint.type === "reading" && readingTitle) {
+      return { label: `Log reading — ${readingTitle}`, href: mind.href };
+    }
     return { label: hint.label, href: mind.href };
   }
   if (finance && !finance.complete) {
     return { label: "Log spending", href: "/finance" };
   }
+
+  const workoutTarget = Number(user?.workout_days_per_week) > 0
+    ? Number(user.workout_days_per_week)
+    : 0;
+  if (lifts && workoutTarget > 0 && weekSessions < workoutTarget && weekdayMon0 >= 2) {
+    return { label: "Catch up a lift session", href: "/lifts" };
+  }
+
+  if (nutrition && mealsLogged > 0 && proteinGoal > 0 && hour >= 14 && protein < proteinGoal * 0.55) {
+    return { label: `Add protein (${Math.round(protein)} / ${Math.round(proteinGoal)}g)`, href: "/nutrition" };
+  }
+
+  const staleWeight = needsWeightLog(weightLogs, today, user?.fitness_goal);
+  if (staleWeight && (nutrition || user?.fitness_goal)) {
+    return { label: staleWeight, href: "/nutrition?tab=weight" };
+  }
+
+  const readingTitle = readingBookLabel(books);
+  if (mind && readingTitle && !(todayMind || []).some(e => e.type === "reading")) {
+    return { label: `Log reading — ${readingTitle}`, href: "/mindfulness?compose=reading" };
+  }
+
   if (reviewReady) {
     return { label: "Start Weekly Review", href: "/review" };
   }
   if (allComplete) return null;
   return { label: "Open Weekly Review", href: "/review" };
+}
+
+export function needsWeightLog(weightLogs, today, fitnessGoal) {
+  if (!fitnessGoal) return "";
+  const latest = (weightLogs || [])
+    .map(l => normalizeDateKey(l.date))
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  if (!latest) return "Log your weight";
+  const cutoff = localDaysAgoKey(6, today || new Date());
+  if (latest < cutoff) return "Log your weight";
+  return "";
 }
 
 export function pickInsight({
