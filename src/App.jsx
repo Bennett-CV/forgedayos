@@ -11,6 +11,7 @@ import Projects from './pages/Projects';
 import WeeklyReview from './pages/WeeklyReview';
 import SettingsPage from './pages/SettingsPage';
 import Score from './pages/Score';
+import Health from './pages/Health';
 import Lifts from './pages/Lifts';
 import Nutrition from './pages/Nutrition';
 import Finance from './pages/Finance';
@@ -80,6 +81,7 @@ const AuthenticatedApp = () => {
           <Route path="/finance" element={<Finance />} />
           <Route path="/mindfulness" element={<Mindfulness />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/health" element={<Health />} />
           <Route path="/onboarding" element={<Onboarding />} />
         </Route>
       </Route>

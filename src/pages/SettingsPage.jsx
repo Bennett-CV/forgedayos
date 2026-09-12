@@ -9,12 +9,15 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import { greetingFirstName, rememberGreetingFirstName } from "@/lib/greetingName";
 import MacroMismatchNote from "../components/nutrition/MacroMismatchNote";
+import NotificationPrefsCard from "../components/settings/NotificationPrefsCard";
+import { normalizeNotificationPrefs } from "@/lib/smartNotifications";
+import { writeLocalPrefs } from "@/lib/notificationBridge";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 
-const APP_VERSION = "2.3.0";
+const APP_VERSION = "2.4.0";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -25,6 +28,8 @@ export default function SettingsPage() {
   const [savingGoals, setSavingGoals] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [savingName, setSavingName] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] = useState(() => normalizeNotificationPrefs(null));
+  const [savingPrefs, setSavingPrefs] = useState(false);
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem("theme");
     if (stored === "dark" || stored === "midnight") return "midnight";
@@ -56,6 +61,7 @@ export default function SettingsPage() {
       });
       const existingName = me?.profile?.first_name || greetingFirstName(me);
       setFirstName(existingName === "there" ? "" : existingName);
+      setNotificationPrefs(normalizeNotificationPrefs(me?.notification_prefs));
     } catch {
       // Best-effort: show empty settings rather than error
     }
@@ -112,6 +118,20 @@ export default function SettingsPage() {
   const name = firstName || user?.full_name || "Account";
   const email = user?.email || "";
   const initial = (firstName || name).charAt(0).toUpperCase();
+
+  const handleSavePrefs = async (next) => {
+    const normalized = normalizeNotificationPrefs(next);
+    setNotificationPrefs(normalized);
+    writeLocalPrefs(normalized);
+    setSavingPrefs(true);
+    try {
+      await base44.auth.updateMe({ notification_prefs: normalized });
+    } catch {
+      toast.error("Saved on this device. Could not sync to your account.");
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
 
   const handleSaveName = async () => {
     const trimmed = firstName.trim();
@@ -199,7 +219,20 @@ export default function SettingsPage() {
           <span className="text-[14px] text-ink">App Version</span>
           <span className="font-mono text-[13px] text-caption">{APP_VERSION}</span>
         </div>
+        <Link
+          to="/health"
+          className="flex items-center justify-between px-4 py-3.5 border-t border-border"
+        >
+          <span className="text-[14px] text-ink">Apple Health</span>
+          <span className="text-[13px] text-caption">Import</span>
+        </Link>
       </div>
+
+      <NotificationPrefsCard
+        prefs={notificationPrefs}
+        onChange={handleSavePrefs}
+        saving={savingPrefs}
+      />
 
       <button
         onClick={() => base44.auth.logout()}
@@ -347,7 +380,8 @@ export default function SettingsPage() {
         <p className="micro-label">Privacy & legal</p>
         <p className="text-[13px] text-caption leading-relaxed">
           Forgeday does not sell your personal information. We store the account and log data you enter,
-          plus product analytics from our host (Base44). See the full policy for details.
+          including Health samples you import or type, plus product analytics from our host (Base44).
+          See the full policy for details.
         </p>
         <div className="flex flex-wrap gap-x-4">
           <Link to="/privacy" className="text-[13px] font-semibold text-clay underline underline-offset-4 min-h-[44px] inline-flex items-center">

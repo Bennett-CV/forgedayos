@@ -84,9 +84,12 @@ export default function PrivacyPolicy() {
 
         <Section title="Health and Financial Data">
           <p>
-            The app does not use HealthKit and does not read or write Apple Health data. The
-            Finance section is tracking-only: we do not process payments in the app and do not
-            collect or store payment card details.
+            The web app does not connect to Apple HealthKit. If you choose to import a Health
+            export or CSV, or log a Health-adjacent sample (weight, steps, sleep), that data
+            is stored as your weight logs and activity records. A native IPA may later read
+            HealthKit through a documented bridge; that will still require your permission.
+            The Finance section is tracking-only: we do not process payments in the app and do
+            not collect or store payment card details.
           </p>
         </Section>
 
