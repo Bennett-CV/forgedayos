@@ -1,45 +1,43 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 
-const PROMPTS = [
-  { key: "win",       label: "🏆 Biggest win this week?",                placeholder: "Something you're proud of..." },
-  { key: "miss",      label: "⚠️ What did you miss or avoid?",           placeholder: "Be honest with yourself..." },
-  { key: "energy",    label: "⚡ What drained or energized you most?",   placeholder: "People, tasks, habits..." },
-  { key: "next",      label: "🎯 One thing to focus on next week?",      placeholder: "Make it specific and actionable..." },
+export const REVIEW_PROMPTS = [
+  { key: "win", label: "What went well?", placeholder: "One thing worth keeping." },
+  { key: "change", label: "What would you change?", placeholder: "Be specific. One adjustment is enough." },
+  { key: "next", label: "Focus next week?", placeholder: "A single aim for the next seven days." },
 ];
 
-export default function GuidedCheckIn({ onComplete }) {
+export default function GuidedCheckIn({ onComplete, saving = false, initial = {} }) {
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const current = PROMPTS[step];
+  const [answers, setAnswers] = useState({
+    win: initial.win || "",
+    change: initial.change || "",
+    next: initial.next || "",
+  });
+  const current = REVIEW_PROMPTS[step];
+  const isLast = step === REVIEW_PROMPTS.length - 1;
 
   const handleNext = () => {
-    if (step < PROMPTS.length - 1) {
+    if (step < REVIEW_PROMPTS.length - 1) {
       setStep(s => s + 1);
-    } else {
-      onComplete(answers);
+      return;
     }
+    onComplete(answers);
   };
-
-  const isLast = step === PROMPTS.length - 1;
 
   return (
     <div className="editorial-card p-5 space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Guided Check-In</h3>
-        <span className="text-xs text-muted-foreground font-mono">{step + 1} / {PROMPTS.length}</span>
+        <p className="micro-label">Close the week</p>
+        <span className="text-[11px] font-mono text-caption">{step + 1} / {REVIEW_PROMPTS.length}</span>
       </div>
 
-      {/* Progress dots */}
       <div className="flex gap-1.5">
-        {PROMPTS.map((_, i) => (
+        {REVIEW_PROMPTS.map((_, i) => (
           <div
             key={i}
-            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-              i < step ? "bg-primary" : i === step ? "bg-primary/60" : "bg-secondary"
-            }`}
+            className={`h-1 flex-1 rounded-full ${i <= step ? "bg-clay" : "bg-track"}`}
           />
         ))}
       </div>
@@ -47,33 +45,39 @@ export default function GuidedCheckIn({ onComplete }) {
       <AnimatePresence mode="wait">
         <motion.div
           key={current.key}
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
+          exit={{ opacity: 0, x: -12 }}
+          transition={{ duration: 0.16 }}
           className="space-y-3"
         >
-          <p className="text-base font-bold text-foreground">{current.label}</p>
+          <p className="font-serif text-[18px] font-semibold tracking-tight text-ink">{current.label}</p>
           <Textarea
             placeholder={current.placeholder}
             value={answers[current.key] || ""}
             onChange={e => setAnswers(prev => ({ ...prev, [current.key]: e.target.value }))}
             rows={3}
-            className="bg-secondary/50 border-border resize-none"
+            className="bg-secondary border-border resize-none"
           />
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex justify-between">
+      <div className="flex items-center justify-between gap-3">
         <button
-          onClick={() => onComplete(null)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[44px] px-2"
+          type="button"
+          onClick={() => onComplete(answers)}
+          className="text-[12px] font-semibold text-caption min-h-[44px] px-1"
         >
-          Skip check-in
+          Save without notes
         </button>
-        <Button onClick={handleNext} className="bg-clay text-clay-fg hover:bg-clay-hover">
-          {isLast ? "Generate Review" : "Next"}
-        </Button>
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={saving}
+          className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[4px] bg-clay text-clay-fg text-[14px] font-semibold hover:bg-clay-hover disabled:opacity-50"
+        >
+          {saving ? "Saving…" : isLast ? "Save review" : "Next"}
+        </button>
       </div>
     </div>
   );

@@ -2,38 +2,43 @@ import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { Dumbbell, Plus, Trash2, Activity, ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { WORKOUT_PROGRAM } from "@/lib/workoutProgram";
 import { toast } from "sonner";
-
-const DEFAULT_DAYS = [
-  { day: 1, label: "Day 1", type: "strength", exercises: [] },
-  { day: 2, label: "Day 2", type: "cardio", exercises: [{ name: "Cardio", sets: 1, reps: null, isCardio: true }] },
-  { day: 3, label: "Day 3", type: "strength", exercises: [] },
-  { day: 4, label: "Day 4", type: "cardio", exercises: [{ name: "Cardio", sets: 1, reps: null, isCardio: true }] },
-  { day: 5, label: "Day 5", type: "strength", exercises: [] },
-];
+import {
+  WORKOUT_PRESETS,
+  CUSTOM_DAY_COUNTS,
+  blankProgram,
+  clonePresetDays,
+} from "@/lib/workoutPresets";
 
 export default function ProgramSetup({ onComplete }) {
-  const [useTemplate, setUseTemplate] = useState(null); // null = not chosen yet
-  const [days, setDays] = useState(DEFAULT_DAYS);
+  const [presetId, setPresetId] = useState(null);
+  const [days, setDays] = useState([]);
   const [saving, setSaving] = useState(false);
   const [expandedDay, setExpandedDay] = useState(1);
+  const [customCount, setCustomCount] = useState(4);
 
-  const handleUseTemplate = () => {
-    const templateDays = [1, 2, 3, 4, 5].map(d => ({
-      day: d,
-      label: WORKOUT_PROGRAM[d].label,
-      type: WORKOUT_PROGRAM[d].type,
-      exercises: WORKOUT_PROGRAM[d].exercises.map(e => ({ ...e })),
-    }));
-    setDays(templateDays);
-    setUseTemplate(true);
+  const choosePreset = (id) => {
+    const preset = WORKOUT_PRESETS.find(p => p.id === id);
+    setPresetId(id);
+    setDays(clonePresetDays(preset));
+    setExpandedDay(preset?.days?.[0]?.day || 1);
   };
 
-  const handleBuildOwn = () => {
-    setUseTemplate(false);
+  const chooseCustom = () => {
+    setPresetId("custom");
+    const next = blankProgram(customCount);
+    setDays(next);
+    setExpandedDay(1);
+  };
+
+  const applyCustomCount = (n) => {
+    setCustomCount(n);
+    if (presetId === "custom") {
+      const next = blankProgram(n);
+      setDays(next);
+      setExpandedDay(1);
+    }
   };
 
   const toggleDayType = (dayIdx) => {
@@ -83,7 +88,7 @@ export default function ProgramSetup({ onComplete }) {
           exercises: d.exercises.filter(e => e.name?.trim()),
         })
       ));
-      toast.success("Program saved!");
+      toast.success("Program saved.");
       onComplete();
     } catch (e) {
       toast.error("Failed to save: " + e.message);
@@ -91,86 +96,129 @@ export default function ProgramSetup({ onComplete }) {
     setSaving(false);
   };
 
-  // Step 1: Choose path
-  if (useTemplate === null) {
+  if (presetId === null) {
     return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-2xl mx-auto">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
         <div>
-          <h1 className="page-title">Set Up Your Lifting Program</h1>
-          <p className="text-sm text-muted-foreground mt-1">Build a 5-day program to track your lifts week over week.</p>
+          <h1 className="page-title">Set up training</h1>
+          <p className="text-[14px] text-caption mt-1">Start from a split, then edit anything.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          <button
-            onClick={handleUseTemplate}
-            className="editorial-card p-5 text-left hover:border-clay transition-all"
-          >
-            <div className="mb-2">
-              <span className="font-semibold text-ink">Use a starter template</span>
-            </div>
-            <p className="text-sm text-muted-foreground">Load a pre-built 5-day dumbbell program (strength + cardio days). You can customize it before saving.</p>
-          </button>
+        <div className="space-y-2">
+          {WORKOUT_PRESETS.map(preset => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => choosePreset(preset.id)}
+              className="w-full editorial-card p-4 text-left min-h-0"
+            >
+              <p className="text-[15px] font-semibold text-ink">{preset.name}</p>
+              <p className="text-[12px] text-caption mt-1">{preset.caption}</p>
+            </button>
+          ))}
+        </div>
 
+        <div className="editorial-card p-4 space-y-3">
+          <div>
+            <p className="text-[15px] font-semibold text-ink">Build your own</p>
+            <p className="text-[12px] text-caption mt-1">Blank days. Add the lifts you already do.</p>
+          </div>
+          <div className="flex gap-2">
+            {CUSTOM_DAY_COUNTS.map(n => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setCustomCount(n)}
+                className={`flex-1 py-2.5 rounded-[4px] text-[13px] font-semibold border min-h-[44px] ${
+                  customCount === n ? "border-clay text-ink bg-card" : "border-border text-caption bg-secondary"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
           <button
-            onClick={handleBuildOwn}
-            className="editorial-card p-5 text-left"
+            type="button"
+            onClick={chooseCustom}
+            className="w-full min-h-[44px] rounded-[4px] border border-border text-[14px] font-semibold text-ink"
           >
-            <div className="mb-2">
-              <span className="font-semibold text-ink">Build my own program</span>
-            </div>
-            <p className="text-sm text-muted-foreground">Start from scratch and add your own exercises for each day.</p>
+            Start with {customCount} days
           </button>
         </div>
       </motion.div>
     );
   }
 
-  // Step 2: Edit program
+  const title = presetId === "custom"
+    ? "Build your program"
+    : WORKOUT_PRESETS.find(p => p.id === presetId)?.name || "Customize";
+
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 max-w-2xl mx-auto">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div>
-        <h1 className="page-title">
-          {useTemplate ? "Customize Your Program" : "Build Your Program"}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Configure each day's exercises, sets, and reps.</p>
+        <button
+          type="button"
+          onClick={() => { setPresetId(null); setDays([]); }}
+          className="text-[12px] font-semibold text-caption min-h-0 min-w-0"
+        >
+          All presets
+        </button>
+        <h1 className="page-title mt-2">{title}</h1>
+        <p className="text-[13px] text-caption mt-1">Edit names, sets, and reps before you save.</p>
       </div>
+
+      {presetId === "custom" && (
+        <div className="flex gap-2">
+          {CUSTOM_DAY_COUNTS.map(n => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => applyCustomCount(n)}
+              className={`flex-1 py-2.5 rounded-[4px] text-[13px] font-semibold border min-h-[44px] ${
+                days.length === n ? "border-clay text-ink bg-card" : "border-border text-caption bg-secondary"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
 
       {days.map((day, dayIdx) => (
         <div key={day.day} className="editorial-card overflow-hidden">
           <button
-            className="w-full flex items-center justify-between p-4 hover:bg-secondary/30 transition-colors"
+            type="button"
+            className="w-full flex items-center justify-between p-4"
             onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               {day.type === "cardio"
-                ? <Activity className="h-4 w-4 text-chart-3" />
-                : <Dumbbell className="h-4 w-4 text-primary" />
+                ? <Activity className="h-4 w-4 text-caption shrink-0" />
+                : <Dumbbell className="h-4 w-4 text-ink shrink-0" />
               }
-              <span className="font-bold text-sm">{day.label}</span>
-              <span className="text-xs text-muted-foreground capitalize bg-secondary px-2 py-0.5 rounded">
-                {day.type}
-              </span>
-              {day.type === "strength" && (
-                <span className="text-xs text-muted-foreground">{day.exercises.filter(e => !e.isCardio).length} exercises</span>
-              )}
+              <span className="font-semibold text-[14px] text-ink truncate">{day.label}</span>
+              <span className="text-[11px] text-caption capitalize">{day.type}</span>
             </div>
-            {expandedDay === day.day ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            {expandedDay === day.day ? <ChevronUp className="h-4 w-4 text-caption" /> : <ChevronDown className="h-4 w-4 text-caption" />}
           </button>
 
           {expandedDay === day.day && (
-            <div className="px-4 pb-4 space-y-3 border-t border-border/50">
-              {/* Type toggle */}
+            <div className="px-4 pb-4 space-y-3 border-t border-border">
               <div className="flex items-center gap-2 pt-3">
-                <span className="text-xs text-muted-foreground">Day type:</span>
+                <Input
+                  value={day.label}
+                  onChange={e => setDays(prev => prev.map((d, i) => i === dayIdx ? { ...d, label: e.target.value } : d))}
+                  className="h-9 text-sm"
+                />
                 <button
+                  type="button"
                   onClick={() => toggleDayType(dayIdx)}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/70 text-foreground transition-colors min-h-[36px]"
+                  className="text-[12px] font-semibold px-3 py-2 rounded-[4px] bg-secondary text-ink min-h-[36px] min-w-0 shrink-0"
                 >
-                  Switch to {day.type === "strength" ? "Cardio" : "Strength"}
+                  {day.type === "strength" ? "Cardio" : "Strength"}
                 </button>
               </div>
 
-              {/* Exercises */}
               {day.type === "strength" && (
                 <>
                   {day.exercises.map((ex, exIdx) => (
@@ -179,49 +227,56 @@ export default function ProgramSetup({ onComplete }) {
                         placeholder="Exercise name"
                         value={ex.name}
                         onChange={e => updateExercise(dayIdx, exIdx, "name", e.target.value)}
-                        className="flex-1 bg-secondary/50 border-border text-sm h-9"
+                        className="flex-1 bg-secondary border-border text-sm h-9"
                       />
                       <Input
                         type="number"
                         placeholder="Sets"
                         value={ex.sets || ""}
-                        onChange={e => updateExercise(dayIdx, exIdx, "sets", parseInt(e.target.value) || 3)}
-                        className="w-16 bg-secondary/50 border-border text-xs text-center font-mono h-9"
+                        onChange={e => updateExercise(dayIdx, exIdx, "sets", parseInt(e.target.value, 10) || 3)}
+                        className="w-16 bg-secondary border-border text-xs text-center font-mono h-9"
                       />
                       <Input
                         type="number"
                         placeholder="Reps"
                         value={ex.reps || ""}
-                        onChange={e => updateExercise(dayIdx, exIdx, "reps", parseInt(e.target.value) || null)}
-                        className="w-16 bg-secondary/50 border-border text-xs text-center font-mono h-9"
+                        onChange={e => updateExercise(dayIdx, exIdx, "reps", parseInt(e.target.value, 10) || null)}
+                        className="w-16 bg-secondary border-border text-xs text-center font-mono h-9"
                       />
                       <button
+                        type="button"
                         onClick={() => removeExercise(dayIdx, exIdx)}
-                        className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors min-h-[36px]"
+                        className="p-2 rounded-[4px] text-caption hover:text-destructive min-h-[36px]"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   ))}
                   <button
+                    type="button"
                     onClick={() => addExercise(dayIdx)}
-                    className="flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 min-h-[36px]"
+                    className="flex items-center gap-2 text-[12px] font-semibold text-clay min-h-[36px] min-w-0"
                   >
                     <Plus className="h-3.5 w-3.5" /> Add exercise
                   </button>
                 </>
               )}
               {day.type === "cardio" && (
-                <p className="text-xs text-muted-foreground py-2">Cardio day — duration will be logged.</p>
+                <p className="text-[12px] text-caption py-2">Cardio day — log type, time, and distance.</p>
               )}
             </div>
           )}
         </div>
       ))}
 
-      <Button onClick={handleSave} disabled={saving} className="w-full font-bold">
-        {saving ? "Saving..." : "Save My Program"}
-      </Button>
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full min-h-[48px] rounded-[4px] bg-clay text-clay-fg text-[15px] font-semibold hover:bg-clay-hover disabled:opacity-50"
+      >
+        {saving ? "Saving…" : "Save program"}
+      </button>
     </motion.div>
   );
 }

@@ -22,6 +22,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import UiPreview from './pages/UiPreview';
 
 // Routes that render without authentication — no redirect to login
 const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/privacy', '/terms'];
@@ -29,6 +30,17 @@ const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-passwo
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, user } = useAuth();
   const location = useLocation();
+
+  // Local visual QA for Today + Weekly Review. Does not change auth.
+  if (import.meta.env.DEV && location.pathname === "/__preview") {
+    return (
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/__preview" element={<UiPreview />} />
+        </Route>
+      </Routes>
+    );
+  }
 
   // Public routes render without auth — login, register, legal pages
   if (PUBLIC_ROUTES.includes(location.pathname)) {

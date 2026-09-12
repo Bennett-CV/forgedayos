@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import MacroCalorieWarning from "./MacroCalorieWarning";
 
 function targetsFromGoals(goals) {
   return {
@@ -154,6 +155,7 @@ export default function GoalSetter({ goals, onComplete }) {
             </div>
           ))}
         </div>
+        <MacroCalorieWarning targets={targets} />
         <Button
           type="button"
           onClick={handleSave}

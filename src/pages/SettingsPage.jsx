@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
+import MacroCalorieWarning from "../components/nutrition/MacroCalorieWarning";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
@@ -188,6 +189,9 @@ export default function SettingsPage() {
               />
             </div>
           ))}
+        </div>
+        <div className="mb-4">
+          <MacroCalorieWarning targets={nutritionGoals} />
         </div>
         <Button onClick={handleSaveGoals} disabled={savingGoals} className="bg-clay text-clay-fg hover:bg-clay-hover">
           Save Goals

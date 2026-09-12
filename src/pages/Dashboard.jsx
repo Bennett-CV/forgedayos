@@ -2,30 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format } from "date-fns";
-import { Link } from "react-router-dom";
-import CompoundingScore from "../components/dashboard/CompoundingScore";
-import PillarCard from "../components/dashboard/PillarCard";
-import MomentumChart from "../components/dashboard/MomentumChart";
-import RecentActivity from "../components/dashboard/RecentActivity";
-import ActiveProjects from "../components/dashboard/ActiveProjects";
-import WealthSnapshot from "../components/dashboard/WealthSnapshot";
-import GoalProgress from "../components/dashboard/GoalProgress";
-import { PILLAR_KEYS } from "../lib/constants";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
-import EmptyStateDashboard from "../components/dashboard/EmptyStateDashboard";
-import { CaptureCTA } from "../components/capture/CaptureChooser";
-
-function greetingForHour(hour) {
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
+import TodayCommand from "../components/dashboard/TodayCommand";
+import { buildTodayCommand, todayKey, weekStartKey } from "../lib/todayCommand";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [activities, setActivities] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [view, setView] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -33,20 +17,69 @@ export default function Dashboard() {
       setLoading(false);
       return;
     }
+    const today = todayKey();
+    const weekStart = weekStartKey();
+    const monthKey = format(new Date(), "yyyy-MM");
     try {
-      const [acts, projs] = await Promise.all([
-        base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 500),
-        base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
+      const [
+        acts,
+        meals,
+        logs,
+        programDays,
+        journals,
+        txns,
+        reviews,
+        weights,
+        me,
+      ] = await Promise.all([
+        base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 200),
+        base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 200),
+        base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 400),
+        base44.entities.WorkoutProgram.filter({ created_by: user.email }, "day", 10),
+        base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 80),
+        base44.entities.Transaction.filter({ month: monthKey, created_by: user.email }),
+        base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 12),
+        base44.entities.WeightLog.filter({ created_by: user.email }, "-date", 30),
+        base44.auth.me(),
       ]);
-      setActivities(acts);
-      setProjects(projs);
+
+      const todayMeals = meals.filter(m => m.date === today);
+      const weekLogs = logs.filter(l => l.week_start === weekStart);
+      const weekSessions = new Set(weekLogs.map(l => `${l.week_start}-${l.day}`)).size;
+      const reviewExists = reviews.some(r => r.week_start === weekStart);
+      const weekWeights = weights
+        .filter(w => w.date >= weekStart)
+        .slice()
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      const weightDelta = weekWeights.length >= 2
+        ? Number(weekWeights[weekWeights.length - 1].weight_lbs) - Number(weekWeights[0].weight_lbs)
+        : null;
+      const hasFinanceData = txns.length > 0 || (user.focused_pillars || []).includes("finance");
+      const weekHasData = weekSessions > 0 || todayMeals.length > 0 || journals.some(e => e.date >= weekStart) || txns.some(t => t.date >= weekStart);
+
+      setView(buildTodayCommand({
+        user: { ...user, ...(me || {}) },
+        meals: todayMeals,
+        goals: me?.nutrition_goals || user.nutrition_goals,
+        workoutLogs: logs,
+        weekWorkoutLogs: weekLogs,
+        activities: acts,
+        journalEntries: journals,
+        transactions: txns,
+        program: programDays.filter(d => d.created_by === user.email),
+        hasFinanceData,
+        reviewExists,
+        weekHasData,
+        weekSessions,
+        weightDelta,
+      }));
     } catch {
-      // Best-effort: show empty state rather than error on launch
+      setView(buildTodayCommand({ user }));
     }
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { load(); }, [load, user]);
+  useEffect(() => { load(); }, [load]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 
@@ -58,63 +91,10 @@ export default function Dashboard() {
     );
   }
 
-  const today = format(new Date(), "EEEE, MMMM d");
-  const isEmpty = activities.length === 0;
-  const firstName = user?.full_name?.split(" ")[0] || "there";
-  const greeting = greetingForHour(new Date().getHours());
-
   return (
     <>
       <PullToRefreshIndicator pullY={pullY} pullProgress={pullProgress} isRefreshing={isRefreshing} />
-      <div className="space-y-[22px]">
-        <div>
-          <p className="text-[12px] text-caption">{today}</p>
-          <h1 className="mt-1 font-serif text-[26px] font-semibold tracking-tight text-ink leading-tight">
-            {greeting}, {firstName}.
-          </h1>
-        </div>
-
-        {isEmpty ? (
-          <EmptyStateDashboard user={user} />
-        ) : (
-          <>
-            <CompoundingScore activities={activities} />
-            <MomentumChart activities={activities} />
-
-            <div>
-              <p className="micro-label mb-3">The 5 Pillars</p>
-              <div className="grid grid-cols-5 gap-1.5">
-                {PILLAR_KEYS.map((pillar, i) => (
-                  <PillarCard key={pillar} pillar={pillar} activities={activities} index={i} />
-                ))}
-              </div>
-            </div>
-
-            <CaptureCTA label="+ Log" />
-
-            <RecentActivity activities={activities} />
-            <ActiveProjects projects={projects} />
-            <GoalProgress activities={activities} />
-            <WealthSnapshot />
-          </>
-        )}
-
-        <div className="grid grid-cols-3 gap-2 pt-1">
-          {[
-            { to: "/review", label: "Review" },
-            { to: "/projects", label: "Projects" },
-            { to: "/finance", label: "Finance" },
-          ].map(link => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="flex items-center justify-center min-h-[44px] rounded-[4px] border border-border bg-card text-[11px] font-bold uppercase tracking-[0.12em] text-ink"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      </div>
+      <TodayCommand view={view} />
     </>
   );
 }

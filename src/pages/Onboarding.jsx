@@ -11,6 +11,7 @@ import {
   loadOnboardingDraft,
   saveOnboardingDraft,
 } from "@/lib/onboardingState";
+import MacroCalorieWarning from "@/components/nutrition/MacroCalorieWarning";
 
 const STEPS = ["Welcome", "Pillars", "Profile", "Goals"];
 
@@ -344,6 +345,9 @@ function StepGoals({ goals, setGoals }) {
                 />
               </div>
             ))}
+          </div>
+          <div className="mt-3">
+            <MacroCalorieWarning targets={goals} />
           </div>
         </div>
       </div>
