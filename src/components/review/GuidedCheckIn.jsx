@@ -1,78 +1,57 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
 const PROMPTS = [
-  { key: "win",       label: "🏆 Biggest win this week?",                placeholder: "Something you're proud of..." },
-  { key: "miss",      label: "⚠️ What did you miss or avoid?",           placeholder: "Be honest with yourself..." },
-  { key: "energy",    label: "⚡ What drained or energized you most?",   placeholder: "People, tasks, habits..." },
-  { key: "next",      label: "🎯 One thing to focus on next week?",      placeholder: "Make it specific and actionable..." },
+  { key: "win", label: "What went well?", placeholder: "One thing you’re glad you did." },
+  { key: "change", label: "What would you change?", placeholder: "One friction or miss." },
+  { key: "next", label: "Focus next week?", placeholder: "One clear aim." },
 ];
 
-export default function GuidedCheckIn({ onComplete }) {
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const current = PROMPTS[step];
-
-  const handleNext = () => {
-    if (step < PROMPTS.length - 1) {
-      setStep(s => s + 1);
-    } else {
-      onComplete(answers);
-    }
-  };
-
-  const isLast = step === PROMPTS.length - 1;
+export default function GuidedCheckIn({ onComplete, initial = {}, saving = false }) {
+  const [answers, setAnswers] = useState({
+    win: initial.win || "",
+    change: initial.change || "",
+    next: initial.next || "",
+  });
 
   return (
-    <div className="editorial-card p-5 space-y-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Guided Check-In</h3>
-        <span className="text-xs text-muted-foreground font-mono">{step + 1} / {PROMPTS.length}</span>
+    <div className="editorial-card p-5 space-y-4">
+      <div>
+        <p className="micro-label">Three notes</p>
+        <p className="mt-1 text-[13px] text-caption leading-relaxed">
+          The week above is already summarized. Add only what the numbers can’t see.
+        </p>
       </div>
 
-      {/* Progress dots */}
-      <div className="flex gap-1.5">
-        {PROMPTS.map((_, i) => (
-          <div
-            key={i}
-            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-              i < step ? "bg-primary" : i === step ? "bg-primary/60" : "bg-secondary"
-            }`}
-          />
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={current.key}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
-          className="space-y-3"
-        >
-          <p className="text-base font-bold text-foreground">{current.label}</p>
+      {PROMPTS.map(prompt => (
+        <div key={prompt.key}>
+          <label className="text-[14px] font-semibold text-ink block mb-1.5">{prompt.label}</label>
           <Textarea
-            placeholder={current.placeholder}
-            value={answers[current.key] || ""}
-            onChange={e => setAnswers(prev => ({ ...prev, [current.key]: e.target.value }))}
-            rows={3}
+            placeholder={prompt.placeholder}
+            value={answers[prompt.key]}
+            onChange={e => setAnswers(prev => ({ ...prev, [prompt.key]: e.target.value }))}
+            rows={2}
             className="bg-secondary/50 border-border resize-none"
           />
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      ))}
 
-      <div className="flex justify-between">
+      <div className="flex items-center justify-between gap-3 pt-1">
         <button
-          onClick={() => onComplete(null)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[44px] px-2"
+          type="button"
+          onClick={() => onComplete({})}
+          disabled={saving}
+          className="text-[12px] font-semibold text-caption min-h-[44px] px-1"
         >
-          Skip check-in
+          Save without notes
         </button>
-        <Button onClick={handleNext} className="bg-clay text-clay-fg hover:bg-clay-hover">
-          {isLast ? "Generate Review" : "Next"}
+        <Button
+          onClick={() => onComplete(answers)}
+          disabled={saving}
+          className="bg-clay text-clay-fg hover:bg-clay-hover"
+        >
+          {saving ? "Saving…" : "Save review"}
         </Button>
       </div>
     </div>

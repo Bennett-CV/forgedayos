@@ -1,34 +1,59 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format, subWeeks } from "date-fns";
-import { formatLocalDate, localWeekStartDate, localWeekEndDate, normalizeDateKey } from "@/lib/localDate";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { PILLARS, PILLAR_KEYS } from "../lib/constants";
-import ReactMarkdown from "react-markdown";
+import { subWeeks } from "date-fns";
+import {
+  localWeekStartDate,
+  localWeekEndDate,
+  localWeekStartKey,
+  localWeekEndKey,
+  formatLocalDate,
+} from "@/lib/localDate";
+import { PILLAR_KEYS } from "../lib/constants";
+import { synthesizeWeek, renderWeekSummaryMarkdown, weekHighlights } from "@/lib/weekSynthesis";
 import { toast } from "sonner";
 import GuidedCheckIn from "../components/review/GuidedCheckIn";
+import WeekSynthesisCard from "../components/review/WeekSynthesisCard";
 import ShareWeekCard from "../components/review/ShareWeekCard";
 import WeekOverview from "@/components/review/WeekOverview";
 import { useLifeData } from "@/hooks/useLifeData";
 
+async function safe(promise, fallback) {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
+}
+
+function answersFromSummary(summary) {
+  const text = summary || "";
+  return {
+    win: (text.match(/Went well:\s*(.+)/) || [])[1] || "",
+    change: (text.match(/Change:\s*(.+)/) || [])[1] || "",
+    next: (text.match(/Next week:\s*(.+)/) || [])[1] || "",
+  };
+}
+
 export default function WeeklyReview() {
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [meals, setMeals] = useState([]);
+  const [workoutLogs, setWorkoutLogs] = useState([]);
+  const [journalEntries, setJournalEntries] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [weightLogs, setWeightLogs] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [currentReview, setCurrentReview] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [showCheckIn, setShowCheckIn] = useState(false);
 
   const weekStart = localWeekStartDate(subWeeks(new Date(), weekOffset));
   const weekEnd = localWeekEndDate(subWeeks(new Date(), weekOffset));
-  const weekStartStr = formatLocalDate(weekStart, "yyyy-MM-dd");
-  const weekEndStr = formatLocalDate(weekEnd, "yyyy-MM-dd");
+  const weekStartStr = localWeekStartKey(subWeeks(new Date(), weekOffset));
+  const weekEndStr = localWeekEndKey(subWeeks(new Date(), weekOffset));
 
   const life = useLifeData(user?.email, weekStartStr, weekEndStr);
 
@@ -38,18 +63,22 @@ export default function WeeklyReview() {
       return;
     }
     async function load() {
-      try {
-        const [acts, projs, revs] = await Promise.all([
-          base44.entities.Activity.filter({ created_by: user.email }, "-date", 500),
-          base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
-          base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50),
-        ]);
-        setActivities(acts);
-        setProjects(projs);
-        setReviews(revs);
-      } catch {
-        setLoadError(true);
-      }
+      const [acts, mealRows, logs, journals, txns, weights, revs] = await Promise.all([
+        safe(base44.entities.Activity.filter({ created_by: user.email }, "-date", 500), []),
+        safe(base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 400), []),
+        safe(base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 800), []),
+        safe(base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 200), []),
+        safe(base44.entities.Transaction.filter({ created_by: user.email }, "-date", 200), []),
+        safe(base44.entities.WeightLog.filter({ created_by: user.email }, "-date", 80), []),
+        safe(base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50), []),
+      ]);
+      setActivities(acts);
+      setMeals(mealRows);
+      setWorkoutLogs(logs);
+      setJournalEntries(journals);
+      setTransactions(txns);
+      setWeightLogs(weights);
+      setReviews(revs);
       setLoading(false);
     }
     load();
@@ -58,10 +87,11 @@ export default function WeeklyReview() {
   useEffect(() => {
     const existing = reviews.find(r => r.week_start === weekStartStr);
     setCurrentReview(existing || null);
+    setShowCheckIn(false);
   }, [reviews, weekStartStr]);
 
   const weekActivities = activities.filter(a => {
-    const d = normalizeDateKey(a.date);
+    const d = a.date;
     return d >= weekStartStr && d <= weekEndStr;
   });
 
@@ -71,86 +101,55 @@ export default function WeeklyReview() {
     pillarPoints[k] = weekActivities.filter(a => a.pillar === k).reduce((s, a) => s + (a.points || 0), 0);
   });
 
-  const generateReview = async (checkInAnswers) => {
-    if (generating || loadError || !user?.email) return;
-    setShowCheckIn(false);
-    setGenerating(true);
+  const synthesis = useMemo(() => synthesizeWeek({
+    weekStart: weekStartStr,
+    weekEnd: weekEndStr,
+    meals,
+    workoutLogs,
+    journalEntries,
+    transactions,
+    weightLogs,
+    activities,
+    nutritionGoals: user?.nutrition_goals || {},
+  }), [weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, user]);
+
+  const savedAnswers = answersFromSummary(currentReview?.summary);
+
+  const saveReview = async (checkInAnswers) => {
+    setSaving(true);
+    const answers = checkInAnswers || {};
+    const summary = renderWeekSummaryMarkdown(synthesis, answers);
+    const highlights = weekHighlights(synthesis, answers);
+    const areas = [answers.change, answers.next].filter(Boolean);
+
     try {
-    const actSummary = weekActivities.map(a => `${a.title} (${a.pillar}, ${a.value || ''} ${a.unit || ''}, +${a.points}pts)`).join("\n");
-    const projSummary = projects.filter(p => p.status === "active").map(p => `${p.name} (${p.progress}% complete, ${p.pillar})`).join("\n");
-
-    const checkInContext = checkInAnswers ? `
-User's self-reflection:
-- Biggest win: ${checkInAnswers.win || "—"}
-- What they missed: ${checkInAnswers.miss || "—"}
-- Energy notes: ${checkInAnswers.energy || "—"}
-- Next week focus: ${checkInAnswers.next || "—"}
-` : "";
-
-    const prompt = `You are Forgeday, a personal operating system for ambitious operators. Generate a concise, data-driven weekly review.
-${checkInContext}
-
-Week: ${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}
-Total Points: ${totalPoints}
-
-Activities this week:
-${actSummary || 'No activities logged.'}
-
-Active Projects:
-${projSummary || 'No active projects.'}
-
-Pillar Breakdown:
-${PILLAR_KEYS.map(k => `${PILLARS[k].label}: ${pillarPoints[k]} pts`).join('\n')}
-
-Generate a weekly review with these sections:
-1. **Executive Summary** (2-3 sentences, direct and metrics-driven)
-2. **Highlights** (bullet points of wins)
-3. **Areas to Improve** (bullet points, honest but constructive)
-4. **What We Know** (distinguish logged facts from incomplete information; do not grade pillars without targets or infer failures from missing logs)
-5. **Next Week Focus** (1-2 priority items)
-
-Keep the tone like a founder's weekly investor update — sharp, honest, forward-looking. No fluff.`;
-
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt,
-      response_json_schema: {
-        type: "object",
-        properties: {
-          summary: { type: "string", description: "Full markdown review" },
-          highlights: { type: "array", items: { type: "string" } },
-          areas_to_improve: { type: "array", items: { type: "string" } },
-        },
-      },
-    });
-
-    if (currentReview) {
-      await base44.entities.WeeklyReview.update(currentReview.id, {
-        summary: result.summary,
-        total_points: totalPoints,
-        pillar_scores: pillarPoints,
-        highlights: result.highlights,
-        areas_to_improve: result.areas_to_improve,
-      });
-    } else {
-      await base44.entities.WeeklyReview.create({
-        week_start: weekStartStr,
-        week_end: weekEndStr,
-        summary: result.summary,
-        total_points: totalPoints,
-        pillar_scores: pillarPoints,
-        highlights: result.highlights,
-        areas_to_improve: result.areas_to_improve,
-      });
-    }
-
-    const revs = await base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50);
-    setReviews(revs);
-    toast.success("Weekly review generated!");
+      if (currentReview) {
+        await base44.entities.WeeklyReview.update(currentReview.id, {
+          summary,
+          total_points: totalPoints,
+          pillar_scores: pillarPoints,
+          highlights,
+          areas_to_improve: areas,
+        });
+      } else {
+        await base44.entities.WeeklyReview.create({
+          week_start: weekStartStr,
+          week_end: weekEndStr,
+          summary,
+          total_points: totalPoints,
+          pillar_scores: pillarPoints,
+          highlights,
+          areas_to_improve: areas,
+        });
+      }
+      const revs = await safe(base44.entities.WeeklyReview.list("-created_date", 50), []);
+      setReviews(revs);
+      setShowCheckIn(false);
+      toast.success("Weekly review saved.");
     } catch {
-      toast.error("Couldn't generate or save your review. Please try again.");
-    } finally {
-      setGenerating(false);
+      toast.error("Could not save this review.");
     }
+    setSaving(false);
   };
 
   if (loading) {
@@ -161,11 +160,13 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
     );
   }
 
+  const loggedCount = weekActivities.length;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="page-title">Weekly Review</h1>
-        <p className="text-sm text-caption mt-0.5">Performance summary</p>
+        <p className="text-sm text-caption mt-0.5">Your Forgeday week, from the logs</p>
       </div>
 
       <div className="flex items-center justify-between editorial-card px-3 py-2">
@@ -173,8 +174,12 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
           Prev
         </button>
         <div className="text-center">
-          <p className="text-[13px] font-semibold text-ink">{format(weekStart, "MMM d")} – {format(weekEnd, "MMM d")}</p>
-          <p className="text-[11px] text-caption">{weekActivities.length} activities · {totalPoints} pts</p>
+          <p className="text-[13px] font-semibold text-ink">
+            {formatLocalDate(weekStart, "MMM d")} – {formatLocalDate(weekEnd, "MMM d")}
+          </p>
+          <p className="text-[11px] text-caption">
+            {loggedCount} activities{totalPoints ? ` · ${totalPoints} pts` : ""}
+          </p>
         </div>
         <button
           onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
@@ -185,58 +190,48 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
         </button>
       </div>
 
-      {loadError && <p role="alert" className="editorial-card p-4 text-sm text-caption">Some review records could not load. Reload this page before generating a review.</p>}
-      <div className="grid grid-cols-5 gap-1.5">
-        {PILLAR_KEYS.map(k => {
-          const p = PILLARS[k];
-          return (
-            <div key={k} className="editorial-card p-3 text-center flex flex-col items-center gap-1.5">
-              <span className="h-[7px] w-[7px] rounded-full" style={{ background: p.color }} />
-              <p className="text-[16px] font-semibold font-mono text-ink">{pillarPoints[k]}</p>
-              <p className="text-[8px] uppercase tracking-[0.08em] text-faint font-bold">{p.label}</p>
-            </div>
-          );
-        })}
-      </div>
+      <WeekSynthesisCard
+        synthesis={synthesis}
+        answers={currentReview && !showCheckIn ? savedAnswers : null}
+      />
 
-      <WeekOverview data={life.data} errors={life.errors} loading={life.loading} start={weekStartStr} end={weekEndStr} onRetry={life.refresh} />
-      <p className="text-xs text-caption">These totals are calculated in the app. The optional AI review below uses activity logs, projects, and your reflection; it does not receive these new totals.</p>
-      {/* Guided Check-In */}
-      {showCheckIn && (
-        <GuidedCheckIn key={weekStartStr} onComplete={(answers) => generateReview(answers)} />
+      {showCheckIn ? (
+        <GuidedCheckIn
+          onComplete={saveReview}
+          initial={savedAnswers}
+          saving={saving}
+        />
+      ) : currentReview?.summary ? (
+        <button
+          type="button"
+          onClick={() => setShowCheckIn(true)}
+          className="w-full min-h-[44px] rounded-[4px] border border-border text-[13px] font-semibold text-ink"
+        >
+          Update notes
+        </button>
+      ) : (
+        <div className="editorial-card px-5 py-6 space-y-4">
+          <p className="text-sm text-caption leading-relaxed">
+            The summary above is already yours. Add two or three notes, then close the week.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCheckIn(true)}
+            className="flex items-center justify-center w-full min-h-[48px] rounded-[4px] bg-clay text-clay-fg text-[15px] font-semibold hover:bg-clay-hover"
+          >
+            Add notes & save
+          </button>
+          <button
+            type="button"
+            onClick={() => saveReview({})}
+            disabled={saving}
+            className="flex items-center justify-center w-full min-h-[44px] text-[12px] font-bold uppercase tracking-[0.12em] text-caption"
+          >
+            {saving ? "Saving…" : "Save without notes"}
+          </button>
+        </div>
       )}
 
-      {/* Generate / Review */}
-      {!showCheckIn && (currentReview?.summary ? (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="editorial-card p-5"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <p className="micro-label">Review</p>
-            <Button variant="outline" size="sm" onClick={() => setShowCheckIn(true)} disabled={generating || loadError} className="text-xs">
-              {generating ? "Working…" : "Regenerate"}
-            </Button>
-          </div>
-          <div className="prose prose-sm max-w-none text-ink">
-            <ReactMarkdown>{currentReview.summary}</ReactMarkdown>
-          </div>
-        </motion.div>
-      ) : generating ? (
-        <div className="text-center py-12 editorial-card">
-          <p className="text-sm text-caption">Generating your review…</p>
-        </div>
-      ) : (
-        <div className="text-center py-12 editorial-card border-dashed">
-          <p className="text-sm text-caption mb-4">No review for this week yet.</p>
-          <Button disabled={loadError} onClick={() => setShowCheckIn(true)} className="bg-clay text-clay-fg hover:bg-clay-hover">
-            Start Weekly Review
-          </Button>
-        </div>
-      ))}
-
-      {/* Share */}
       {currentReview?.summary && (
         <ShareWeekCard
           review={currentReview}

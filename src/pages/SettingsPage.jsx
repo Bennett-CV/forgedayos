@@ -8,12 +8,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
 import { greetingFirstName, rememberGreetingFirstName } from "@/lib/greetingName";
+import MacroMismatchNote from "../components/nutrition/MacroMismatchNote";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "2.3.0";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -242,6 +243,9 @@ export default function SettingsPage() {
               />
             </div>
           ))}
+        </div>
+        <div className="mb-4 space-y-3">
+          <MacroMismatchNote targets={nutritionGoals} />
         </div>
         <Button onClick={handleSaveGoals} disabled={savingGoals} className="bg-clay text-clay-fg hover:bg-clay-hover">
           Save Goals
