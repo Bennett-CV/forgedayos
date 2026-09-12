@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import ExerciseRow from "../components/lifts/ExerciseRow";
 import ExerciseHistory from "../components/lifts/ExerciseHistory";
 import ProgramSetup from "../components/lifts/ProgramSetup";
+import { programDayNumbers } from "@/lib/workoutProgram";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import { toast } from "sonner";
@@ -29,7 +30,7 @@ export default function Lifts() {
   const [view, setView] = useState(searchParams.get("view") === "history" ? "history" : "log");
   const [selectedDay, setSelectedDay] = useState(() => {
     const d = Number(searchParams.get("day"));
-    return d >= 1 && d <= 5 ? d : 1;
+    return d >= 1 && d <= 6 ? d : 1;
   });
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -63,7 +64,7 @@ export default function Lifts() {
       setView("log");
     }
     const d = Number(searchParams.get("day"));
-    if (d >= 1 && d <= 5) setSelectedDay(d);
+    if (d >= 1 && d <= 6) setSelectedDay(d);
   }, [searchParams]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
@@ -106,10 +107,19 @@ export default function Lifts() {
 
   const programByDay = {};
   program.forEach(d => { programByDay[d.day] = d; });
+  const dayNumbers = programDayNumbers(program);
+  const gridClass = dayNumbers.length <= 3
+    ? "grid-cols-3"
+    : dayNumbers.length === 4
+      ? "grid-cols-4"
+      : dayNumbers.length === 5
+        ? "grid-cols-5"
+        : "grid-cols-3";
+  const activeDay = dayNumbers.includes(selectedDay) ? selectedDay : (dayNumbers[0] || 1);
 
   const currentWeekLogs = allLogs.filter(l => l.week_start === weekStart);
   const prevWeekLogs = allLogs.filter(l => l.week_start === prevWeekStart);
-  const dayProgram = programByDay[selectedDay];
+  const dayProgram = programByDay[activeDay];
 
   return (
     <>
@@ -121,7 +131,7 @@ export default function Lifts() {
             {confirmReplace ? (
               <div className="mt-2 space-y-2">
                 <p className="text-[12px] text-caption">
-                  This replaces your current 5-day template. Lift history is kept.
+                  This replaces your current program. Lift history is kept.
                 </p>
                 <div className="flex items-center gap-4">
                   <button
@@ -168,11 +178,11 @@ export default function Lifts() {
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-1.5">
-          {[1, 2, 3, 4, 5].map(day => {
+        <div className={`grid ${gridClass} gap-1.5`}>
+          {dayNumbers.map(day => {
             const prog = programByDay[day];
             if (!prog) return null;
-            const active = selectedDay === day;
+            const active = activeDay === day;
             return (
               <button
                 key={day}
@@ -201,7 +211,7 @@ export default function Lifts() {
                   Week of {format(startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }), "MMM d")}
                 </p>
                 <p className="text-[11px] text-caption">
-                  {currentWeekLogs.filter(l => l.day === selectedDay).length} sets
+                  {currentWeekLogs.filter(l => l.day === activeDay).length} sets
                 </p>
               </div>
               <button
@@ -214,7 +224,7 @@ export default function Lifts() {
             </div>
 
             <motion.div
-              key={`log-${selectedDay}-${weekOffset}`}
+              key={`log-${activeDay}-${weekOffset}`}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               className="editorial-card p-4"
@@ -231,7 +241,7 @@ export default function Lifts() {
                 {(dayProgram.exercises || []).map(exercise => (
                   <ExerciseRow
                     key={exercise.name}
-                    exercise={{ ...exercise, _day: selectedDay }}
+                    exercise={{ ...exercise, _day: activeDay }}
                     sets={exercise.sets}
                     weekStart={weekStart}
                     currentLogs={currentWeekLogs}
@@ -246,7 +256,7 @@ export default function Lifts() {
 
         {view === "history" && dayProgram && (
           <motion.div
-            key={`history-${selectedDay}`}
+            key={`history-${activeDay}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="editorial-card p-4"
@@ -263,14 +273,14 @@ export default function Lifts() {
                 return (
                   <ExerciseHistory
                     key={exercise.name}
-                    exercise={{ ...exercise, isCardio: cardio, _day: selectedDay }}
-                    allLogs={allLogs.filter(l => l.day === selectedDay)}
+                    exercise={{ ...exercise, isCardio: cardio, _day: activeDay }}
+                    allLogs={allLogs.filter(l => l.day === activeDay)}
                     variant={cardio ? "cardio" : "strength"}
                   />
                 );
               })}
-              {allLogs.filter(l => l.day === selectedDay).length === 0 && (
-                <p className="text-sm text-caption text-center py-8">No history for Day {selectedDay} yet.</p>
+              {allLogs.filter(l => l.day === activeDay).length === 0 && (
+                <p className="text-sm text-caption text-center py-8">No history for Day {activeDay} yet.</p>
               )}
             </div>
           </motion.div>

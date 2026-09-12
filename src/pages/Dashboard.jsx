@@ -1,26 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { Link } from "react-router-dom";
-import { formatLocalDate } from "@/lib/localDate";
+import { formatLocalDate, localToday, localWeekStartKey, localMonthKey } from "@/lib/localDate";
 import { greetingFirstName, greetingForHour } from "@/lib/greetingName";
-import CompoundingScore from "../components/dashboard/CompoundingScore";
-import PillarCard from "../components/dashboard/PillarCard";
-import MomentumChart from "../components/dashboard/MomentumChart";
-import RecentActivity from "../components/dashboard/RecentActivity";
-import ActiveProjects from "../components/dashboard/ActiveProjects";
-import WealthSnapshot from "../components/dashboard/WealthSnapshot";
-import GoalProgress from "../components/dashboard/GoalProgress";
-import { PILLAR_KEYS } from "../lib/constants";
+import { buildTodaySnapshot } from "@/lib/todayCommand";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
-import EmptyStateDashboard from "../components/dashboard/EmptyStateDashboard";
-import { CaptureCTA } from "../components/capture/CaptureChooser";
+import TodayCommand from "../components/dashboard/TodayCommand";
+
+async function safe(promise, fallback) {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [activities, setActivities] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -28,20 +26,37 @@ export default function Dashboard() {
       setLoading(false);
       return;
     }
-    try {
-      const [acts, projs] = await Promise.all([
-        base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 500),
-        base44.entities.Project.filter({ created_by: user.email }, "-created_date", 50),
-      ]);
-      setActivities(acts);
-      setProjects(projs);
-    } catch {
-      // Best-effort: show empty state rather than error on launch
-    }
+    const today = localToday();
+    const weekStart = localWeekStartKey(new Date());
+    const month = localMonthKey(new Date());
+
+    const [meals, logs, program, journals, txns, reviews, activities] = await Promise.all([
+      safe(base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 200), []),
+      safe(base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 400), []),
+      safe(base44.entities.WorkoutProgram.filter({ created_by: user.email }, "day", 12), []),
+      safe(base44.entities.JournalEntry.filter({ created_by: user.email }, "-date", 80), []),
+      safe(base44.entities.Transaction.filter({ month, created_by: user.email }), []),
+      safe(base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 20), []),
+      safe(base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 200), []),
+    ]);
+
+    setSnapshot(buildTodaySnapshot({
+      user,
+      today,
+      now: new Date(),
+      meals,
+      workoutLogs: logs,
+      workoutProgram: (program || []).filter(d => d.created_by === user.email),
+      journalEntries: journals,
+      transactions: txns,
+      activities,
+      reviews,
+      weekStart,
+    }));
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { load(); }, [load, user]);
+  useEffect(() => { load(); }, [load]);
 
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
 
@@ -54,7 +69,6 @@ export default function Dashboard() {
   }
 
   const today = formatLocalDate(new Date(), "EEEE, MMMM d");
-  const isEmpty = activities.length === 0;
   const firstName = greetingFirstName(user);
   const greeting = greetingForHour(new Date().getHours());
 
@@ -68,47 +82,7 @@ export default function Dashboard() {
             {greeting}, {firstName}.
           </h1>
         </div>
-
-        {isEmpty ? (
-          <EmptyStateDashboard user={user} />
-        ) : (
-          <>
-            <CompoundingScore activities={activities} />
-            <MomentumChart activities={activities} />
-
-            <div>
-              <p className="micro-label mb-3">The 5 Pillars</p>
-              <div className="grid grid-cols-5 gap-1.5">
-                {PILLAR_KEYS.map((pillar, i) => (
-                  <PillarCard key={pillar} pillar={pillar} activities={activities} index={i} />
-                ))}
-              </div>
-            </div>
-
-            <CaptureCTA label="+ Log" />
-
-            <RecentActivity activities={activities} />
-            <ActiveProjects projects={projects} />
-            <GoalProgress activities={activities} />
-            <WealthSnapshot />
-          </>
-        )}
-
-        <div className="grid grid-cols-3 gap-2 pt-1">
-          {[
-            { to: "/review", label: "Review" },
-            { to: "/projects", label: "Projects" },
-            { to: "/finance", label: "Finance" },
-          ].map(link => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="flex items-center justify-center min-h-[44px] rounded-[4px] border border-border bg-card text-[11px] font-bold uppercase tracking-[0.12em] text-ink"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
+        <TodayCommand snapshot={snapshot} />
       </div>
     </>
   );

@@ -13,6 +13,7 @@ import {
 } from "@/lib/onboardingState";
 import { localToday } from "@/lib/localDate";
 import { greetingFirstName, rememberGreetingFirstName } from "@/lib/greetingName";
+import MacroMismatchNote from "@/components/nutrition/MacroMismatchNote";
 
 const STEPS = ["Welcome", "Pillars", "Profile", "Goals"];
 
@@ -374,6 +375,9 @@ function StepGoals({ goals, setGoals }) {
                 />
               </div>
             ))}
+          </div>
+          <div className="mt-2">
+            <MacroMismatchNote targets={goals} />
           </div>
         </div>
       </div>

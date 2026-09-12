@@ -4,42 +4,51 @@ import { motion } from "framer-motion";
 import { Dumbbell, Plus, Trash2, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { WORKOUT_PROGRAM } from "@/lib/workoutProgram";
+import {
+  PROGRAM_PRESETS,
+  clonePresetDays,
+  emptyCustomDays,
+  getProgramPreset,
+} from "@/lib/workoutProgram";
 import { toast } from "sonner";
 import { clearProgramSetupDraft, loadProgramSetupDraft, saveProgramSetupDraft } from "@/lib/programSetupState";
 
-const DEFAULT_DAYS = [
-  { day: 1, label: "Day 1", type: "strength", exercises: [] },
-  { day: 2, label: "Day 2", type: "cardio", exercises: [{ name: "Cardio", sets: 1, reps: null, isCardio: true }] },
-  { day: 3, label: "Day 3", type: "strength", exercises: [] },
-  { day: 4, label: "Day 4", type: "cardio", exercises: [{ name: "Cardio", sets: 1, reps: null, isCardio: true }] },
-  { day: 5, label: "Day 5", type: "strength", exercises: [] },
-];
+function migrateDraft(saved) {
+  if (!saved) return { presetId: null, days: emptyCustomDays(3), expandedDay: 1 };
+  let presetId = saved.presetId ?? null;
+  if (presetId == null && saved.useTemplate === true) presetId = "starter_5";
+  if (presetId == null && saved.useTemplate === false) presetId = "custom";
+  return {
+    presetId,
+    days: saved.days?.length ? saved.days : emptyCustomDays(3),
+    expandedDay: saved.expandedDay ?? 1,
+  };
+}
 
 export default function ProgramSetup({ onComplete }) {
-  const saved = loadProgramSetupDraft();
-  const [useTemplate, setUseTemplate] = useState(saved?.useTemplate ?? null);
-  const [days, setDays] = useState(saved?.days?.length ? saved.days : DEFAULT_DAYS);
+  const saved = migrateDraft(loadProgramSetupDraft());
+  const [presetId, setPresetId] = useState(saved.presetId);
+  const [days, setDays] = useState(saved.days);
   const [saving, setSaving] = useState(false);
-  const [expandedDay, setExpandedDay] = useState(saved?.expandedDay ?? 1);
+  const [expandedDay, setExpandedDay] = useState(saved.expandedDay);
 
   useEffect(() => {
-    saveProgramSetupDraft({ useTemplate, days, expandedDay });
-  }, [useTemplate, days, expandedDay]);
+    saveProgramSetupDraft({ presetId, days, expandedDay });
+  }, [presetId, days, expandedDay]);
 
-  const handleUseTemplate = () => {
-    const templateDays = [1, 2, 3, 4, 5].map(d => ({
-      day: d,
-      label: WORKOUT_PROGRAM[d].label,
-      type: WORKOUT_PROGRAM[d].type,
-      exercises: WORKOUT_PROGRAM[d].exercises.map(e => ({ ...e })),
-    }));
-    setDays(templateDays);
-    setUseTemplate(true);
+  const choosePreset = (id) => {
+    const preset = getProgramPreset(id);
+    if (!preset) return;
+    const next = clonePresetDays(preset);
+    setDays(next);
+    setExpandedDay(next[0]?.day || 1);
+    setPresetId(id);
   };
 
-  const handleBuildOwn = () => {
-    setUseTemplate(false);
+  const chooseCustom = () => {
+    setDays(emptyCustomDays(3));
+    setExpandedDay(1);
+    setPresetId("custom");
   };
 
   const toggleDayType = (dayIdx) => {
@@ -78,6 +87,24 @@ export default function ProgramSetup({ onComplete }) {
     }));
   };
 
+  const addDay = () => {
+    if (days.length >= 6) return;
+    const nextDay = days.length + 1;
+    setDays(prev => [...prev, { day: nextDay, label: `Day ${nextDay}`, type: "strength", exercises: [] }]);
+    setExpandedDay(nextDay);
+  };
+
+  const removeDay = (dayIdx) => {
+    if (days.length <= 1) return;
+    const next = days.filter((_, i) => i !== dayIdx).map((d, i) => ({
+      ...d,
+      day: i + 1,
+      label: /^Day\s+\d+$/i.test(d.label) ? `Day ${i + 1}` : d.label,
+    }));
+    setDays(next);
+    setExpandedDay(next[0]?.day || 1);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -98,48 +125,52 @@ export default function ProgramSetup({ onComplete }) {
     setSaving(false);
   };
 
-  // Step 1: Choose path
-  if (useTemplate === null) {
+  if (presetId === null) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-2xl mx-auto">
         <div>
-          <h1 className="page-title">Set Up Your Lifting Program</h1>
-          <p className="text-sm text-muted-foreground mt-1">Build a 5-day program to track your lifts week over week.</p>
+          <h1 className="page-title">Set up your program</h1>
+          <p className="text-sm text-muted-foreground mt-1">Pick a starter, then edit before you save.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 gap-3">
+          {PROGRAM_PRESETS.map(preset => (
+            <button
+              key={preset.id}
+              onClick={() => choosePreset(preset.id)}
+              className="editorial-card p-5 text-left hover:border-clay transition-all"
+            >
+              <span className="font-semibold text-ink">{preset.name}</span>
+              <p className="text-sm text-muted-foreground mt-1">{preset.blurb}</p>
+            </button>
+          ))}
           <button
-            onClick={handleUseTemplate}
-            className="editorial-card p-5 text-left hover:border-clay transition-all"
-          >
-            <div className="mb-2">
-              <span className="font-semibold text-ink">Use a starter template</span>
-            </div>
-            <p className="text-sm text-muted-foreground">Load a pre-built 5-day dumbbell program (strength + cardio days). You can customize it before saving.</p>
-          </button>
-
-          <button
-            onClick={handleBuildOwn}
+            onClick={chooseCustom}
             className="editorial-card p-5 text-left"
           >
-            <div className="mb-2">
-              <span className="font-semibold text-ink">Build my own program</span>
-            </div>
-            <p className="text-sm text-muted-foreground">Start from scratch and add your own exercises for each day.</p>
+            <span className="font-semibold text-ink">Build your own</span>
+            <p className="text-sm text-muted-foreground mt-1">Start with three empty days. Add or remove as you like.</p>
           </button>
         </div>
       </motion.div>
     );
   }
 
-  // Step 2: Edit program
+  const preset = getProgramPreset(presetId);
+  const title = presetId === "custom" ? "Build your program" : `Customize ${preset?.name || "program"}`;
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 max-w-2xl mx-auto">
       <div>
-        <h1 className="page-title">
-          {useTemplate ? "Customize Your Program" : "Build Your Program"}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Configure each day's exercises, sets, and reps.</p>
+        <button
+          type="button"
+          onClick={() => setPresetId(null)}
+          className="text-[12px] font-bold uppercase tracking-[0.12em] text-caption min-h-[44px]"
+        >
+          All presets
+        </button>
+        <h1 className="page-title">{title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">Configure each day’s exercises, sets, and reps.</p>
       </div>
 
       {days.map((day, dayIdx) => (
@@ -166,18 +197,27 @@ export default function ProgramSetup({ onComplete }) {
 
           {expandedDay === day.day && (
             <div className="px-4 pb-4 space-y-3 border-t border-border/50">
-              {/* Type toggle */}
-              <div className="flex items-center gap-2 pt-3">
-                <span className="text-xs text-muted-foreground">Day type:</span>
-                <button
-                  onClick={() => toggleDayType(dayIdx)}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/70 text-foreground transition-colors min-h-[36px]"
-                >
-                  Switch to {day.type === "strength" ? "Cardio" : "Strength"}
-                </button>
+              <div className="flex items-center justify-between gap-2 pt-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Day type:</span>
+                  <button
+                    onClick={() => toggleDayType(dayIdx)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/70 text-foreground transition-colors min-h-[36px]"
+                  >
+                    Switch to {day.type === "strength" ? "Cardio" : "Strength"}
+                  </button>
+                </div>
+                {days.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeDay(dayIdx)}
+                    className="text-xs font-semibold text-caption min-h-[36px]"
+                  >
+                    Remove day
+                  </button>
+                )}
               </div>
 
-              {/* Exercises */}
               {day.type === "strength" && (
                 <>
                   {day.exercises.map((ex, exIdx) => (
@@ -226,8 +266,18 @@ export default function ProgramSetup({ onComplete }) {
         </div>
       ))}
 
+      {days.length < 6 && (
+        <button
+          type="button"
+          onClick={addDay}
+          className="flex items-center gap-2 text-[13px] font-semibold text-ink min-h-[44px]"
+        >
+          <Plus className="h-3.5 w-3.5" /> Add a day
+        </button>
+      )}
+
       <Button onClick={handleSave} disabled={saving} className="w-full font-bold">
-        {saving ? "Saving..." : "Save My Program"}
+        {saving ? "Saving..." : "Save my program"}
       </Button>
     </motion.div>
   );
