@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/localDate";
 import {
   cardioTypeLabel,
   parseCardioType,
@@ -20,7 +20,7 @@ function loggedSet(log) {
 
 function weekLabel(week) {
   if (!week) return "";
-  return format(new Date(week + "T00:00:00"), "MMM d");
+  return formatLocalDate(week, "MMM d");
 }
 
 export default function ExerciseHistory({ exercise, allLogs, variant = "strength" }) {

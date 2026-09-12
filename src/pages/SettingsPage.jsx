@@ -4,9 +4,10 @@ import { PILLARS, PILLAR_KEYS } from "../lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
+import { greetingFirstName, rememberGreetingFirstName } from "@/lib/greetingName";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
@@ -21,6 +22,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [nutritionGoals, setNutritionGoals] = useState({ calories: "", protein_g: "", carbs_g: "", fat_g: "" });
   const [savingGoals, setSavingGoals] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [savingName, setSavingName] = useState(false);
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem("theme");
     if (stored === "dark" || stored === "midnight") return "midnight";
@@ -50,6 +53,8 @@ export default function SettingsPage() {
         carbs_g: g.carbs_g || "",
         fat_g: g.fat_g || "",
       });
+      const existingName = me?.profile?.first_name || greetingFirstName(me);
+      setFirstName(existingName === "there" ? "" : existingName);
     } catch {
       // Best-effort: show empty settings rather than error
     }
@@ -103,22 +108,65 @@ export default function SettingsPage() {
     );
   }
 
-  const name = user?.full_name || "Account";
+  const name = firstName || user?.full_name || "Account";
   const email = user?.email || "";
-  const initial = name.charAt(0).toUpperCase();
+  const initial = (firstName || name).charAt(0).toUpperCase();
+
+  const handleSaveName = async () => {
+    const trimmed = firstName.trim();
+    if (!trimmed) {
+      toast.error("Enter your first name.");
+      return;
+    }
+    setSavingName(true);
+    try {
+      await base44.auth.updateMe({
+        profile: {
+          ...(user?.profile || {}),
+          first_name: trimmed,
+        },
+      });
+      rememberGreetingFirstName(trimmed);
+      toast.success("Name saved. Today will greet you by this name.");
+    } catch {
+      toast.error("Could not save name.");
+    } finally {
+      setSavingName(false);
+    }
+  };
   const focused = (user?.focused_pillars || []).map(k => PILLARS[k]?.label).filter(Boolean);
 
   return (
     <div className="space-y-5">
       <h1 className="page-title">Settings</h1>
 
-      <div className="editorial-card p-4 flex items-center gap-3">
-        <div className="h-11 w-11 rounded-full bg-secondary flex items-center justify-center text-[16px] font-semibold text-ink shrink-0">
-          {initial}
+      <div className="editorial-card p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-full bg-secondary flex items-center justify-center text-[16px] font-semibold text-ink shrink-0">
+            {initial}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-ink truncate">{name}</p>
+            <p className="text-[12px] text-caption truncate">{email}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-[15px] font-semibold text-ink truncate">{name}</p>
-          <p className="text-[12px] text-caption truncate">{email}</p>
+        <div>
+          <label className="micro-label mb-1.5 block">First name</label>
+          <div className="flex gap-2">
+            <Input
+              value={firstName}
+              onChange={e => setFirstName(e.target.value)}
+              placeholder="Used in greetings"
+              autoComplete="given-name"
+            />
+            <Button
+              onClick={handleSaveName}
+              disabled={savingName || !firstName.trim()}
+              className="shrink-0 bg-clay text-clay-fg hover:bg-clay-hover"
+            >
+              {savingName ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -160,13 +208,19 @@ export default function SettingsPage() {
         Sign Out
       </button>
 
-      <div className="pt-2">
+      <div className="pt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
         <button
           onClick={() => navigate("/onboarding")}
           className="text-[12px] font-semibold text-clay min-h-0"
         >
           Setup wizard
         </button>
+        <Link to="/privacy" className="text-[12px] font-semibold text-caption underline underline-offset-4 min-h-[44px] inline-flex items-center">
+          Privacy Policy
+        </Link>
+        <Link to="/terms" className="text-[12px] font-semibold text-caption underline underline-offset-4 min-h-[44px] inline-flex items-center">
+          Terms of Use
+        </Link>
       </div>
 
       <div className="editorial-card p-5">
@@ -284,6 +338,22 @@ export default function SettingsPage() {
           </div>
         );
       })}
+
+      <div className="editorial-card p-5 space-y-3">
+        <p className="micro-label">Privacy & legal</p>
+        <p className="text-[13px] text-caption leading-relaxed">
+          Forgeday does not sell your personal information. We store the account and log data you enter,
+          plus product analytics from our host (Base44). See the full policy for details.
+        </p>
+        <div className="flex flex-wrap gap-x-4">
+          <Link to="/privacy" className="text-[13px] font-semibold text-clay underline underline-offset-4 min-h-[44px] inline-flex items-center">
+            Privacy Policy
+          </Link>
+          <Link to="/terms" className="text-[13px] font-semibold text-clay underline underline-offset-4 min-h-[44px] inline-flex items-center">
+            Terms of Use
+          </Link>
+        </div>
+      </div>
 
       <div className="editorial-card p-5" style={{ borderColor: "oklch(var(--destructive-border))" }}>
         <p className="micro-label mb-2" style={{ color: "oklch(var(--destructive-text))" }}>Danger Zone</p>

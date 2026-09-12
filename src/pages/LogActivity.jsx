@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { format } from "date-fns";
+import { localToday } from "@/lib/localDate";
 import { motion, AnimatePresence } from "framer-motion";
 import { PILLARS, PILLAR_KEYS, ACTIVITY_PRESETS } from "../lib/constants";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export default function LogActivity() {
     if (!title || !selectedPillar) return;
 
     setSaving(true);
-    const today = format(new Date(), "yyyy-MM-dd");
+    const today = localToday();
     const earnedPoints = points ? parseInt(points) : (selectedPreset?.defaultPoints || 2);
 
     try {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { format } from "date-fns";
+import { localToday, normalizeDateKey } from "@/lib/localDate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -36,7 +36,7 @@ export default function AddFoodForm({
       return;
     }
     setSaving(true);
-    const mealDate = existingMeal?.date || date || format(new Date(), "yyyy-MM-dd");
+    const mealDate = normalizeDateKey(existingMeal?.date || date) || localToday();
     const payload = {
       date: mealDate,
       meal_type: mealType,

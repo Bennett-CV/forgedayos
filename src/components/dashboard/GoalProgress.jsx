@@ -4,18 +4,19 @@ import { useAuth } from "@/lib/AuthContext";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { PILLARS } from "../../lib/constants";
-import { subDays, startOfMonth, format } from "date-fns";
+import { subDays, startOfMonth } from "date-fns";
+import { localToday, normalizeDateKey } from "@/lib/localDate";
 
 function getPeriodPoints(activities, target) {
   const now = new Date();
   let start;
-  if (target.period === "daily") start = new Date(format(now, "yyyy-MM-dd"));
-  else if (target.period === "weekly") start = subDays(now, 7);
-  else if (target.period === "monthly") start = startOfMonth(now);
-  else start = subDays(now, 90);
+  if (target.period === "daily") start = localToday();
+  else if (target.period === "weekly") start = normalizeDateKey(subDays(now, 7));
+  else if (target.period === "monthly") start = normalizeDateKey(startOfMonth(now));
+  else start = normalizeDateKey(subDays(now, 90));
 
   return activities
-    .filter(a => a.pillar === target.pillar && new Date(a.date) >= start)
+    .filter(a => a.pillar === target.pillar && normalizeDateKey(a.date) >= start)
     .reduce((sum, a) => sum + (a.value || 0), 0);
 }
 

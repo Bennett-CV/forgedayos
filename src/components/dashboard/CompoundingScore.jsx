@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { calculateMomentumScore, getStreak } from "../../lib/momentum";
-import { subDays } from "date-fns";
+import { localDaysAgoKey, normalizeDateKey } from "@/lib/localDate";
 
 function ScoreRing({ value }) {
   const size = 86;
@@ -39,11 +39,11 @@ function ScoreRing({ value }) {
 
 export default function CompoundingScore({ activities }) {
   const weekScore = calculateMomentumScore(activities, 7);
-  const lastWeekStart = subDays(new Date(), 14);
-  const lastWeekEnd = subDays(new Date(), 7);
+  const lastWeekStart = localDaysAgoKey(14);
+  const lastWeekEnd = localDaysAgoKey(7);
   const lastWeekScore = activities
     .filter(a => {
-      const d = new Date(a.date);
+      const d = normalizeDateKey(a.date);
       return d >= lastWeekStart && d < lastWeekEnd;
     })
     .reduce((s, a) => s + (a.points || 0), 0);

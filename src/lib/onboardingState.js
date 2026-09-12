@@ -4,7 +4,7 @@ const MAX_STEP = 3;
 export const DEFAULT_ONBOARDING_DRAFT = {
   step: 0,
   pillars: [],
-  profile: { age: "", gender: "", weight_lbs: "", height_ft: "", height_in: "" },
+  profile: { first_name: "", age: "", gender: "", weight_lbs: "", height_ft: "", height_in: "" },
   goals: { calories: "", protein_g: "", carbs_g: "", fat_g: "", workout_days: 4, activity_level: "moderate" },
 };
 

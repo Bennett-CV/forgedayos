@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import { format, subWeeks } from "date-fns";
+import { formatLocalDate, localWeekStartDate, localWeekEndDate, normalizeDateKey } from "@/lib/localDate";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { PILLARS, PILLAR_KEYS } from "../lib/constants";
@@ -21,10 +22,10 @@ export default function WeeklyReview() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [showCheckIn, setShowCheckIn] = useState(false);
 
-  const weekStart = startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
-  const weekStartStr = format(weekStart, "yyyy-MM-dd");
-  const weekEndStr = format(weekEnd, "yyyy-MM-dd");
+  const weekStart = localWeekStartDate(subWeeks(new Date(), weekOffset));
+  const weekEnd = localWeekEndDate(subWeeks(new Date(), weekOffset));
+  const weekStartStr = formatLocalDate(weekStart, "yyyy-MM-dd");
+  const weekEndStr = formatLocalDate(weekEnd, "yyyy-MM-dd");
 
   useEffect(() => {
     if (!user?.email) {
@@ -55,7 +56,7 @@ export default function WeeklyReview() {
   }, [reviews, weekStartStr]);
 
   const weekActivities = activities.filter(a => {
-    const d = a.date;
+    const d = normalizeDateKey(a.date);
     return d >= weekStartStr && d <= weekEndStr;
   });
 

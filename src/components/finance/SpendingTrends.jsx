@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { subMonths } from "date-fns";
+import { formatLocalDate, localMonthKey } from "@/lib/localDate";
 import { TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { motion } from "framer-motion";
 
 function CustomTooltip({ active, payload, label }) {
@@ -32,7 +33,7 @@ export default function SpendingTrends() {
   const loadTrends = async () => {
     // Load last 4 months of transactions
     const months = [0, 1, 2, 3].map(i => subMonths(new Date(), i));
-    const monthKeys = months.map(m => format(m, "yyyy-MM"));
+    const monthKeys = months.map(m => localMonthKey(m));
 
     const allTxns = await base44.entities.Transaction.filter(
       { created_by: user.email },
@@ -46,7 +47,7 @@ export default function SpendingTrends() {
       const income = txns.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
       const expenses = txns.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
       return {
-        month: format(new Date(key + "-01"), "MMM"),
+        month: formatLocalDate(`${key}-01`, "MMM"),
         income: Math.round(income),
         expenses: Math.round(expenses),
       };

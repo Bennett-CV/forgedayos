@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import { PILLARS } from "../../lib/constants";
-import { subDays } from "date-fns";
+import { localDaysAgoKey, normalizeDateKey } from "@/lib/localDate";
 
 export default function PillarCard({ pillar, activities, index }) {
   const config = PILLARS[pillar];
   const weekPoints = activities
-    .filter(a => a.pillar === pillar && new Date(a.date) >= subDays(new Date(), 7))
+    .filter(a => a.pillar === pillar && normalizeDateKey(a.date) >= localDaysAgoKey(7))
     .reduce((s, a) => s + (a.points || 0), 0);
 
   return (

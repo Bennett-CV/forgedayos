@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { Dumbbell, Plus, Trash2, Activity, ChevronDown, ChevronUp } from "lucide-react";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WORKOUT_PROGRAM } from "@/lib/workoutProgram";
 import { toast } from "sonner";
+import { clearProgramSetupDraft, loadProgramSetupDraft, saveProgramSetupDraft } from "@/lib/programSetupState";
 
 const DEFAULT_DAYS = [
   { day: 1, label: "Day 1", type: "strength", exercises: [] },
@@ -16,10 +17,15 @@ const DEFAULT_DAYS = [
 ];
 
 export default function ProgramSetup({ onComplete }) {
-  const [useTemplate, setUseTemplate] = useState(null); // null = not chosen yet
-  const [days, setDays] = useState(DEFAULT_DAYS);
+  const saved = loadProgramSetupDraft();
+  const [useTemplate, setUseTemplate] = useState(saved?.useTemplate ?? null);
+  const [days, setDays] = useState(saved?.days?.length ? saved.days : DEFAULT_DAYS);
   const [saving, setSaving] = useState(false);
-  const [expandedDay, setExpandedDay] = useState(1);
+  const [expandedDay, setExpandedDay] = useState(saved?.expandedDay ?? 1);
+
+  useEffect(() => {
+    saveProgramSetupDraft({ useTemplate, days, expandedDay });
+  }, [useTemplate, days, expandedDay]);
 
   const handleUseTemplate = () => {
     const templateDays = [1, 2, 3, 4, 5].map(d => ({
@@ -84,6 +90,7 @@ export default function ProgramSetup({ onComplete }) {
         })
       ));
       toast.success("Program saved!");
+      clearProgramSetupDraft();
       onComplete();
     } catch (e) {
       toast.error("Failed to save: " + e.message);

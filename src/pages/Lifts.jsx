@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { format, startOfWeek, subWeeks } from "date-fns";
+import { localWeekStartKey } from "@/lib/localDate";
 import { motion } from "framer-motion";
 import ExerciseRow from "../components/lifts/ExerciseRow";
 import ExerciseHistory from "../components/lifts/ExerciseHistory";
@@ -33,14 +34,8 @@ export default function Lifts() {
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [resetting, setResetting] = useState(false);
 
-  const weekStart = format(
-    startOfWeek(subWeeks(new Date(), weekOffset), { weekStartsOn: 1 }),
-    "yyyy-MM-dd"
-  );
-  const prevWeekStart = format(
-    startOfWeek(subWeeks(new Date(), weekOffset + 1), { weekStartsOn: 1 }),
-    "yyyy-MM-dd"
-  );
+  const weekStart = localWeekStartKey(subWeeks(new Date(), weekOffset));
+  const prevWeekStart = localWeekStartKey(subWeeks(new Date(), weekOffset + 1));
 
   const load = useCallback(async () => {
     if (!user?.email) {

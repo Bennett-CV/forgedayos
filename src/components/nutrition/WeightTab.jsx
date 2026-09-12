@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { format, subDays } from "date-fns";
+import { formatLocalDate, localToday, localDaysAgoKey, normalizeDateKey } from "@/lib/localDate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -25,8 +25,10 @@ export default function WeightTab() {
   const [loading, setLoading] = useState(true);
   const [weightInput, setWeightInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = localToday();
 
   const load = async () => {
     if (!user?.email) return;
@@ -37,7 +39,7 @@ export default function WeightTab() {
 
   useEffect(() => { load(); }, [user]);
 
-  const todayLog = logs.find(l => l.date === today);
+  const todayLog = logs.find(l => normalizeDateKey(l.date) === today);
 
   const handleSave = async () => {
     if (!weightInput) return;
@@ -53,20 +55,35 @@ export default function WeightTab() {
     setSaving(false);
   };
 
-  const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date));
+  const handleDelete = async (id) => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await base44.entities.WeightLog.delete(id);
+      toast.success("Removed");
+      setPendingDeleteId(null);
+      await load();
+    } catch {
+      toast.error("Could not delete weight entry.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const sorted = [...logs].sort((a, b) => normalizeDateKey(a.date).localeCompare(normalizeDateKey(b.date)));
   const latest = sorted[sorted.length - 1];
-  const weekAgo = sorted.find(l => l.date <= format(subDays(new Date(), 7), "yyyy-MM-dd") &&
-    sorted.indexOf(l) === sorted.filter(x => x.date <= format(subDays(new Date(), 7), "yyyy-MM-dd")).length - 1);
-  const monthAgo = sorted.find(l => l.date <= format(subDays(new Date(), 30), "yyyy-MM-dd") &&
-    sorted.indexOf(l) === sorted.filter(x => x.date <= format(subDays(new Date(), 30), "yyyy-MM-dd")).length - 1);
+  const weekCutoff = localDaysAgoKey(7);
+  const monthCutoff = localDaysAgoKey(30);
+  const weekAgo = [...sorted].reverse().find(l => normalizeDateKey(l.date) <= weekCutoff);
+  const monthAgo = [...sorted].reverse().find(l => normalizeDateKey(l.date) <= monthCutoff);
 
   const delta7 = latest && weekAgo ? latest.weight_lbs - weekAgo.weight_lbs : null;
   const delta30 = latest && monthAgo ? latest.weight_lbs - monthAgo.weight_lbs : null;
 
   const chartData = sorted.slice(-30).map(l => ({
-    date: l.date,
+    date: normalizeDateKey(l.date),
     weight: l.weight_lbs,
-    label: format(new Date(l.date + "T12:00:00"), "MMM d"),
+    label: formatLocalDate(l.date, "MMM d"),
   }));
 
   const DeltaBadge = ({ delta, label }) => {
@@ -171,12 +188,49 @@ export default function WeightTab() {
             <p className="micro-label">History</p>
           </div>
           <div className="max-h-64 overflow-y-auto">
-            {[...logs].sort((a, b) => b.date.localeCompare(a.date)).map((log, i) => (
-              <div key={log.id} className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
-                <p className="text-[12px] text-caption">{format(new Date(log.date + "T12:00:00"), "EEE, MMM d")}</p>
-                <p className="text-[13px] font-semibold font-mono text-ink">{log.weight_lbs} lbs</p>
-              </div>
-            ))}
+            {[...logs].sort((a, b) => normalizeDateKey(b.date).localeCompare(normalizeDateKey(a.date))).map((log, i) => {
+              const pendingDelete = pendingDeleteId === log.id;
+              return (
+                <div key={log.id} className={`${i > 0 ? "border-t border-border" : ""}`}>
+                  <div className="flex items-center justify-between px-4 py-2.5 gap-3">
+                    <p className="text-[12px] text-caption">{formatLocalDate(log.date, "EEE, MMM d")}</p>
+                    <div className="flex items-center gap-3">
+                      <p className="text-[13px] font-semibold font-mono text-ink">{log.weight_lbs} lbs</p>
+                      {!pendingDelete && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingDeleteId(log.id)}
+                          className="text-[11px] font-semibold text-destructive min-h-0 min-w-0"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {pendingDelete && (
+                    <div className="flex items-center justify-end gap-2 px-4 pb-3">
+                      <p className="text-[12px] text-caption mr-auto">Remove this entry?</p>
+                      <button
+                        type="button"
+                        onClick={() => setPendingDeleteId(null)}
+                        disabled={deleting}
+                        className="text-[12px] font-semibold text-ink min-h-[40px] px-3 rounded-[4px] border border-border"
+                      >
+                        Keep
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(log.id)}
+                        disabled={deleting}
+                        className="text-[12px] font-semibold text-destructive-foreground min-h-[40px] px-3 rounded-[4px] bg-destructive"
+                      >
+                        {deleting ? "Removing…" : "Remove"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

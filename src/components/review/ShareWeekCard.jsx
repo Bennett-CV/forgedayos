@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Share2, Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PILLARS, PILLAR_KEYS } from "../../lib/constants";
-import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/localDate";
 
 export default function ShareWeekCard({ review, weekStart, weekEnd, pillarPoints }) {
   const [copied, setCopied] = useState(false);
@@ -11,7 +11,7 @@ export default function ShareWeekCard({ review, weekStart, weekEnd, pillarPoints
   const buildShareText = () => {
     const lines = [
       `📊 Forgeday Weekly Report`,
-      `${format(new Date(weekStart), "MMM d")} – ${format(new Date(weekEnd), "MMM d, yyyy")}`,
+      `${formatLocalDate(weekStart, "MMM d")} – ${formatLocalDate(weekEnd, "MMM d, yyyy")}`,
       ``,
       `🏆 Total Points: ${review.total_points || 0}`,
       ``,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { format, startOfWeek } from "date-fns";
+import { localToday, localWeekStartKey } from "@/lib/localDate";
 import { Input } from "@/components/ui/input";
 import {
   CARDIO_TYPES,
@@ -20,7 +20,7 @@ function emptyToNull(n) {
 }
 
 async function awardSessionActivity(isCardio) {
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = localToday();
   const category = isCardio ? "cardio" : "lifting";
   const existing = await base44.entities.Activity.filter({ date: today, category });
   if (existing.length === 0) {
@@ -35,7 +35,7 @@ async function awardSessionActivity(isCardio) {
 }
 
 function isCurrentWeekStart(weekStart) {
-  return weekStart === format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  return weekStart === localWeekStartKey(new Date());
 }
 
 export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, currentLogs, onSaved }) {
