@@ -20,9 +20,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
-  const dateKey = format(new Date(), "yyyy-MM-dd");
-  const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-  const life = useLifeData(user?.email, weekStart, dateKey);
 
   const load = useCallback(async () => {
     if (!user?.email) {
@@ -61,7 +58,7 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  const refresh = useCallback(() => Promise.all([load(), life.refresh()]), [load, life.refresh]);
+  const refresh = useCallback(() => load(), [load]);
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(refresh);
 
   if (loading) {

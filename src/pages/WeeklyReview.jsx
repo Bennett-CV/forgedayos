@@ -15,8 +15,6 @@ import { toast } from "sonner";
 import GuidedCheckIn from "../components/review/GuidedCheckIn";
 import WeekSynthesisCard from "../components/review/WeekSynthesisCard";
 import ShareWeekCard from "../components/review/ShareWeekCard";
-import WeekOverview from "@/components/review/WeekOverview";
-import { useLifeData } from "@/hooks/useLifeData";
 
 async function safe(promise, fallback) {
   try {
@@ -54,8 +52,6 @@ export default function WeeklyReview() {
   const weekEnd = localWeekEndDate(subWeeks(new Date(), weekOffset));
   const weekStartStr = localWeekStartKey(subWeeks(new Date(), weekOffset));
   const weekEndStr = localWeekEndKey(subWeeks(new Date(), weekOffset));
-
-  const life = useLifeData(user?.email, weekStartStr, weekEndStr);
 
   useEffect(() => {
     if (!user?.email) {
@@ -170,7 +166,7 @@ export default function WeeklyReview() {
       </div>
 
       <div className="flex items-center justify-between editorial-card px-3 py-2">
-        <button disabled={generating} onClick={() => setWeekOffset(o => o + 1)} className="text-[13px] font-semibold text-caption min-w-[44px]">
+        <button type="button" onClick={() => setWeekOffset(o => o + 1)} className="text-[13px] font-semibold text-caption min-w-[44px]">
           Prev
         </button>
         <div className="text-center">
@@ -183,7 +179,7 @@ export default function WeeklyReview() {
         </div>
         <button
           onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
-          disabled={weekOffset === 0 || generating}
+          disabled={weekOffset === 0}
           className="text-[13px] font-semibold text-caption min-w-[44px] disabled:opacity-30"
         >
           Next
