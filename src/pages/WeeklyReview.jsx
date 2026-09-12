@@ -10,6 +10,8 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import GuidedCheckIn from "../components/review/GuidedCheckIn";
 import ShareWeekCard from "../components/review/ShareWeekCard";
+import WeekOverview from "@/components/review/WeekOverview";
+import { useLifeData } from "@/hooks/useLifeData";
 
 export default function WeeklyReview() {
   const { user } = useAuth();
@@ -17,6 +19,7 @@ export default function WeeklyReview() {
   const [projects, setProjects] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [currentReview, setCurrentReview] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -26,6 +29,8 @@ export default function WeeklyReview() {
   const weekEnd = localWeekEndDate(subWeeks(new Date(), weekOffset));
   const weekStartStr = formatLocalDate(weekStart, "yyyy-MM-dd");
   const weekEndStr = formatLocalDate(weekEnd, "yyyy-MM-dd");
+
+  const life = useLifeData(user?.email, weekStartStr, weekEndStr);
 
   useEffect(() => {
     if (!user?.email) {
@@ -43,7 +48,7 @@ export default function WeeklyReview() {
         setProjects(projs);
         setReviews(revs);
       } catch {
-        // best-effort
+        setLoadError(true);
       }
       setLoading(false);
     }
@@ -67,8 +72,10 @@ export default function WeeklyReview() {
   });
 
   const generateReview = async (checkInAnswers) => {
+    if (generating || loadError || !user?.email) return;
     setShowCheckIn(false);
     setGenerating(true);
+    try {
     const actSummary = weekActivities.map(a => `${a.title} (${a.pillar}, ${a.value || ''} ${a.unit || ''}, +${a.points}pts)`).join("\n");
     const projSummary = projects.filter(p => p.status === "active").map(p => `${p.name} (${p.progress}% complete, ${p.pillar})`).join("\n");
 
@@ -99,7 +106,7 @@ Generate a weekly review with these sections:
 1. **Executive Summary** (2-3 sentences, direct and metrics-driven)
 2. **Highlights** (bullet points of wins)
 3. **Areas to Improve** (bullet points, honest but constructive)
-4. **Pillar Scorecard** (rate each pillar: 🟢 On Track / 🟡 Needs Attention / 🔴 Off Track)
+4. **What We Know** (distinguish logged facts from incomplete information; do not grade pillars without targets or infer failures from missing logs)
 5. **Next Week Focus** (1-2 priority items)
 
 Keep the tone like a founder's weekly investor update — sharp, honest, forward-looking. No fluff.`;
@@ -136,10 +143,14 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
       });
     }
 
-    const revs = await base44.entities.WeeklyReview.list("-created_date", 50);
+    const revs = await base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50);
     setReviews(revs);
-    setGenerating(false);
     toast.success("Weekly review generated!");
+    } catch {
+      toast.error("Couldn't generate or save your review. Please try again.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   if (loading) {
@@ -158,7 +169,7 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
       </div>
 
       <div className="flex items-center justify-between editorial-card px-3 py-2">
-        <button onClick={() => setWeekOffset(o => o + 1)} className="text-[13px] font-semibold text-caption min-w-[44px]">
+        <button disabled={generating} onClick={() => setWeekOffset(o => o + 1)} className="text-[13px] font-semibold text-caption min-w-[44px]">
           Prev
         </button>
         <div className="text-center">
@@ -167,13 +178,14 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
         </div>
         <button
           onClick={() => setWeekOffset(o => Math.max(0, o - 1))}
-          disabled={weekOffset === 0}
+          disabled={weekOffset === 0 || generating}
           className="text-[13px] font-semibold text-caption min-w-[44px] disabled:opacity-30"
         >
           Next
         </button>
       </div>
 
+      {loadError && <p role="alert" className="editorial-card p-4 text-sm text-caption">Some review records could not load. Reload this page before generating a review.</p>}
       <div className="grid grid-cols-5 gap-1.5">
         {PILLAR_KEYS.map(k => {
           const p = PILLARS[k];
@@ -187,9 +199,11 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
         })}
       </div>
 
+      <WeekOverview data={life.data} errors={life.errors} loading={life.loading} start={weekStartStr} end={weekEndStr} onRetry={life.refresh} />
+      <p className="text-xs text-caption">These totals are calculated in the app. The optional AI review below uses activity logs, projects, and your reflection; it does not receive these new totals.</p>
       {/* Guided Check-In */}
       {showCheckIn && (
-        <GuidedCheckIn onComplete={(answers) => generateReview(answers)} />
+        <GuidedCheckIn key={weekStartStr} onComplete={(answers) => generateReview(answers)} />
       )}
 
       {/* Generate / Review */}
@@ -201,7 +215,7 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
         >
           <div className="flex items-center justify-between mb-4">
             <p className="micro-label">Review</p>
-            <Button variant="outline" size="sm" onClick={() => setShowCheckIn(true)} disabled={generating} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => setShowCheckIn(true)} disabled={generating || loadError} className="text-xs">
               {generating ? "Working…" : "Regenerate"}
             </Button>
           </div>
@@ -216,7 +230,7 @@ Keep the tone like a founder's weekly investor update — sharp, honest, forward
       ) : (
         <div className="text-center py-12 editorial-card border-dashed">
           <p className="text-sm text-caption mb-4">No review for this week yet.</p>
-          <Button onClick={() => setShowCheckIn(true)} className="bg-clay text-clay-fg hover:bg-clay-hover">
+          <Button disabled={loadError} onClick={() => setShowCheckIn(true)} className="bg-clay text-clay-fg hover:bg-clay-hover">
             Start Weekly Review
           </Button>
         </div>

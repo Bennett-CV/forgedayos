@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
+import { format, startOfWeek } from "date-fns";
+import { useLifeData } from "@/hooks/useLifeData";
+import TodayOverview from "@/components/dashboard/TodayOverview";
 import { Link } from "react-router-dom";
 import { formatLocalDate } from "@/lib/localDate";
 import { greetingFirstName, greetingForHour } from "@/lib/greetingName";
@@ -22,6 +25,9 @@ export default function Dashboard() {
   const [activities, setActivities] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const dateKey = format(new Date(), "yyyy-MM-dd");
+  const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+  const life = useLifeData(user?.email, weekStart, dateKey);
 
   const load = useCallback(async () => {
     if (!user?.email) {
@@ -43,7 +49,8 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [load, user]);
 
-  const { pullY, pullProgress, isRefreshing } = usePullToRefresh(load);
+  const refresh = useCallback(() => Promise.all([load(), life.refresh()]), [load, life.refresh]);
+  const { pullY, pullProgress, isRefreshing } = usePullToRefresh(refresh);
 
   if (loading) {
     return (
@@ -69,6 +76,11 @@ export default function Dashboard() {
           </h1>
         </div>
 
+        <TodayOverview user={user} data={life.data} errors={life.errors} loading={life.loading} today={dateKey} weekStart={weekStart} onRetry={life.refresh} />
+        <Link to="/review" className="editorial-card p-4 flex items-center justify-between gap-3">
+          <div><p className="micro-label">Your weekly ritual</p><p className="font-serif text-[20px] text-ink mt-1">See what’s adding up.</p></div>
+          <span className="text-clay text-sm font-semibold">Review →</span>
+        </Link>
         {isEmpty ? (
           <EmptyStateDashboard user={user} />
         ) : (

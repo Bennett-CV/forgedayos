@@ -51,6 +51,10 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
     );
   }
 
+  return <StrengthRow exercise={exercise} sets={sets} weekStart={weekStart} prevLogs={prevLogs} currentLogs={currentLogs} onSaved={onSaved} />;
+}
+
+function StrengthRow({ exercise, sets, weekStart, prevLogs, currentLogs, onSaved }) {
   const numSets = sets || 3;
 
   const [setData, setSetData] = useState(() =>
@@ -308,7 +312,7 @@ function CardioRow({ exercise, weekStart, currentLogs, prevLogs, onSaved }) {
             placeholder="min"
             value={duration}
             onChange={e => setDuration(e.target.value)}
-            onBlur={handleSave}
+            onBlur={() => handleSave()}
             className="h-10 text-[13px] bg-secondary border-0 font-mono px-2"
           />
         </div>
@@ -320,7 +324,7 @@ function CardioRow({ exercise, weekStart, currentLogs, prevLogs, onSaved }) {
             placeholder="mi"
             value={distance}
             onChange={e => setDistance(e.target.value)}
-            onBlur={handleSave}
+            onBlur={() => handleSave()}
             className="h-10 text-[13px] bg-secondary border-0 font-mono px-2"
           />
         </div>
