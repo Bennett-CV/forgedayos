@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { formatLocalDate, localDaysAgoKey, isSameLocalDay } from "@/lib/localDate";
 import { motion } from "framer-motion";
 import AddFoodForm from "../components/nutrition/AddFoodForm";
+import DescribeMeal from "../components/nutrition/DescribeMeal";
 import MealSection from "../components/nutrition/MealSection";
 import DailyMacroSummary from "../components/nutrition/DailyMacroSummary";
 import WeightTab from "../components/nutrition/WeightTab.jsx";
@@ -164,6 +165,14 @@ export default function Nutrition() {
           </div>
 
           <DailyMacroSummary meals={dayMeals} goals={goals} />
+
+          <div className="scroll-mt-[72px]">
+            <DescribeMeal
+              mealType={addingType}
+              date={currentDate}
+              onLogged={() => { closeForm(); load(); }}
+            />
+          </div>
 
           {(addingType || editingMeal) && (
             <div ref={formRef} className="scroll-mt-[72px]">

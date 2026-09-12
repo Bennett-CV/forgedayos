@@ -14,7 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.3.0";
 
 export default function SettingsPage() {
   const navigate = useNavigate();

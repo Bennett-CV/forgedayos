@@ -9,6 +9,7 @@ import ExerciseRow from "../components/lifts/ExerciseRow";
 import ExerciseHistory from "../components/lifts/ExerciseHistory";
 import ProgramSetup from "../components/lifts/ProgramSetup";
 import { programDayNumbers } from "@/lib/workoutProgram";
+import { sessionProgress } from "@/lib/workoutSession";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import { toast } from "sonner";
@@ -34,9 +35,9 @@ export default function Lifts() {
   });
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [loadToken, setLoadToken] = useState(0);
 
   const weekStart = localWeekStartKey(subWeeks(new Date(), weekOffset));
-  const prevWeekStart = localWeekStartKey(subWeeks(new Date(), weekOffset + 1));
 
   const load = useCallback(async () => {
     if (!user?.email) {
@@ -118,8 +119,10 @@ export default function Lifts() {
   const activeDay = dayNumbers.includes(selectedDay) ? selectedDay : (dayNumbers[0] || 1);
 
   const currentWeekLogs = allLogs.filter(l => l.week_start === weekStart);
-  const prevWeekLogs = allLogs.filter(l => l.week_start === prevWeekStart);
+  const dayHistoryLogs = allLogs.filter(l => Number(l.day) === Number(activeDay));
   const dayProgram = programByDay[activeDay];
+  const progress = sessionProgress(dayProgram?.exercises, currentWeekLogs, weekStart, activeDay);
+  const thisWeek = weekOffset === 0;
 
   return (
     <>
@@ -229,15 +232,31 @@ export default function Lifts() {
               animate={{ opacity: 1, y: 0 }}
               className="editorial-card p-4"
             >
-              <h2 className="text-[15px] font-semibold text-ink">
-                {dayFocus(dayProgram)} — {dayProgram.type === "cardio" ? "Cardio" : "Strength"}
-              </h2>
-              <p className="text-[12px] text-caption mt-1 mb-4">
-                {dayProgram.type === "cardio"
-                  ? "Type, time, and distance."
-                  : "Weight (lbs) and reps for each set."}
-              </p>
-              <div>
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <div className="min-w-0">
+                  <p className="micro-label">{thisWeek ? "This session" : "Past week"}</p>
+                  <h2 className="text-[15px] font-semibold text-ink mt-1">
+                    {dayFocus(dayProgram)}
+                  </h2>
+                  <p className="text-[12px] text-caption mt-0.5">
+                    {progress.total
+                      ? `${progress.done} of ${progress.total} exercises`
+                      : dayProgram.type === "cardio"
+                        ? "Type, time, and distance."
+                        : "Log each set. Last session loads into empty fields."}
+                  </p>
+                </div>
+                {thisWeek && (
+                  <button
+                    type="button"
+                    onClick={() => setLoadToken(n => n + 1)}
+                    className="text-[11px] font-bold uppercase tracking-[0.12em] text-clay min-h-[36px] shrink-0"
+                  >
+                    Load last session
+                  </button>
+                )}
+              </div>
+              <div className="mt-3">
                 {(dayProgram.exercises || []).map(exercise => (
                   <ExerciseRow
                     key={exercise.name}
@@ -245,7 +264,8 @@ export default function Lifts() {
                     sets={exercise.sets}
                     weekStart={weekStart}
                     currentLogs={currentWeekLogs}
-                    prevLogs={prevWeekLogs}
+                    historyLogs={dayHistoryLogs}
+                    loadToken={loadToken}
                     onSaved={load}
                   />
                 ))}

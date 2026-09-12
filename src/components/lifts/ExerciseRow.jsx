@@ -10,6 +10,11 @@ import {
   formatDurationMinutes,
   parseCardioType,
 } from "@/lib/workoutLog";
+import {
+  lastSessionSets,
+  formatLastSessionLine,
+  mergeLastIntoSets,
+} from "@/lib/workoutSession";
 
 function getLog(logsArr, exerciseName, setNum) {
   return logsArr?.find(l => l.exercise === exerciseName && l.set_number === setNum);
@@ -38,44 +43,69 @@ function isCurrentWeekStart(weekStart) {
   return weekStart === localWeekStartKey(new Date());
 }
 
-export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, currentLogs, onSaved }) {
+function initialSets(numSets, currentLogs, exerciseName) {
+  return Array.from({ length: numSets }, (_, i) => {
+    const existing = getLog(currentLogs, exerciseName, i + 1);
+    return {
+      weight: displayLoggedNumber(existing?.weight),
+      reps: displayLoggedNumber(existing?.reps),
+      id: existing?.id || null,
+    };
+  });
+}
+
+export default function ExerciseRow({
+  exercise,
+  sets,
+  weekStart,
+  currentLogs,
+  historyLogs,
+  prevLogs,
+  loadToken = 0,
+  onSaved,
+}) {
   if (exercise.isCardio) {
     return (
       <CardioRow
         exercise={exercise}
         weekStart={weekStart}
         currentLogs={currentLogs}
-        prevLogs={prevLogs}
+        historyLogs={historyLogs || prevLogs}
+        loadToken={loadToken}
         onSaved={onSaved}
       />
     );
   }
 
-  const numSets = sets || 3;
-
-  const [setData, setSetData] = useState(() =>
-    Array.from({ length: numSets }, (_, i) => {
-      const existing = getLog(currentLogs, exercise.name, i + 1);
-      return {
-        weight: displayLoggedNumber(existing?.weight),
-        reps: displayLoggedNumber(existing?.reps),
-        id: existing?.id || null,
-      };
-    })
+  return (
+    <StrengthRow
+      exercise={exercise}
+      sets={sets}
+      weekStart={weekStart}
+      currentLogs={currentLogs}
+      historyLogs={historyLogs || prevLogs}
+      loadToken={loadToken}
+      onSaved={onSaved}
+    />
   );
+}
+
+function StrengthRow({ exercise, sets, weekStart, currentLogs, historyLogs, loadToken, onSaved }) {
+  const numSets = sets || 3;
+  const lastSets = lastSessionSets(historyLogs, exercise.name, { excludeWeek: weekStart });
+  const lastLine = formatLastSessionLine(lastSets);
+
+  const [setData, setSetData] = useState(() => initialSets(numSets, currentLogs, exercise.name));
+  const [savingIndex, setSavingIndex] = useState(null);
 
   useEffect(() => {
-    setSetData(
-      Array.from({ length: numSets }, (_, i) => {
-        const existing = getLog(currentLogs, exercise.name, i + 1);
-        return {
-          weight: displayLoggedNumber(existing?.weight),
-          reps: displayLoggedNumber(existing?.reps),
-          id: existing?.id || null,
-        };
-      })
-    );
+    setSetData(initialSets(numSets, currentLogs, exercise.name));
   }, [currentLogs, exercise.name, numSets]);
+
+  useEffect(() => {
+    if (!loadToken) return;
+    setSetData(prev => mergeLastIntoSets(prev, lastSets));
+  }, [loadToken]);
 
   const updateField = (setIndex, field, val) => {
     setSetData(prev => {
@@ -89,6 +119,7 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
     const d = setData[setIndex];
     const weight = parseOptionalNumber(d.weight);
     const reps = parseOptionalNumber(d.reps);
+    setSavingIndex(setIndex);
 
     try {
       if (weight == null && reps == null) {
@@ -120,7 +151,7 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
         const created = await base44.entities.WorkoutLog.create(payload);
         setSetData(prev => {
           const next = [...prev];
-          next[setIndex] = { ...next[setIndex], id: created.id };
+          next[setIndex] = { ...next[setIndex], id: created.id, loaded: false };
           return next;
         });
       }
@@ -130,10 +161,17 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
       }
       onSaved?.();
     } catch {
-      // keep the typed values; retry on next blur
+      // keep the typed values; retry on next save
+    } finally {
+      setSavingIndex(null);
     }
   };
 
+  const loadLast = () => {
+    setSetData(prev => mergeLastIntoSets(prev, lastSets));
+  };
+
+  const canLoad = lastSets.length > 0 && setData.some(s => !s.id && !String(s.weight || "").trim() && !String(s.reps || "").trim());
   const repsPlaceholder = exercise.isAmrap
     ? "AMRAP"
     : exercise.reps
@@ -141,24 +179,41 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
       : "reps";
 
   return (
-    <div className="py-3 border-b border-border last:border-0">
-      <p className="text-[14px] font-semibold text-ink mb-2">{exercise.name}</p>
-      <div className="grid grid-cols-[28px_1fr_1fr_auto] gap-x-2 gap-y-1.5 items-center">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-faint">Set</span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-faint">Lbs</span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-faint">Reps</span>
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-faint text-right min-w-[52px]">Last</span>
+    <div className="py-4 border-b border-border last:border-0">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="min-w-0">
+          <p className="text-[14px] font-semibold text-ink">{exercise.name}</p>
+          {lastLine ? (
+            <p className="text-[11px] text-caption mt-0.5">Last {lastLine}</p>
+          ) : (
+            <p className="text-[11px] text-caption mt-0.5">No last session yet</p>
+          )}
+        </div>
+        {canLoad && (
+          <button
+            type="button"
+            onClick={loadLast}
+            className="text-[11px] font-bold uppercase tracking-[0.12em] text-clay min-h-[36px] shrink-0"
+          >
+            Load last
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-2">
         {Array.from({ length: numSets }, (_, i) => {
-          const prev = getLog(prevLogs, exercise.name, i + 1);
-          const lastW = prev?.weight > 0 ? prev.weight : null;
+          const last = lastSets[i];
+          const saved = Boolean(setData[i]?.id);
           return (
             <SetLine
               key={i}
               index={i}
               weight={setData[i]?.weight ?? ""}
               reps={setData[i]?.reps ?? ""}
-              repsPlaceholder={repsPlaceholder}
-              lastWeight={lastW}
+              repsPlaceholder={last?.reps > 0 ? String(last.reps) : repsPlaceholder}
+              weightPlaceholder={last?.weight > 0 ? String(last.weight) : "lbs"}
+              saved={saved}
+              saving={savingIndex === i}
               onWeight={val => updateField(i, "weight", val)}
               onReps={val => updateField(i, "reps", val)}
               onSave={() => handleSave(i)}
@@ -170,18 +225,30 @@ export default function ExerciseRow({ exercise, sets, weekStart, prevLogs, curre
   );
 }
 
-function SetLine({ index, weight, reps, repsPlaceholder, lastWeight, onWeight, onReps, onSave }) {
+function SetLine({
+  index,
+  weight,
+  reps,
+  repsPlaceholder,
+  weightPlaceholder,
+  saved,
+  saving,
+  onWeight,
+  onReps,
+  onSave,
+}) {
   return (
-    <>
-      <span className="font-mono text-[13px] text-caption tabular-nums">{index + 1}</span>
+    <div className="flex items-center gap-2">
+      <span className="font-mono text-[13px] text-caption tabular-nums w-5 shrink-0">{index + 1}</span>
       <Input
         type="text"
         inputMode="decimal"
-        placeholder="lbs"
+        placeholder={weightPlaceholder}
         value={weight}
         onChange={e => onWeight(e.target.value)}
         onBlur={onSave}
-        className="h-10 text-[13px] bg-secondary border-0 font-mono px-2"
+        className="h-11 text-[15px] bg-secondary border-0 font-mono px-2 flex-1"
+        aria-label={`Set ${index + 1} weight`}
       />
       <Input
         type="text"
@@ -190,18 +257,31 @@ function SetLine({ index, weight, reps, repsPlaceholder, lastWeight, onWeight, o
         value={reps}
         onChange={e => onReps(e.target.value)}
         onBlur={onSave}
-        className="h-10 text-[13px] bg-secondary border-0 font-mono px-2"
+        className="h-11 text-[15px] bg-secondary border-0 font-mono px-2 w-[72px]"
+        aria-label={`Set ${index + 1} reps`}
       />
-      <span className="font-mono text-[11px] text-caption text-right min-w-[52px] tabular-nums">
-        {lastWeight != null ? lastWeight : "—"}
-      </span>
-    </>
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving}
+        className={`h-11 w-11 rounded-[4px] border text-[12px] font-bold shrink-0 ${
+          saved
+            ? "border-clay bg-clay text-clay-fg"
+            : "border-border bg-card text-caption"
+        }`}
+        aria-label={saved ? `Set ${index + 1} saved` : `Log set ${index + 1}`}
+      >
+        {saving ? "…" : saved ? "✓" : "Log"}
+      </button>
+    </div>
   );
 }
 
-function CardioRow({ exercise, weekStart, currentLogs, prevLogs, onSaved }) {
+function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, onSaved }) {
   const existing = getLog(currentLogs, exercise.name, 1) || currentLogs?.find(l => l.exercise === exercise.name);
-  const prev = getLog(prevLogs, exercise.name, 1) || prevLogs?.find(l => l.exercise === exercise.name);
+  const last = lastSessionSets(historyLogs, exercise.name, { excludeWeek: weekStart })[0]
+    || getLog(historyLogs, exercise.name, 1)
+    || historyLogs?.find(l => l.exercise === exercise.name && l.week_start !== weekStart);
 
   const [type, setType] = useState(() => parseCardioType(existing?.notes) || "");
   const [duration, setDuration] = useState(() => formatDurationMinutes(existing?.reps) || displayLoggedNumber(existing?.reps));
@@ -215,6 +295,19 @@ function CardioRow({ exercise, weekStart, currentLogs, prevLogs, onSaved }) {
     setDistance(displayLoggedNumber(log?.weight));
     setId(log?.id || null);
   }, [currentLogs, exercise.name]);
+
+  const applyLast = () => {
+    if (id || duration || distance || type) return;
+    if (!last) return;
+    setType(parseCardioType(last.notes) || "");
+    setDuration(formatDurationMinutes(last.reps) || displayLoggedNumber(last.reps));
+    setDistance(displayLoggedNumber(last.weight));
+  };
+
+  useEffect(() => {
+    if (!loadToken) return;
+    applyLast();
+  }, [loadToken]);
 
   const handleSave = async (overrides = {}) => {
     const nextType = overrides.type !== undefined ? overrides.type : type;
@@ -262,19 +355,31 @@ function CardioRow({ exercise, weekStart, currentLogs, prevLogs, onSaved }) {
   };
 
   const lastBits = [];
-  const prevType = parseCardioType(prev?.notes);
+  const prevType = parseCardioType(last?.notes);
   if (prevType) lastBits.push(CARDIO_TYPES.find(t => t.id === prevType)?.label || prevType);
-  const prevTime = formatDurationMinutes(prev?.reps);
+  const prevTime = formatDurationMinutes(last?.reps);
   if (prevTime) lastBits.push(`${prevTime} min`);
-  const prevDist = displayLoggedNumber(prev?.weight);
+  const prevDist = displayLoggedNumber(last?.weight);
   if (prevDist) lastBits.push(`${prevDist} mi`);
+  const canLoad = lastBits.length > 0 && !id && !duration && !distance && !type;
 
   return (
-    <div className="py-3 border-b border-border last:border-0 space-y-3">
+    <div className="py-4 border-b border-border last:border-0 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[14px] font-semibold text-ink">{exercise.name}</p>
-        {lastBits.length > 0 && (
-          <span className="font-mono text-[11px] text-caption">last: {lastBits.join(" · ")}</span>
+        <div>
+          <p className="text-[14px] font-semibold text-ink">{exercise.name}</p>
+          {lastBits.length > 0 && (
+            <p className="text-[11px] text-caption mt-0.5">Last {lastBits.join(" · ")}</p>
+          )}
+        </div>
+        {canLoad && (
+          <button
+            type="button"
+            onClick={applyLast}
+            className="text-[11px] font-bold uppercase tracking-[0.12em] text-clay min-h-[36px]"
+          >
+            Load last
+          </button>
         )}
       </div>
 
@@ -305,11 +410,11 @@ function CardioRow({ exercise, weekStart, currentLogs, prevLogs, onSaved }) {
           <Input
             type="text"
             inputMode="decimal"
-            placeholder="min"
+            placeholder={prevTime || "min"}
             value={duration}
             onChange={e => setDuration(e.target.value)}
             onBlur={handleSave}
-            className="h-10 text-[13px] bg-secondary border-0 font-mono px-2"
+            className="h-11 text-[15px] bg-secondary border-0 font-mono px-2"
           />
         </div>
         <div>
@@ -317,11 +422,11 @@ function CardioRow({ exercise, weekStart, currentLogs, prevLogs, onSaved }) {
           <Input
             type="text"
             inputMode="decimal"
-            placeholder="mi"
+            placeholder={prevDist || "mi"}
             value={distance}
             onChange={e => setDistance(e.target.value)}
             onBlur={handleSave}
-            className="h-10 text-[13px] bg-secondary border-0 font-mono px-2"
+            className="h-11 text-[15px] bg-secondary border-0 font-mono px-2"
           />
         </div>
       </div>
