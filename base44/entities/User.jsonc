@@ -54,6 +54,26 @@
       "type": "number",
       "description": "Goal weight in pounds"
     },
+    "books": {
+      "type": "array",
+      "description": "Structured reading list (title, status, optional progress)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "author": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["want", "reading", "finished"]
+          },
+          "progress_pct": { "type": "number" },
+          "started_date": { "type": "string" },
+          "finished_date": { "type": "string" },
+          "updated_at": { "type": "string" }
+        }
+      }
+    },
     "nutrition_goals": {
       "type": "object",
       "description": "Daily nutrition targets",

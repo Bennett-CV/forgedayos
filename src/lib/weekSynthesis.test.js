@@ -63,6 +63,20 @@ test("synthesizes body, mind, and money from existing logs", () => {
   assert.ok(weekHighlights(s, { win: "Showed up" }).includes("Showed up"));
 });
 
+test("mind section includes structured books", () => {
+  const s = synthesizeWeek({
+    ...WEEK,
+    books: [
+      { id: "1", title: "Atomic Habits", status: "reading", progress_pct: 40 },
+      { id: "2", title: "Deep Work", status: "finished", finished_date: "2026-09-11" },
+    ],
+  });
+  assert.equal(s.mind.hasData, true);
+  const lines = formatWeekSectionLines(s);
+  assert.ok(lines.mind.some(l => l.includes("Atomic Habits")));
+  assert.ok(lines.mind.some(l => l.includes("Deep Work")));
+});
+
 test("ignores logs outside the week", () => {
   const s = synthesizeWeek({
     ...WEEK,

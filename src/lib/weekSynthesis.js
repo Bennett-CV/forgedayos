@@ -1,4 +1,5 @@
 import { formatLocalDate, normalizeDateKey } from "./localDate.js";
+import { booksForMind, normalizeBooks } from "./books.js";
 
 const MIND_TYPES = ["morning", "evening", "meditation", "reading"];
 
@@ -47,6 +48,7 @@ export function synthesizeWeek({
   weightLogs = [],
   activities = [],
   nutritionGoals = {},
+  books = [],
 } = {}) {
   const weekMeals = meals.filter(m => inRange(m.date, weekStart, weekEnd));
   const weekLogs = workoutLogs.filter(l => l.week_start === weekStart || inRange(l.created_date, weekStart, weekEnd));
@@ -100,12 +102,16 @@ export function synthesizeWeek({
     weightDelta,
   };
 
+  const bookMind = booksForMind(normalizeBooks(books), weekStart, weekEnd);
+
   const mind = {
-    hasData: mindDays > 0,
+    hasData: mindDays > 0 || bookMind.reading.length > 0 || bookMind.finishedThisWeek.length > 0,
     days: mindDays,
     counts: mindCounts,
     pagesRead,
     sitMinutes,
+    readingBooks: bookMind.reading,
+    finishedBooks: bookMind.finishedThisWeek,
   };
 
   const money = {
@@ -147,6 +153,15 @@ export function formatWeekSectionLines(synthesis) {
   if (mindBits.length) mindLines.push(mindBits.join(" · "));
   if (mind.pagesRead > 0) mindLines.push(`${mind.pagesRead} pages read`);
   if (mind.sitMinutes > 0) mindLines.push(`${mind.sitMinutes} min sat`);
+  if (mind.readingBooks?.length) {
+    mindLines.push(mind.readingBooks.map(b => {
+      const pct = Number.isFinite(b.progress_pct) ? ` · ${b.progress_pct}%` : "";
+      return `Reading ${b.title}${pct}`;
+    }).join(" · "));
+  }
+  if (mind.finishedBooks?.length) {
+    mindLines.push(`Finished ${mind.finishedBooks.map(b => b.title).join(", ")}`);
+  }
 
   const moneyLines = [];
   if (money.hasData) {

@@ -11,10 +11,15 @@ import {
 } from "@/lib/localDate";
 import { PILLAR_KEYS } from "../lib/constants";
 import { synthesizeWeek, renderWeekSummaryMarkdown, weekHighlights } from "@/lib/weekSynthesis";
+import { generateInsights } from "@/lib/insights";
+import { computeForgedayScore } from "@/lib/forgedayScore";
+import { normalizeBooks } from "@/lib/books";
 import { toast } from "sonner";
 import GuidedCheckIn from "../components/review/GuidedCheckIn";
 import WeekSynthesisCard from "../components/review/WeekSynthesisCard";
 import ShareWeekCard from "../components/review/ShareWeekCard";
+import InsightList from "../components/score/InsightList";
+import ForgedayScoreCard from "../components/score/ForgedayScoreCard";
 
 async function safe(promise, fallback) {
   try {
@@ -52,6 +57,7 @@ export default function WeeklyReview() {
   const weekEnd = localWeekEndDate(subWeeks(new Date(), weekOffset));
   const weekStartStr = localWeekStartKey(subWeeks(new Date(), weekOffset));
   const weekEndStr = localWeekEndKey(subWeeks(new Date(), weekOffset));
+  const books = normalizeBooks(user?.books);
 
   useEffect(() => {
     if (!user?.email) {
@@ -107,7 +113,35 @@ export default function WeeklyReview() {
     weightLogs,
     activities,
     nutritionGoals: user?.nutrition_goals || {},
-  }), [weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, user]);
+    books,
+  }), [weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, user, books]);
+
+  const insights = useMemo(() => generateInsights({
+    user,
+    weekStart: weekStartStr,
+    weekEnd: weekEndStr,
+    meals,
+    workoutLogs,
+    journalEntries,
+    transactions,
+    weightLogs,
+    activities,
+    books,
+  }), [user, weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, books]);
+
+  const score = useMemo(() => computeForgedayScore({
+    user,
+    today: weekEndStr,
+    weekStart: weekStartStr,
+    weekEnd: weekEndStr,
+    meals,
+    workoutLogs,
+    journalEntries,
+    transactions,
+    weightLogs,
+    activities,
+    books,
+  }), [user, weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, books]);
 
   const savedAnswers = answersFromSummary(currentReview?.summary);
 
@@ -186,10 +220,12 @@ export default function WeeklyReview() {
         </button>
       </div>
 
+      <ForgedayScoreCard score={score} compact />
       <WeekSynthesisCard
         synthesis={synthesis}
         answers={currentReview && !showCheckIn ? savedAnswers : null}
       />
+      <InsightList insights={insights} />
 
       {showCheckIn ? (
         <GuidedCheckIn

@@ -11,11 +11,13 @@ const PROMPTS = {
   reading: ["What are you reading?", "Key takeaways?"],
 };
 
-export default function MindfulnessComposer({ type, entry, onSave, onCancel }) {
+export default function MindfulnessComposer({ type, entry, books = [], onSave, onCancel }) {
   const [content, setContent] = useState(entry?.content || "");
   const [duration, setDuration] = useState(entry?.duration_minutes ? String(entry.duration_minutes) : "");
   const [pages, setPages] = useState(entry?.pages_read ? String(entry.pages_read) : "");
   const [mood, setMood] = useState(entry?.mood || "");
+  const readingBooks = (books || []).filter(b => b.status === "reading" || b.status === "want");
+  const [bookId, setBookId] = useState(entry?.book_id || readingBooks.find(b => b.status === "reading")?.id || "");
 
   useEffect(() => {
     setContent(entry?.content || "");
@@ -33,6 +35,10 @@ export default function MindfulnessComposer({ type, entry, onSave, onCancel }) {
     const data = { type, content, mood: mood || undefined };
     if (isMeditation && duration) data.duration_minutes = parseFloat(duration);
     if (isReading && pages) data.pages_read = parseFloat(pages);
+    if (isReading && bookId) {
+      const book = readingBooks.find(b => b.id === bookId);
+      if (book?.title && !content) data.content = book.title;
+    }
     onSave(data);
   };
 
@@ -50,6 +56,29 @@ export default function MindfulnessComposer({ type, entry, onSave, onCancel }) {
             onChange={e => setDuration(e.target.value)}
             className="w-32"
           />
+        </div>
+      )}
+
+      {isReading && readingBooks.length > 0 && (
+        <div>
+          <label className="micro-label mb-1.5 block">Book</label>
+          <div className="flex flex-wrap gap-1.5">
+            {readingBooks.map(book => {
+              const active = bookId === book.id;
+              return (
+                <button
+                  key={book.id}
+                  type="button"
+                  onClick={() => setBookId(active ? "" : book.id)}
+                  className={`px-3 py-1.5 rounded-full border text-[12px] font-semibold min-h-[36px] ${
+                    active ? "border-clay text-ink bg-card" : "border-border text-caption bg-card"
+                  }`}
+                >
+                  {book.title}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

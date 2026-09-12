@@ -23,14 +23,16 @@ function addParamToMeal(add) {
 export default function Nutrition() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState("nutrition");
+  const [activeTab, setActiveTab] = useState(() => (
+    searchParams.get("tab") === "weight" ? "weight" : "nutrition"
+  ));
   const [dateOffset, setDateOffset] = useState(0);
   const [meals, setMeals] = useState([]);
   const [goals, setGoals] = useState(null);
   const [loading, setLoading] = useState(true);
   const [addingType, setAddingType] = useState(() => addParamToMeal(searchParams.get("add")));
   const [editingMeal, setEditingMeal] = useState(null);
-  const [showGoals, setShowGoals] = useState(false);
+  const [showGoals, setShowGoals] = useState(() => searchParams.get("goals") === "1");
   const formRef = useRef(null);
 
   const currentDate = localDaysAgoKey(dateOffset);
@@ -63,6 +65,8 @@ export default function Nutrition() {
       setEditingMeal(null);
       setAddingType(next);
     }
+    if (searchParams.get("tab") === "weight") setActiveTab("weight");
+    if (searchParams.get("goals") === "1") setShowGoals(true);
   }, [searchParams]);
 
   const dayMeals = meals.filter(m => isSameLocalDay(m.date, currentDate));

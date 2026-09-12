@@ -29,6 +29,10 @@
       "type": "number",
       "description": "Number of pages read (for reading)"
     },
+    "book_id": {
+      "type": "string",
+      "description": "Optional structured book this reading log belongs to"
+    },
     "mood": {
       "type": "string",
       "enum": [

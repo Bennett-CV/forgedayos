@@ -413,7 +413,7 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
             placeholder={prevTime || "min"}
             value={duration}
             onChange={e => setDuration(e.target.value)}
-            onBlur={handleSave}
+            onBlur={() => handleSave()}
             className="h-11 text-[15px] bg-secondary border-0 font-mono px-2"
           />
         </div>
@@ -425,7 +425,7 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
             placeholder={prevDist || "mi"}
             value={distance}
             onChange={e => setDistance(e.target.value)}
-            onBlur={handleSave}
+            onBlur={() => handleSave()}
             className="h-11 text-[15px] bg-secondary border-0 font-mono px-2"
           />
         </div>

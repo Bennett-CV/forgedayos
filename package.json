@@ -10,7 +10,7 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
     "preview": "vite preview",
-    "test": "node --test src/lib/localDate.test.js src/lib/greetingName.test.js tests/*.test.js"
+    "test": "node --test src/lib/*.test.js tests/*.test.js"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.48",

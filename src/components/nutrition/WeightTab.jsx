@@ -5,6 +5,8 @@ import { formatLocalDate, localToday, localDaysAgoKey, normalizeDateKey } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { weightCoaching } from "@/lib/weightCoaching";
+import WeightCoachingCard from "./WeightCoachingCard";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
@@ -99,6 +101,8 @@ export default function WeightTab() {
   const delta7 = latest && weekAgo ? latest.weight_lbs - weekAgo.weight_lbs : null;
   const delta30 = latest && monthAgo ? latest.weight_lbs - monthAgo.weight_lbs : null;
 
+  const coaching = weightCoaching({ logs, user, today });
+
   const chartData = sorted.slice(-30).map(l => ({
     date: normalizeDateKey(l.date),
     weight: l.weight_lbs,
@@ -157,6 +161,8 @@ export default function WeightTab() {
           </Button>
         </div>
       </div>
+
+      <WeightCoachingCard coaching={coaching} />
 
       {latest && (
         <div className="grid grid-cols-3 gap-2">
