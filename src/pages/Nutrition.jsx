@@ -59,13 +59,15 @@ export default function Nutrition() {
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
+    if (searchParams.get("tab") === "weight") {
+      setActiveTab("weight");
+    }
     const next = addParamToMeal(searchParams.get("add"));
     if (next) {
       setActiveTab("nutrition");
       setEditingMeal(null);
       setAddingType(next);
     }
-    if (searchParams.get("tab") === "weight") setActiveTab("weight");
     if (searchParams.get("goals") === "1") setShowGoals(true);
   }, [searchParams]);
 

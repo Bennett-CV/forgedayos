@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -8,11 +8,24 @@ import { buildTodaySnapshot } from "@/lib/todayCommand";
 import { computeForgedayScore } from "@/lib/forgedayScore";
 import { generateInsights } from "@/lib/insights";
 import { normalizeBooks } from "@/lib/books";
+import { buildGlanceWidgets } from "@/lib/glanceWidgets";
+import { evaluateSmartNudges, pickPrimaryNudge, normalizeNotificationPrefs } from "@/lib/smartNotifications";
+import {
+  detectNotificationCapability,
+  dismissNudge,
+  markNudgeFired,
+  readNudgeState,
+  shouldFireLocalHook,
+  shouldShowInAppNudge,
+  showBrowserNotification,
+} from "@/lib/notificationBridge";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import TodayCommand from "../components/dashboard/TodayCommand";
 import ForgedayScoreCard from "../components/score/ForgedayScoreCard";
 import InsightList from "../components/score/InsightList";
+import GlanceWidgets from "../components/dashboard/GlanceWidgets";
+import SmartBanner from "../components/notifications/SmartBanner";
 
 async function safe(promise, fallback) {
   try {
@@ -27,6 +40,9 @@ export default function Dashboard() {
   const [snapshot, setSnapshot] = useState(null);
   const [score, setScore] = useState(null);
   const [insights, setInsights] = useState([]);
+  const [weightLogs, setWeightLogs] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [nudgeState, setNudgeState] = useState(() => readNudgeState());
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -39,7 +55,7 @@ export default function Dashboard() {
     const weekEnd = localWeekEndKey(new Date());
     const month = localMonthKey(new Date());
 
-    const [meals, logs, program, journals, txns, reviews, activities, weights, budgets] = await Promise.all([
+    const [meals, logs, program, journals, txns, reviews, acts, weights, budgets] = await Promise.all([
       safe(base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 200), []),
       safe(base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 400), []),
       safe(base44.entities.WorkoutProgram.filter({ created_by: user.email }, "day", 12), []),
@@ -54,6 +70,8 @@ export default function Dashboard() {
     const workoutProgram = (program || []).filter(d => d.created_by === user.email);
     const books = normalizeBooks(user.books);
 
+    setActivities(acts);
+    setWeightLogs(weights);
     setSnapshot(buildTodaySnapshot({
       user,
       today,
@@ -63,7 +81,7 @@ export default function Dashboard() {
       workoutProgram,
       journalEntries: journals,
       transactions: txns,
-      activities,
+      activities: acts,
       reviews,
       weightLogs: weights,
       books,
@@ -81,7 +99,7 @@ export default function Dashboard() {
       journalEntries: journals,
       transactions: txns,
       weightLogs: weights,
-      activities,
+      activities: acts,
       books,
       budgetCategories: budgets,
     }));
@@ -96,7 +114,7 @@ export default function Dashboard() {
       journalEntries: journals,
       transactions: txns,
       weightLogs: weights,
-      activities,
+      activities: acts,
       books,
     }));
 
@@ -107,6 +125,42 @@ export default function Dashboard() {
 
   const refresh = useCallback(() => load(), [load]);
   const { pullY, pullProgress, isRefreshing } = usePullToRefresh(refresh);
+
+  const todayKey = localToday();
+  const prefs = useMemo(
+    () => normalizeNotificationPrefs(user?.notification_prefs || nudgeState.localPrefs),
+    [user?.notification_prefs, nudgeState.localPrefs]
+  );
+
+  const widgets = useMemo(
+    () => buildGlanceWidgets({ snapshot, weightLogs, activities, today: todayKey }),
+    [snapshot, weightLogs, activities, todayKey]
+  );
+
+  const primaryNudge = useMemo(() => {
+    const nudges = evaluateSmartNudges({
+      snapshot,
+      weightLogs,
+      today: todayKey,
+      now: new Date(),
+      prefs,
+    });
+    const pick = pickPrimaryNudge(nudges);
+    return shouldShowInAppNudge(pick, { today: todayKey, dismissed: nudgeState.dismissed }) ? pick : null;
+  }, [snapshot, weightLogs, todayKey, prefs, nudgeState.dismissed]);
+
+  useEffect(() => {
+    if (loading || !primaryNudge) return;
+    const cap = detectNotificationCapability();
+    if (cap.permission !== "granted") return;
+    if (!shouldFireLocalHook(primaryNudge, { today: todayKey, lastFired: nudgeState.lastFired })) return;
+    showBrowserNotification({
+      id: primaryNudge.id,
+      title: primaryNudge.title,
+      body: primaryNudge.body,
+    });
+    setNudgeState(s => ({ ...s, lastFired: markNudgeFired(primaryNudge.id, todayKey) }));
+  }, [loading, primaryNudge?.id, primaryNudge?.title, primaryNudge?.body, todayKey, nudgeState.lastFired]);
 
   if (loading) {
     return (
@@ -130,6 +184,14 @@ export default function Dashboard() {
             {greeting}, {firstName}.
           </h1>
         </div>
+        <SmartBanner
+          nudge={primaryNudge}
+          onDismiss={() => {
+            if (!primaryNudge) return;
+            setNudgeState(s => ({ ...s, dismissed: dismissNudge(primaryNudge.id, todayKey) }));
+          }}
+        />
+        <GlanceWidgets widgets={widgets} />
         <TodayCommand snapshot={snapshot} />
         <ForgedayScoreCard score={score} compact />
         <InsightList insights={insights} />

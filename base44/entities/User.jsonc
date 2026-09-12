@@ -91,6 +91,25 @@
           "type": "number"
         }
       }
+    },
+    "notification_prefs": {
+      "type": "object",
+      "description": "Smart nudge preferences (Weekly Review, Today next action, stale weigh-in)",
+      "properties": {
+        "weekly_review": { "type": "boolean" },
+        "today_next": { "type": "boolean" },
+        "stale_weigh_in": { "type": "boolean" },
+        "stale_days": { "type": "number" }
+      }
+    },
+    "health_import": {
+      "type": "object",
+      "description": "Last user-initiated Health file import metadata",
+      "properties": {
+        "last_at": { "type": "string" },
+        "source": { "type": "string" },
+        "counts": { "type": "object" }
+      }
     }
   },
   "required": []

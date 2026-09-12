@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { formatLocalDate, localToday, localDaysAgoKey, normalizeDateKey } from "@/lib/localDate";
@@ -142,9 +143,14 @@ export default function WeightTab() {
         </div>
       )}
       <div className="editorial-card p-4 space-y-3">
-        <p className="micro-label">
-          {todayLog ? `Today: ${todayLog.weight_lbs} lbs` : "Log today's weight"}
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="micro-label">
+            {todayLog ? `Today: ${todayLog.weight_lbs} lbs` : "Log today's weight"}
+          </p>
+          <Link to="/health" className="text-[11px] font-semibold text-caption min-h-0">
+            Import Health
+          </Link>
+        </div>
         <div className="flex gap-2">
           <Input
             type="number"
