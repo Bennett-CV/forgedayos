@@ -45,10 +45,10 @@ async function analyzeFood(text) {
   return res?.data || res;
 }
 
-export default function DescribeMeal({ mealType: initialType, date, onLogged, compact }) {
+export default function DescribeMeal({ mealType: initialType, date, onLogged, compact, initialFoods = [] }) {
   const [mealType, setMealType] = useState(initialType || "breakfast");
   const [text, setText] = useState("");
-  const [foods, setFoods] = useState([]);
+  const [foods, setFoods] = useState(initialFoods);
   const [reading, setReading] = useState(false);
   const [saving, setSaving] = useState(false);
 
