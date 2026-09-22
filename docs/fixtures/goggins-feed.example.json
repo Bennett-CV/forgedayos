@@ -1,0 +1,207 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-09-17T12:00:00.000Z",
+  "window": {
+    "weeks": 10,
+    "weight_days": 90,
+    "week_start_from": "2026-07-13",
+    "current_week_start": "2026-09-14",
+    "weight_from": "2026-06-19"
+  },
+  "program": {
+    "days": [
+      {
+        "day": 1,
+        "label": "Full Body A",
+        "type": "strength",
+        "exercises": [
+          {
+            "name": "Goblet Squat",
+            "sets": 3,
+            "reps": 10,
+            "isAmrap": false,
+            "isCardio": false
+          },
+          {
+            "name": "Incline Dumbbell Bench Press",
+            "sets": 3,
+            "reps": 8,
+            "isAmrap": false,
+            "isCardio": false
+          }
+        ]
+      },
+      {
+        "day": 2,
+        "label": "Cardio",
+        "type": "cardio",
+        "exercises": [
+          {
+            "name": "Cardio",
+            "sets": 1,
+            "reps": null,
+            "isAmrap": false,
+            "isCardio": true
+          }
+        ]
+      }
+    ]
+  },
+  "workouts": [
+    {
+      "week_start": "2026-09-14",
+      "day": 1,
+      "exercises": [
+        {
+          "name": "Goblet Squat",
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 70,
+              "reps": 10,
+              "is_amrap": false,
+              "notes": null
+            },
+            {
+              "set_number": 2,
+              "weight": 70,
+              "reps": 9,
+              "is_amrap": false,
+              "notes": null
+            }
+          ]
+        },
+        {
+          "name": "Incline Dumbbell Bench Press",
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 55,
+              "reps": 8,
+              "is_amrap": false,
+              "notes": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "week_start": "2026-09-07",
+      "day": 1,
+      "exercises": [
+        {
+          "name": "Goblet Squat",
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 65,
+              "reps": 10,
+              "is_amrap": false,
+              "notes": null
+            },
+            {
+              "set_number": 2,
+              "weight": 65,
+              "reps": 10,
+              "is_amrap": false,
+              "notes": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "week_start": "2026-09-07",
+      "day": 2,
+      "exercises": [
+        {
+          "name": "Cardio",
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 3.2,
+              "reps": 32,
+              "is_amrap": false,
+              "notes": "run"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "week_start": "2026-08-24",
+      "day": 1,
+      "exercises": [
+        {
+          "name": "Goblet Squat",
+          "sets": [
+            {
+              "set_number": 1,
+              "weight": 80,
+              "reps": 5,
+              "is_amrap": false,
+              "notes": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "body_weight": [
+    {
+      "date": "2026-07-01",
+      "weight_lbs": 192,
+      "notes": null
+    },
+    {
+      "date": "2026-08-20",
+      "weight_lbs": 188,
+      "notes": null
+    },
+    {
+      "date": "2026-09-03",
+      "weight_lbs": 186.2,
+      "notes": null
+    },
+    {
+      "date": "2026-09-10",
+      "weight_lbs": 185,
+      "notes": null
+    },
+    {
+      "date": "2026-09-17",
+      "weight_lbs": 183.6,
+      "notes": "morning"
+    }
+  ],
+  "stats": {
+    "sessions_this_week": 1,
+    "best_sets": [
+      {
+        "exercise": "Cardio",
+        "weight": 3.2,
+        "reps": 32,
+        "week_start": "2026-09-07",
+        "day": 2
+      },
+      {
+        "exercise": "Goblet Squat",
+        "weight": 80,
+        "reps": 5,
+        "week_start": "2026-08-24",
+        "day": 1
+      },
+      {
+        "exercise": "Incline Dumbbell Bench Press",
+        "weight": 55,
+        "reps": 8,
+        "week_start": "2026-09-14",
+        "day": 1
+      }
+    ],
+    "latest_weight_lbs": 183.6,
+    "weight_delta_7d": -1.4,
+    "weight_delta_14d": -2.6,
+    "weight_delta_28d": -4.4
+  }
+}
