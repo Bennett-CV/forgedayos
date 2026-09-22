@@ -12,6 +12,7 @@ import MacroMismatchNote from "../components/nutrition/MacroMismatchNote";
 import NotificationPrefsCard from "../components/settings/NotificationPrefsCard";
 import { normalizeNotificationPrefs } from "@/lib/smartNotifications";
 import { writeLocalPrefs } from "@/lib/notificationBridge";
+import { buildGogginsFeed } from "@/lib/gogginsFeed";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
@@ -30,6 +31,7 @@ export default function SettingsPage() {
   const [savingName, setSavingName] = useState(false);
   const [notificationPrefs, setNotificationPrefs] = useState(() => normalizeNotificationPrefs(null));
   const [savingPrefs, setSavingPrefs] = useState(false);
+  const [copyingGoggins, setCopyingGoggins] = useState(false);
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem("theme");
     if (stored === "dark" || stored === "midnight") return "midnight";
@@ -133,6 +135,33 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCopyGogginsFeed = async () => {
+    setCopyingGoggins(true);
+    try {
+      const me = await base44.auth.me();
+      const email = me?.email;
+      if (!email) throw new Error("Not signed in");
+      const [program, workoutLogs, weightLogs] = await Promise.all([
+        base44.entities.WorkoutProgram.filter({ created_by: email }, "day", 20),
+        base44.entities.WorkoutLog.filter({ created_by: email }, "-created_date", 2000),
+        base44.entities.WeightLog.filter({ created_by: email }, "-date", 200),
+      ]);
+      const feed = buildGogginsFeed({
+        program,
+        workoutLogs,
+        weightLogs,
+        weeks: 10,
+        weightDays: 90,
+      });
+      await navigator.clipboard.writeText(JSON.stringify(feed, null, 2));
+      toast.success("Goggins feed copied");
+    } catch {
+      toast.error("Could not build Goggins feed");
+    } finally {
+      setCopyingGoggins(false);
+    }
+  };
+
   const handleSaveName = async () => {
     const trimmed = firstName.trim();
     if (!trimmed) {
@@ -233,6 +262,22 @@ export default function SettingsPage() {
         onChange={handleSavePrefs}
         saving={savingPrefs}
       />
+
+      <div className="editorial-card p-4 space-y-2">
+        <p className="micro-label">Export for Goggins</p>
+        <p className="text-[13px] text-caption leading-snug">
+          Copy a read-only JSON feed of your program, recent lifts, and body weight for the cut coach.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleCopyGogginsFeed}
+          disabled={copyingGoggins}
+          className="w-full min-h-[44px]"
+        >
+          {copyingGoggins ? "Building…" : "Copy Goggins feed"}
+        </Button>
+      </div>
 
       <button
         onClick={() => base44.auth.logout()}
