@@ -1,0 +1,139 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-09-17T12:00:00.000Z",
+  "window": {
+    "months": 3,
+    "month_from": "2026-07",
+    "current_month": "2026-09"
+  },
+  "transactions": [
+    {
+      "date": "2026-07-20",
+      "description": "Coffee",
+      "amount": 4.5,
+      "type": "expense",
+      "category_name": "Dining",
+      "month": "2026-07"
+    },
+    {
+      "date": "2026-08-03",
+      "description": "Paycheck",
+      "amount": 4200,
+      "type": "income",
+      "category_name": "Salary",
+      "month": "2026-08"
+    },
+    {
+      "date": "2026-08-15",
+      "description": "Market",
+      "amount": 92.1,
+      "type": "expense",
+      "category_name": "Groceries",
+      "month": "2026-08"
+    },
+    {
+      "date": "2026-09-02",
+      "description": "Paycheck",
+      "amount": 4200,
+      "type": "income",
+      "category_name": "Salary",
+      "month": "2026-09"
+    },
+    {
+      "date": "2026-09-04",
+      "description": "Market",
+      "amount": 86.4,
+      "type": "expense",
+      "category_name": "Groceries",
+      "month": "2026-09"
+    },
+    {
+      "date": "2026-09-11",
+      "description": "September rent",
+      "amount": 1800,
+      "type": "expense",
+      "category_name": "Rent",
+      "month": "2026-09"
+    }
+  ],
+  "budgets": [
+    {
+      "name": "Groceries",
+      "type": "expense",
+      "budget_amount": 400,
+      "color": "#8a9a7b",
+      "icon": "🥬"
+    },
+    {
+      "name": "Rent",
+      "type": "expense",
+      "budget_amount": 1800,
+      "color": "#c4a484",
+      "icon": "🏠"
+    },
+    {
+      "name": "Salary",
+      "type": "income",
+      "budget_amount": 4200,
+      "color": "#6b8f71",
+      "icon": "💼"
+    }
+  ],
+  "stats": {
+    "months": [
+      {
+        "month": "2026-07",
+        "income": 0,
+        "expenses": 4.5,
+        "net": -4.5,
+        "transaction_count": 1
+      },
+      {
+        "month": "2026-08",
+        "income": 4200,
+        "expenses": 92.1,
+        "net": 4107.9,
+        "transaction_count": 2
+      },
+      {
+        "month": "2026-09",
+        "income": 4200,
+        "expenses": 1886.4,
+        "net": 2313.6,
+        "transaction_count": 3
+      }
+    ],
+    "current": {
+      "month": "2026-09",
+      "income": 4200,
+      "expenses": 1886.4,
+      "net": 2313.6,
+      "transaction_count": 3,
+      "budgeted_income": 4200,
+      "budgeted_expenses": 2200,
+      "by_category": [
+        {
+          "name": "Groceries",
+          "type": "expense",
+          "budget_amount": 400,
+          "actual": 86.4,
+          "variance": -313.6
+        },
+        {
+          "name": "Rent",
+          "type": "expense",
+          "budget_amount": 1800,
+          "actual": 1800,
+          "variance": 0
+        },
+        {
+          "name": "Salary",
+          "type": "income",
+          "budget_amount": 4200,
+          "actual": 4200,
+          "variance": 0
+        }
+      ]
+    }
+  }
+}
