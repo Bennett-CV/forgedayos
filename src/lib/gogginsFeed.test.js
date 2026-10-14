@@ -1,10 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   buildGogginsFeed,
   parseGogginsFeedArgs,
   GOGGINS_FEED_SCHEMA_VERSION,
 } from "./gogginsFeed.js";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const NOW = "2026-09-17"; // Thursday → week start Monday 2026-09-14
 
@@ -178,4 +183,50 @@ test("example fixture matches documented shape keys", () => {
   assert.equal(EXAMPLE_GOGGINS_FEED.schema_version, "1.0.0");
   assert.ok(EXAMPLE_GOGGINS_FEED.workouts.length >= 2);
   assert.ok(EXAMPLE_GOGGINS_FEED.stats.best_sets.length >= 1);
+});
+
+test("checked-in fixture matches the builder", () => {
+  const file = JSON.parse(readFileSync(join(ROOT, "docs/fixtures/goggins-feed.example.json"), "utf8"));
+  assert.deepEqual(file, EXAMPLE_GOGGINS_FEED);
+});
+
+test("deno mirror matches the app builder aside from the header", () => {
+  const logic = (rel) => readFileSync(join(ROOT, rel), "utf8").replace(/\/\*[\s\S]*?\*\//, "").trim();
+  assert.equal(
+    logic("base44/functions/gogginsTrainingFeed/gogginsFeed.js"),
+    logic("src/lib/gogginsFeed.js"),
+  );
+});
+
+test("feed omits identity fields and redacts account-like numbers in notes", () => {
+  const feed = buildGogginsFeed({
+    workoutLogs: [{
+      week_start: "2026-09-14",
+      day: 1,
+      exercise: "Squat",
+      set_number: 1,
+      weight: 100,
+      reps: 5,
+      notes: "acct 1234-5678-9012",
+      created_by: "person@example.com",
+      account_number: "123456789012",
+    }],
+    weightLogs: [{
+      date: "2026-09-17",
+      weight_lbs: 180,
+      notes: "routing 021000021",
+      created_by: "person@example.com",
+    }],
+    now: NOW,
+    generatedAt: "2026-09-17T12:00:00.000Z",
+  });
+  const text = JSON.stringify(feed);
+  assert.equal(text.includes("person@example.com"), false);
+  assert.equal(text.includes("123456789012"), false);
+  assert.equal(text.includes("1234-5678-9012"), false);
+  assert.equal(text.includes("021000021"), false);
+  assert.equal(text.includes("account_number"), false);
+  assert.match(feed.workouts[0].exercises[0].sets[0].notes, /\[redacted\]/);
+  assert.match(feed.body_weight[0].notes, /\[redacted\]/);
+  assert.equal(feed.body_weight[0].date, "2026-09-17");
 });

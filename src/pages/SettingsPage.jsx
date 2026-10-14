@@ -19,6 +19,19 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const APP_VERSION = "2.4.0";
+const FEED_PAGE_SIZE = 200;
+const FEED_MAX_PAGES = 40;
+
+async function loadEntityPages(entity, query, order, pageSize = FEED_PAGE_SIZE) {
+  const rows = [];
+  for (let page = 0; page < FEED_MAX_PAGES; page++) {
+    const batch = await entity.filter(query, order, pageSize, page * pageSize);
+    const list = Array.isArray(batch) ? batch : [];
+    rows.push(...list);
+    if (list.length < pageSize) break;
+  }
+  return rows;
+}
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -143,8 +156,8 @@ export default function SettingsPage() {
       if (!email) throw new Error("Not signed in");
       const [program, workoutLogs, weightLogs] = await Promise.all([
         base44.entities.WorkoutProgram.filter({ created_by: email }, "day", 20),
-        base44.entities.WorkoutLog.filter({ created_by: email }, "-created_date", 2000),
-        base44.entities.WeightLog.filter({ created_by: email }, "-date", 200),
+        loadEntityPages(base44.entities.WorkoutLog, { created_by: email }, "-created_date"),
+        loadEntityPages(base44.entities.WeightLog, { created_by: email }, "-date"),
       ]);
       const feed = buildGogginsFeed({
         program,

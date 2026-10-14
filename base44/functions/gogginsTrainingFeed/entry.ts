@@ -33,14 +33,17 @@ async function readArgs(req: Request) {
   }
 }
 
+const MAX_PAGES = 40;
+
 async function loadAll(filterFn: (order: string, limit: number, skip: number) => Promise<unknown[]>, order: string, pageSize = 200) {
   const rows: unknown[] = [];
-  for (let skip = 0; ; skip += pageSize) {
-    const page = await filterFn(order, pageSize, skip);
+  for (let pageIndex = 0; pageIndex < MAX_PAGES; pageIndex++) {
+    const page = await filterFn(order, pageSize, pageIndex * pageSize);
     const list = Array.isArray(page) ? page : [];
     rows.push(...list);
     if (list.length < pageSize) return rows;
   }
+  return rows;
 }
 
 Deno.serve(async (req) => {

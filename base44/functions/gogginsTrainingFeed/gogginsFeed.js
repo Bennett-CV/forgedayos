@@ -84,6 +84,18 @@ function hasLoggedValue(log) {
   return Number(log.weight) > 0 || Number(log.reps) > 0 || Boolean(String(log.notes || "").trim());
 }
 
+/**
+ * Drop account-like digit runs from free text.
+ * Nine or more digits, with optional single spaces or dashes between them.
+ * Dates (YYYY-MM-DD) are eight digits and stay intact.
+ */
+function redactAccountNumbers(value) {
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/\d(?:[ \t-]?\d){8,}/g, "[redacted]");
+}
+
 /** Heaviest set; ties go to more reps. Ignores 0/empty weight. */
 function bestSetInLogs(logs) {
   let best = null;
@@ -103,7 +115,7 @@ function sortedWeightSeries(logs, fromKey) {
     .map((l) => ({
       date: normalizeDateKey(l.date),
       weight_lbs: Number(l.weight_lbs),
-      notes: l.notes != null && String(l.notes).trim() ? String(l.notes) : null,
+      notes: redactAccountNumbers(l.notes),
     }))
     .filter((l) => l.date && Number.isFinite(l.weight_lbs) && l.weight_lbs > 0)
     .filter((l) => !fromKey || l.date >= fromKey)
@@ -166,7 +178,7 @@ function groupWorkouts(workoutLogs, weekFrom) {
       weight: l.weight != null && Number.isFinite(Number(l.weight)) ? Number(l.weight) : null,
       reps: l.reps != null && Number.isFinite(Number(l.reps)) ? Number(l.reps) : null,
       is_amrap: Boolean(l.is_amrap),
-      notes: l.notes != null && String(l.notes).trim() ? String(l.notes) : null,
+      notes: redactAccountNumbers(l.notes),
     });
   }
 

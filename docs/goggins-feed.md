@@ -74,6 +74,7 @@ Full fixture: run `node --test src/lib/gogginsFeed.test.js` or import `EXAMPLE_G
 | `program` | `WorkoutProgram` | Day templates only (no logged loads). |
 | `workouts` | `WorkoutLog` | Grouped week → day → exercise → sets. Empty 0/0 auto-saves omitted. Default last **10** weeks (clamp 1–26). |
 | `body_weight` | `WeightLog` | Ascending by date. Default last **90** days (clamp 7–365). |
+| `notes` | free text | Account-like runs of 9+ digits are replaced with `[redacted]`. Emails, `created_by`, and ids are never copied. |
 | `stats.best_sets` | derived | Heaviest set per exercise in the workout window (ties → more reps). |
 | `stats.sessions_this_week` | derived | Distinct `(week_start, day)` sessions in the current Monday week. |
 | `stats.weight_delta_*` | derived | Latest − nearest weigh-in on/before N days ago; `null` if insufficient history. |
