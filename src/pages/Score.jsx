@@ -33,7 +33,7 @@ export default function Score() {
     const weekEnd = localWeekEndKey(new Date());
     const month = localMonthKey(new Date());
 
-    const [meals, logs, program, journals, txns, activities, weights, budgets] = await Promise.all([
+    const [meals, logs, program, journals, txns, activities, weights, budgets, minds] = await Promise.all([
       safe(base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 200), []),
       safe(base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 400), []),
       safe(base44.entities.WorkoutProgram.filter({ created_by: user.email }, "day", 12), []),
@@ -42,6 +42,7 @@ export default function Score() {
       safe(base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 200), []),
       safe(base44.entities.WeightLog.filter({ created_by: user.email }, "-date", 90), []),
       safe(base44.entities.BudgetCategory.filter({ created_by: user.email }), []),
+      safe(base44.entities.MindLog.filter({ created_by: user.email }, "-date", 60), []),
     ]);
 
     const input = {
@@ -58,6 +59,7 @@ export default function Score() {
       activities,
       books: normalizeBooks(user.books),
       budgetCategories: budgets,
+      mindLogs: minds,
     };
     setScore(computeForgedayScore(input));
     setInsights(generateInsights(input));
