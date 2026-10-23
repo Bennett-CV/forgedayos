@@ -46,6 +46,7 @@ export default function WeeklyReview() {
   const [journalEntries, setJournalEntries] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [weightLogs, setWeightLogs] = useState([]);
+  const [mindLogs, setMindLogs] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,7 +66,7 @@ export default function WeeklyReview() {
       return;
     }
     async function load() {
-      const [acts, mealRows, logs, journals, txns, weights, revs] = await Promise.all([
+      const [acts, mealRows, logs, journals, txns, weights, revs, minds] = await Promise.all([
         safe(base44.entities.Activity.filter({ created_by: user.email }, "-date", 500), []),
         safe(base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 400), []),
         safe(base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 800), []),
@@ -73,6 +74,7 @@ export default function WeeklyReview() {
         safe(base44.entities.Transaction.filter({ created_by: user.email }, "-date", 200), []),
         safe(base44.entities.WeightLog.filter({ created_by: user.email }, "-date", 80), []),
         safe(base44.entities.WeeklyReview.filter({ created_by: user.email }, "-created_date", 50), []),
+        safe(base44.entities.MindLog.filter({ created_by: user.email }, "-date", 90), []),
       ]);
       setActivities(acts);
       setMeals(mealRows);
@@ -80,6 +82,7 @@ export default function WeeklyReview() {
       setJournalEntries(journals);
       setTransactions(txns);
       setWeightLogs(weights);
+      setMindLogs(minds || []);
       setReviews(revs);
       setLoading(false);
     }
@@ -114,7 +117,8 @@ export default function WeeklyReview() {
     activities,
     nutritionGoals: user?.nutrition_goals || {},
     books,
-  }), [weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, user, books]);
+    mindLogs,
+  }), [weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, user, books, mindLogs]);
 
   const insights = useMemo(() => generateInsights({
     user,
@@ -141,7 +145,8 @@ export default function WeeklyReview() {
     weightLogs,
     activities,
     books,
-  }), [user, weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, books]);
+    mindLogs,
+  }), [user, weekStartStr, weekEndStr, meals, workoutLogs, journalEntries, transactions, weightLogs, activities, books, mindLogs]);
 
   const savedAnswers = answersFromSummary(currentReview?.summary);
 

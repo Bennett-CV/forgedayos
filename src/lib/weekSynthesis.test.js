@@ -77,6 +77,24 @@ test("mind section includes structured books", () => {
   assert.ok(lines.mind.some(l => l.includes("Deep Work")));
 });
 
+test("mind checks read Journaled 12/14, meditated 5/7", () => {
+  const days = ["2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14"];
+  const s = synthesizeWeek({
+    ...WEEK,
+    mindLogs: days.map((date, index) => ({
+      date,
+      am_journal: index < 6,
+      pm_journal: index < 6,
+      meditated: index < 5,
+    })),
+  });
+  assert.equal(s.mind.hasData, true);
+  const lines = formatWeekSectionLines(s);
+  assert.equal(lines.mind[0], "Journaled 12/14, meditated 5/7");
+  const md = renderWeekSummaryMarkdown(s);
+  assert.match(md, /Journaled 12\/14, meditated 5\/7/);
+});
+
 test("ignores logs outside the week", () => {
   const s = synthesizeWeek({
     ...WEEK,

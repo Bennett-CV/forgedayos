@@ -1,0 +1,34 @@
+{
+  "name": "MindLog",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Local calendar day this check-off belongs to"
+    },
+    "am_journal": {
+      "type": "boolean",
+      "description": "AM paper journal happened"
+    },
+    "pm_journal": {
+      "type": "boolean",
+      "description": "PM paper journal happened"
+    },
+    "meditated": {
+      "type": "boolean",
+      "description": "Meditation in The Way happened"
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional one-line note for the day"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Optional photo URL for the day"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}
