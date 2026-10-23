@@ -62,6 +62,27 @@ export function parseCardioType(notes) {
   return CARDIO_IDS.has(id) ? id : "";
 }
 
+/** Freeform sentence stored beside the type as JSON { type, text }. */
+export function parseCardioNoteText(notes) {
+  const raw = String(notes || "").trim();
+  if (!raw.startsWith("{")) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.text === "string") return parsed.text;
+  } catch {
+    // plain type id
+  }
+  return "";
+}
+
+/** Keep a plain type id when there is no sentence, so older rows stay readable. */
+export function encodeCardioNotes(type, text) {
+  const id = type || "other";
+  const note = String(text || "").trim();
+  if (!note) return id;
+  return JSON.stringify({ type: id, text: note });
+}
+
 export function cardioTypeLabel(id) {
   return CARDIO_TYPES.find(t => t.id === id)?.label || "Cardio";
 }

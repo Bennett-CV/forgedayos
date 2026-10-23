@@ -4,7 +4,7 @@ Versioned JSON export of lifts + body-weight history for the Grok “Goggins” 
 
 ## Schema
 
-- `schema_version`: currently `1.0.0`
+- `schema_version`: currently `1.1.0`
 - `generated_at`: ISO-8601 timestamp
 - Pure builder (source of truth + unit tests): `src/lib/gogginsFeed.js`
 - Deno copy shipped with the Base44 function: `base44/functions/gogginsTrainingFeed/gogginsFeed.js`  
@@ -14,7 +14,7 @@ Versioned JSON export of lifts + body-weight history for the Grok “Goggins” 
 
 ```json
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "generated_at": "2026-09-17T12:00:00.000Z",
   "window": {
     "weeks": 10,
@@ -39,6 +39,7 @@ Versioned JSON export of lifts + body-weight history for the Grok “Goggins” 
     {
       "week_start": "2026-09-14",
       "day": 1,
+      "date": "2026-09-14",
       "exercises": [
         {
           "name": "Goblet Squat",
@@ -48,6 +49,9 @@ Versioned JSON export of lifts + body-weight history for the Grok “Goggins” 
         }
       ]
     }
+  ],
+  "runs": [
+    { "date": "2026-09-07", "distance": 3.2, "time": 32, "notes": null }
   ],
   "body_weight": [
     { "date": "2026-09-17", "weight_lbs": 183.6, "notes": "morning" }
@@ -72,11 +76,12 @@ Full fixture: run `node --test src/lib/gogginsFeed.test.js` or import `EXAMPLE_G
 | Block | Source | Notes |
 |---|---|---|
 | `program` | `WorkoutProgram` | Day templates only (no logged loads). |
-| `workouts` | `WorkoutLog` | Grouped week → day → exercise → sets. Empty 0/0 auto-saves omitted. Default last **10** weeks (clamp 1–26). |
+| `workouts` | `WorkoutLog` | Grouped week → day → exercise → sets. Each session has `date` (explicit log date, else `created_date` when it falls in `week_start`, else that Monday). Runs are not listed here. Bike/swim/other cardio stays here so it is not dropped. Empty 0/0 auto-saves omitted. Default last **10** weeks (clamp 1–26). |
+| `runs` | `WorkoutLog` cardio type `run`, or an exercise named Run/Running | `{ date, distance, time, notes }`. Distance is miles (`weight`), time is minutes (`reps`). A stored note that is only the token `run` becomes `notes: null`. Newest date first. Same week window as `workouts`. |
 | `body_weight` | `WeightLog` | Ascending by date. Default last **90** days (clamp 7–365). |
 | `notes` | free text | Account-like runs of 9+ digits are replaced with `[redacted]`. Emails, `created_by`, and ids are never copied. |
-| `stats.best_sets` | derived | Heaviest set per exercise in the workout window (ties → more reps). |
-| `stats.sessions_this_week` | derived | Distinct `(week_start, day)` sessions in the current Monday week. |
+| `stats.best_sets` | derived | Heaviest set per strength exercise in the workout window (ties → more reps). Cardio and runs are ignored so miles are not treated as pounds. |
+| `stats.sessions_this_week` | derived | Distinct `(week_start, day)` lift, cardio, and run sessions in the current Monday week. |
 | `stats.weight_delta_*` | derived | Latest − nearest weigh-in on/before N days ago; `null` if insufficient history. |
 
 ## How to call (Base44 function)
@@ -111,7 +116,9 @@ Does **not** write entities. Does **not** include transactions, budgets, or Plai
 
 ## Client-side / Settings export
 
-Settings → **Copy Goggins feed** builds the same JSON in-browser via `buildGogginsFeed` (no function deploy required). Useful for pasting into a bot chat while the function is still draft.
+Settings → **Copy Goggins feed** builds the same JSON in-browser via `buildGogginsFeed` (no function deploy required). Useful for pasting into a bot chat while the function is still draft. That copy is still the recent window (10 weeks / 90 weight days), not the full history.
+
+The Google Sheet backfill is a different path. See `docs/training-sheet.md`.
 
 ## MCP tool descriptor (optional wrapper)
 

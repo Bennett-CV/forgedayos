@@ -7,7 +7,7 @@ Thin descriptor for wrapping the Forgeday Goggins training feed. Not a full MCP 
 ```json
 {
   "name": "forgeday_goggins_training",
-  "description": "Read-only Forgeday training feed for the Goggins cut coach: current WorkoutProgram summary, recent WorkoutLog history grouped by week/day/exercise, WeightLog series, and small derived stats (best sets, sessions this week, weight deltas). No writes. No finance.",
+  "description": "Read-only Forgeday training feed for the Goggins cut coach: current WorkoutProgram summary, recent WorkoutLog history grouped by week/day/exercise, runs (date, distance, time, notes), WeightLog series, and small derived stats (best sets, sessions this week, weight deltas). Schema 1.1.0. No writes. No finance.",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -34,7 +34,7 @@ Thin descriptor for wrapping the Forgeday Goggins training feed. Not a full MCP 
 ## Implementation sketch
 
 1. Call Base44 function `gogginsTrainingFeed` with `{ weeks, weight_days }` using the user’s Forgeday auth.
-2. Return the JSON body unchanged (`schema_version`, `generated_at`, `program`, `workouts`, `body_weight`, `stats`).
+2. Return the JSON body unchanged (`schema_version`, `generated_at`, `program`, `workouts`, `runs`, `body_weight`, `stats`).
 3. On 401, surface “Forgeday session required”; do not invent empty coaching data.
 
 See `docs/goggins-feed.md` for the full payload contract.

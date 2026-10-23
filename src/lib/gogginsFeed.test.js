@@ -98,6 +98,7 @@ test("workouts group by week/day/exercise and drop empty sets", () => {
 
   const current = feed.workouts.find((w) => w.week_start === "2026-09-14" && w.day === 1);
   assert.ok(current);
+  assert.equal(current.date, "2026-09-14");
   const squat = current.exercises.find((e) => e.name === "Goblet Squat");
   assert.equal(squat.sets.length, 2);
   assert.deepEqual(squat.sets[0], {
@@ -155,6 +156,7 @@ test("empty inputs yield empty collections and null weight stats", () => {
   const feed = buildGogginsFeed({ now: NOW, generatedAt: "2026-09-17T12:00:00.000Z" });
   assert.deepEqual(feed.program.days, []);
   assert.deepEqual(feed.workouts, []);
+  assert.deepEqual(feed.runs, []);
   assert.deepEqual(feed.body_weight, []);
   assert.equal(feed.stats.sessions_this_week, 0);
   assert.deepEqual(feed.stats.best_sets, []);
@@ -175,12 +177,13 @@ test("example fixture matches documented shape keys", () => {
     "body_weight",
     "generated_at",
     "program",
+    "runs",
     "schema_version",
     "stats",
     "window",
     "workouts",
   ]);
-  assert.equal(EXAMPLE_GOGGINS_FEED.schema_version, "1.0.0");
+  assert.equal(EXAMPLE_GOGGINS_FEED.schema_version, "1.1.0");
   assert.ok(EXAMPLE_GOGGINS_FEED.workouts.length >= 2);
   assert.ok(EXAMPLE_GOGGINS_FEED.stats.best_sets.length >= 1);
 });
@@ -196,6 +199,72 @@ test("deno mirror matches the app builder aside from the header", () => {
     logic("base44/functions/gogginsTrainingFeed/gogginsFeed.js"),
     logic("src/lib/gogginsFeed.js"),
   );
+  assert.equal(
+    readFileSync(join(ROOT, "base44/functions/gogginsTrainingFeed/trainingSheet.js"), "utf8"),
+    readFileSync(join(ROOT, "src/lib/trainingSheet.js"), "utf8"),
+  );
+  assert.equal(
+    readFileSync(join(ROOT, "base44/functions/syncTrainingSheet/trainingSheet.js"), "utf8"),
+    readFileSync(join(ROOT, "src/lib/trainingSheet.js"), "utf8"),
+  );
+  assert.equal(
+    readFileSync(join(ROOT, "base44/functions/syncTrainingSheet/googleTrainingSheet.js"), "utf8"),
+    readFileSync(join(ROOT, "src/lib/googleTrainingSheet.js"), "utf8"),
+  );
+});
+
+test("runs are dated and kept out of lift sets and best sets", () => {
+  const feed = buildGogginsFeed({
+    workoutLogs: [
+      ...FIXTURE_WORKOUTS,
+      {
+        week_start: "2026-09-14",
+        day: 2,
+        exercise: "Cardio",
+        set_number: 1,
+        weight: 12,
+        reps: 40,
+        notes: "bike",
+        created_date: "2026-09-16",
+      },
+      {
+        week_start: "2026-09-07",
+        day: 2,
+        exercise: "Cardio",
+        set_number: 1,
+        weight: 2,
+        reps: 20,
+        notes: JSON.stringify({ type: "run", text: "easy 1234-5678-9012" }),
+        date: "2026-09-09",
+        created_date: "2026-09-10T00:00:00.000Z",
+      },
+    ],
+    weeks: 10,
+    now: NOW,
+    generatedAt: "2026-09-17T12:00:00.000Z",
+  });
+
+  assert.ok(!feed.workouts.some((w) => w.exercises.some((e) => e.name === "Cardio" && e.sets.some((s) => s.notes === "run"))));
+  const bike = feed.workouts.find((w) => w.week_start === "2026-09-14" && w.day === 2);
+  assert.equal(bike.exercises[0].name, "Cardio");
+  assert.equal(bike.date, "2026-09-16");
+  assert.ok(!feed.stats.best_sets.some((b) => b.exercise === "Cardio"));
+
+  const typed = feed.runs.find((r) => r.date === "2026-09-09");
+  assert.deepEqual(typed, {
+    date: "2026-09-09",
+    distance: 2,
+    time: 20,
+    notes: "easy [redacted]",
+  });
+  const legacy = feed.runs.find((r) => r.distance === 3.2);
+  assert.equal(legacy.date, "2026-09-07");
+  assert.equal(legacy.time, 32);
+  assert.equal(legacy.notes, null);
+
+  const current = feed.workouts.find((w) => w.week_start === "2026-09-14" && w.day === 1);
+  assert.equal(current.date, "2026-09-14");
+  assert.equal(feed.stats.sessions_this_week, 2);
 });
 
 test("feed omits identity fields and redacts account-like numbers in notes", () => {
