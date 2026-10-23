@@ -12,7 +12,7 @@ function mockFetch(script) {
   const fetchImpl = async (url, init = {}) => {
     const method = init.method || "GET";
     const body = init.body ? JSON.parse(init.body) : null;
-    calls.push({ url, method, body });
+    calls.push({ url, method, body, authorization: init.headers?.Authorization || "" });
     const step = script.shift();
     if (!step) throw new Error(`unexpected ${method} ${url}`);
     return {
@@ -34,6 +34,12 @@ test("creates the folder and spreadsheet, then replaces both grids", async () =>
     { data: { files: [] } },
     { data: { id: "sheet-1" } },
     { data: { sheets: [{ properties: { sheetId: 0, title: "Sheet1" } }] } },
+    { data: {} },
+    { data: { sheets: [
+      { properties: { sheetId: 0, title: "Sheet1" } },
+      { properties: { sheetId: 1, title: "Lifts" } },
+      { properties: { sheetId: 2, title: "Runs" } },
+    ] } },
     { data: {} },
     { data: {} },
     { data: {} },
@@ -66,18 +72,69 @@ test("creates the folder and spreadsheet, then replaces both grids", async () =>
   assert.match(sheetQuery, /folder-1/);
   assert.deepEqual(calls[3].body.parents, ["folder-1"]);
 
-  const batch = calls.find((call) => String(call.url).includes(":batchUpdate"));
-  assert.deepEqual(batch.body.requests.map((request) => Object.keys(request)[0]), [
+  const batches = calls.filter((call) => String(call.url).includes(":batchUpdate"));
+  assert.deepEqual(batches[0].body.requests.map((request) => Object.keys(request)[0]), [
     "addSheet",
     "addSheet",
+  ]);
+  assert.deepEqual(batches[1].body.requests.map((request) => Object.keys(request)[0]), [
     "deleteSheet",
   ]);
+  assert.ok(calls.indexOf(batches[0]) < calls.indexOf(batches[1]));
 
   const writes = calls.filter((call) => call.method === "PUT");
   assert.equal(writes.length, 2);
+  assert.match(writes[0].url, /valueInputOption=RAW/);
+  assert.match(writes[0].url, /Lifts!A1/);
   assert.deepEqual(writes[0].body.values, LIFT_VALUES);
   assert.deepEqual(writes[1].body.values, RUN_VALUES);
-  assert.ok(calls.some((call) => call.method === "POST" && String(call.url).includes(":clear")));
+  const clears = calls.filter((call) => call.method === "POST" && String(call.url).includes(":clear"));
+  assert.equal(clears.length, 2);
+  assert.match(clears[0].url, /Lifts!A%3AF:clear/);
+  assert.ok(calls.indexOf(batches[1]) < calls.indexOf(clears[0]));
+});
+
+test("sheets calls can use the drive token, and a sheets error names its step", async () => {
+  const created = mockFetch([
+    { data: { files: [{ id: "folder-1" }] } },
+    { data: { files: [{ id: "sheet-9" }] } },
+    { data: { sheets: [
+      { properties: { sheetId: 1, title: "Lifts" } },
+      { properties: { sheetId: 2, title: "Runs" } },
+    ] } },
+    { data: {} },
+    { data: {} },
+    { data: {} },
+    { data: {} },
+  ]);
+  await syncTrainingSpreadsheet({
+    driveToken: "drive-token",
+    liftValues: LIFT_VALUES,
+    runValues: RUN_VALUES,
+    fetchImpl: created.fetchImpl,
+  });
+  const sheetCalls = created.calls.filter((call) => String(call.url).includes("sheets.googleapis.com"));
+  assert.ok(sheetCalls.length >= 1);
+  assert.ok(sheetCalls.every((call) => call.authorization === "Bearer drive-token"));
+
+  const denied = mockFetch([
+    { data: { files: [{ id: "folder-1" }] } },
+    { data: { files: [{ id: "sheet-9" }] } },
+    { status: 403, data: { error: { message: "Request had insufficient authentication scopes." } } },
+  ]);
+  await assert.rejects(
+    () => syncTrainingSpreadsheet({
+      driveToken: "drive-token",
+      liftValues: LIFT_VALUES,
+      runValues: RUN_VALUES,
+      fetchImpl: denied.fetchImpl,
+    }),
+    (error) => {
+      assert.equal(error.step, "read_tabs");
+      assert.match(error.message, /insufficient authentication scopes/);
+      return true;
+    }
+  );
 });
 
 test("re-running finds the existing file and writes the same rows", async () => {
