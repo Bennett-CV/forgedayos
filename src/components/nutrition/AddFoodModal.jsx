@@ -6,6 +6,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Loader2, Search, Check, ChevronLeft, Clock, PenLine } from "lucide-react";
 import { toast } from "sonner";
+import { requestTrainingSheetSync } from "@/lib/requestTrainingSheetSync";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
@@ -204,6 +205,7 @@ export default function AddFoodModal({ open, onClose, onAdded, defaultMealType, 
       });
       toast.success("Food logged!");
       onAdded?.();
+      requestTrainingSheetSync();
       onClose?.();
     } catch {
       toast.error("Failed to save meal.");

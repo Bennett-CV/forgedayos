@@ -179,7 +179,7 @@ export default function SettingsPage() {
 
   const handleSyncTrainingSheet = async () => {
     setSyncingSheet(true);
-    setSheetNotice("Syncing every logged set and run…");
+    setSheetNotice("Syncing every logged set, run, and meal…");
     try {
       const response = await base44.functions.invoke("syncTrainingSheet", {});
       const data = response?.data || {};
@@ -193,7 +193,7 @@ export default function SettingsPage() {
       }
       const earliest = data.earliest_date ? ` Earliest ${data.earliest_date}.` : "";
       const truncated = data.truncated ? " History was capped." : "";
-      const text = `Synced ${data.lifts ?? 0} sets and ${data.runs ?? 0} runs.${earliest}${truncated}`;
+      const text = `Synced ${data.lifts ?? 0} sets, ${data.runs ?? 0} runs, and ${data.meals ?? 0} meals.${earliest}${truncated}`;
       setSheetNotice(text);
       toast.success(text);
     } catch (error) {
@@ -328,7 +328,7 @@ export default function SettingsPage() {
       <div className="editorial-card p-4 space-y-2">
         <p className="micro-label">Google Sheet</p>
         <p className="text-[13px] text-caption leading-snug">
-          Rewrite “Forgeday Training” in the Drive folder “Forgeday” with every set and run logged so far. Running it again replaces those rows.
+          Rewrite “Forgeday Training” in the Drive folder “Forgeday” with every set, run, and meal logged so far. Running it again replaces those rows.
         </p>
         <Button
           type="button"

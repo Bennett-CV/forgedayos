@@ -1,9 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  MEAL_HEADERS,
   TRAINING_HISTORY_LIMITS,
   TRAINING_SHEET_MAX_PAGES,
   TRAINING_SHEET_PAGE_SIZE,
+  buildMealSheet,
   buildTrainingSheet,
   pageThrough,
 } from "./trainingSheet.js";
@@ -76,6 +78,85 @@ test("a past week logged later keeps the program Monday, not the typing day", ()
   ]);
   assert.equal(sheet.lifts[0].date, "2026-08-03");
   assert.equal(sheet.lifts[1].date, "2026-09-16");
+});
+
+test("meal rows use the fields Meal actually stores and stay stable", () => {
+  const meals = [
+    {
+      id: "m2",
+      date: "2026-09-16",
+      meal_type: "dinner",
+      food_name: "Salmon",
+      food_description: "Salmon",
+      quantity: 1,
+      serving_size: "1 fillet",
+      calories: 360,
+      protein_g: 34,
+      carbs_g: 0,
+      fat_g: 18,
+    },
+    {
+      id: "m1",
+      created_date: "2026-09-15",
+      meal_type: "breakfast",
+      food_description: "Oats",
+      quantity: 1,
+      serving_size_g: 80,
+      protein_g: 5,
+    },
+    {
+      id: "m3",
+      date: "2026-09-16",
+      meal_type: "snack",
+      food_name: "Yogurt",
+      calories: 10,
+    },
+    {
+      id: "m1",
+      created_date: "2026-09-15",
+      meal_type: "breakfast",
+      food_description: "Oats",
+      quantity: 1,
+      serving_size_g: 80,
+      protein_g: 5,
+    },
+    {
+      id: "note",
+      date: "2026-09-14",
+      meal_type: "lunch",
+      food_name: "Rice",
+      food_description: "with 1234-5678-9012",
+      calories: 200,
+      notes: "acct 1234-5678-9012",
+    },
+  ];
+  const first = buildMealSheet(meals);
+  const second = buildMealSheet([...meals].reverse());
+  assert.deepEqual(second.mealValues, first.mealValues);
+  assert.deepEqual(first.mealValues[0], MEAL_HEADERS);
+  assert.equal(first.meals.length, 4);
+  assert.equal(first.meals[0].date, "2026-09-14");
+  assert.equal(first.meals[0].food, "Rice — with [redacted]");
+  assert.equal(first.meals[0].notes, "acct [redacted]");
+  assert.deepEqual(first.meals[1], {
+    date: "2026-09-15",
+    meal: "breakfast",
+    food: "Oats",
+    quantity: 1,
+    serving: "80 g",
+    calories: "",
+    protein: 5,
+    carbs: "",
+    fat: "",
+    notes: "",
+  });
+  assert.equal(first.meals[2].meal, "dinner");
+  assert.equal(first.meals[3].meal, "snack");
+  assert.equal(first.history.earliest_date, "2026-09-14");
+  assert.equal(first.history.meals_without_explicit_date, 1);
+  assert.equal(first.history.meals_missing_calories, 1);
+  assert.equal(first.history.meals_missing_notes, 3);
+  assert.match(TRAINING_HISTORY_LIMITS.join(" "), /Meal/);
 });
 
 test("duplicate ids collapse so a repeated page cannot add a second row", () => {

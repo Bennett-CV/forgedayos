@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { requestTrainingSheetSync } from "@/lib/requestTrainingSheetSync";
 
 export default function MealSection({ mealType, meals, onAdd, onEdit, onDeleted, adding, editingId }) {
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
@@ -14,6 +15,7 @@ export default function MealSection({ mealType, meals, onAdd, onEdit, onDeleted,
       toast.success("Removed");
       setPendingDeleteId(null);
       onDeleted?.(id);
+      requestTrainingSheetSync();
     } catch {
       toast.error("Could not delete meal.");
     } finally {

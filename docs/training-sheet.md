@@ -8,13 +8,13 @@ The JSON feed (`gogginsTrainingFeed`, Settings → Copy Goggins feed) stays a re
 
 Function: **`syncTrainingSheet`**
 
-1. The signed-in user’s `WorkoutLog` rows are paged with `created_by` = their email, 200 rows at a time, up to 500 pages (100,000 rows). Page size and the cap live in `src/lib/trainingSheet.js`. If the cap is hit the response sets `truncated: true` and later pages are left out.
+1. The signed-in user’s `WorkoutLog` rows, then their `Meal` rows, are paged with `created_by` = their email, 200 rows at a time, up to 500 pages (100,000 rows) per entity. Page size and the cap live in `src/lib/trainingSheet.js`. If a cap is hit the response sets `truncated: true` and later pages of that entity are left out. The repo does not record how far back either history goes.
 2. Rows are split into lifts and runs (`buildTrainingSheet`). Duplicate entity ids collapse to one row. Order is date, then exercise, then set number (lifts) or date, then distance, then time (runs).
 3. Base44 returns the shared `googledrive` OAuth token (`base44.asServiceRole.connectors.getConnection('googledrive')`). That token is the Google account connected in **Base44 Integrations**, not Forgeday login. Sheets API calls use this same token. `drive.file` is a Sheets API scope for files this connection created. The live `googlesheets` connector was authorized with only the `email` scope, so its token cannot add tabs or write cells. The connector file now requests `https://www.googleapis.com/auth/spreadsheets` as well; that grant applies the next time Sheets is authorized. The sync does not wait on it.
 4. Drive `files.list` looks for a non-trashed folder named exactly **Forgeday** (`application/vnd.google-apps.folder`). If none exists, Drive `files.create` makes it.
 5. Drive `files.list` looks for a non-trashed spreadsheet named exactly **Forgeday Training** inside that folder. If none exists, Drive `files.create` makes it with that folder as the parent (`application/vnd.google-apps.spreadsheet`).
-6. Sheets `spreadsheets.get` reads tab titles. One `batchUpdate` adds **Lifts** and **Runs** when they are missing. A second `batchUpdate` deletes the default **Sheet1** tab only after another tab exists. Google rejects a request that would delete the only sheet.
-7. Sheets `values.clear` wipes `Lifts!A:F` and `Runs!A:D`, then `values.update` writes the header plus every row from A1 (`valueInputOption=RAW`).
+6. Sheets `spreadsheets.get` reads tab titles. One `batchUpdate` adds **Lifts**, **Runs**, and **Meals** when they are missing. A second `batchUpdate` deletes the default **Sheet1** tab only after another tab exists. Google rejects a request that would delete the only sheet.
+7. Sheets `values.clear` wipes `Lifts!A:F`, `Runs!A:D`, and `Meals!A:J`, then `values.update` writes the header plus every row from A1 (`valueInputOption=RAW`).
 
 Re-running does the same replacement. It does not append, so rows are not duplicated.
 
@@ -25,6 +25,8 @@ Saving a lift or a run in the workout logger queues this same function (about 1.
 **Lifts** — one row per set: date, exercise, set number, reps, weight, notes.
 
 **Runs** — date, distance (miles), time (minutes), notes. Only cardio whose stored type is `run`, or an exercise named Run or Running. Bike, swim, and other cardio stay in the JSON feed and are not written here.
+
+**Meals** — one row per `Meal`: date, meal, food, quantity, serving, calories, protein, carbs, fat, notes. There is no clock time. `meal` is breakfast, lunch, dinner, or snack. Food is `food_name`, or `food_description` when the name is empty, or both when they differ. Quantity is the stored servings count. Serving is `serving_size`, or grams from `serving_size_g` when the label is empty. `fiber_g` and `sugar_g` stay off the sheet. Saving, editing, or deleting a meal queues the same full rewrite as a lift.
 
 ## One-time setup (Christian)
 

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { requestTrainingSheetSync } from "@/lib/requestTrainingSheetSync";
 import {
   MEAL_DESCRIBE_PROMPT,
   draftsAreLoggable,
@@ -98,6 +99,7 @@ export default function DescribeMeal({ mealType: initialType, date, onLogged, co
       setText("");
       setFoods([]);
       onLogged?.();
+      requestTrainingSheetSync();
     } catch {
       toast.error("Could not save those foods.");
     } finally {

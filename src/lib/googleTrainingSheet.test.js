@@ -26,6 +26,9 @@ function mockFetch(script) {
 
 const LIFT_VALUES = [["date", "exercise", "set number", "reps", "weight", "notes"], ["2026-09-15", "Squat", 1, 5, 100, ""]];
 const RUN_VALUES = [["date", "distance", "time", "notes"], ["2026-09-07", 3.2, 32, ""]];
+const MEAL_VALUES = [[
+  "date", "meal", "food", "quantity", "serving", "calories", "protein", "carbs", "fat", "notes",
+], ["2026-09-16", "dinner", "Salmon", 1, "1 fillet", 360, 34, 0, 18, ""]];
 
 test("creates the folder and spreadsheet, then replaces both grids", async () => {
   const { fetchImpl, calls } = mockFetch([
@@ -39,7 +42,10 @@ test("creates the folder and spreadsheet, then replaces both grids", async () =>
       { properties: { sheetId: 0, title: "Sheet1" } },
       { properties: { sheetId: 1, title: "Lifts" } },
       { properties: { sheetId: 2, title: "Runs" } },
+      { properties: { sheetId: 3, title: "Meals" } },
     ] } },
+    { data: {} },
+    { data: {} },
     { data: {} },
     { data: {} },
     { data: {} },
@@ -52,6 +58,7 @@ test("creates the folder and spreadsheet, then replaces both grids", async () =>
     sheetsToken: "sheets-token",
     liftValues: LIFT_VALUES,
     runValues: RUN_VALUES,
+    mealValues: MEAL_VALUES,
     fetchImpl,
   });
 
@@ -73,9 +80,10 @@ test("creates the folder and spreadsheet, then replaces both grids", async () =>
   assert.deepEqual(calls[3].body.parents, ["folder-1"]);
 
   const batches = calls.filter((call) => String(call.url).includes(":batchUpdate"));
-  assert.deepEqual(batches[0].body.requests.map((request) => Object.keys(request)[0]), [
-    "addSheet",
-    "addSheet",
+  assert.deepEqual(batches[0].body.requests.map((request) => request.addSheet.properties.title), [
+    "Lifts",
+    "Runs",
+    "Meals",
   ]);
   assert.deepEqual(batches[1].body.requests.map((request) => Object.keys(request)[0]), [
     "deleteSheet",
@@ -83,14 +91,17 @@ test("creates the folder and spreadsheet, then replaces both grids", async () =>
   assert.ok(calls.indexOf(batches[0]) < calls.indexOf(batches[1]));
 
   const writes = calls.filter((call) => call.method === "PUT");
-  assert.equal(writes.length, 2);
+  assert.equal(writes.length, 3);
   assert.match(writes[0].url, /valueInputOption=RAW/);
   assert.match(writes[0].url, /Lifts!A1/);
   assert.deepEqual(writes[0].body.values, LIFT_VALUES);
   assert.deepEqual(writes[1].body.values, RUN_VALUES);
+  assert.match(writes[2].url, /Meals!A1/);
+  assert.deepEqual(writes[2].body.values, MEAL_VALUES);
   const clears = calls.filter((call) => call.method === "POST" && String(call.url).includes(":clear"));
-  assert.equal(clears.length, 2);
+  assert.equal(clears.length, 3);
   assert.match(clears[0].url, /Lifts!A%3AF:clear/);
+  assert.match(clears[2].url, /Meals!A%3AJ:clear/);
   assert.ok(calls.indexOf(batches[1]) < calls.indexOf(clears[0]));
 });
 
@@ -101,7 +112,10 @@ test("sheets calls can use the drive token, and a sheets error names its step", 
     { data: { sheets: [
       { properties: { sheetId: 1, title: "Lifts" } },
       { properties: { sheetId: 2, title: "Runs" } },
+      { properties: { sheetId: 3, title: "Meals" } },
     ] } },
+    { data: {} },
+    { data: {} },
     { data: {} },
     { data: {} },
     { data: {} },
@@ -111,6 +125,7 @@ test("sheets calls can use the drive token, and a sheets error names its step", 
     driveToken: "drive-token",
     liftValues: LIFT_VALUES,
     runValues: RUN_VALUES,
+    mealValues: MEAL_VALUES,
     fetchImpl: created.fetchImpl,
   });
   const sheetCalls = created.calls.filter((call) => String(call.url).includes("sheets.googleapis.com"));
@@ -150,7 +165,10 @@ test("re-running finds the existing file and writes the same rows", async () => 
       { data: { sheets: [
         { properties: { sheetId: 1, title: "Lifts" } },
         { properties: { sheetId: 2, title: "Runs" } },
+        { properties: { sheetId: 3, title: "Meals" } },
       ] } },
+      { data: {} },
+      { data: {} },
       { data: {} },
       { data: {} },
       { data: {} },
@@ -165,6 +183,7 @@ test("re-running finds the existing file and writes the same rows", async () => 
     sheetsToken: "sheets-token",
     liftValues: grids.liftValues,
     runValues: grids.runValues,
+    mealValues: MEAL_VALUES,
   };
   const a = await syncTrainingSpreadsheet({ ...opts, fetchImpl: first.fetchImpl });
   const b = await syncTrainingSpreadsheet({ ...opts, fetchImpl: second.fetchImpl });
