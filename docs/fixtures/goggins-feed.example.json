@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "generated_at": "2026-09-17T12:00:00.000Z",
   "window": {
     "weeks": 10,
@@ -51,6 +51,7 @@
     {
       "week_start": "2026-09-14",
       "day": 1,
+      "date": "2026-09-14",
       "exercises": [
         {
           "name": "Goblet Squat",
@@ -88,6 +89,7 @@
     {
       "week_start": "2026-09-07",
       "day": 1,
+      "date": "2026-09-07",
       "exercises": [
         {
           "name": "Goblet Squat",
@@ -111,26 +113,9 @@
       ]
     },
     {
-      "week_start": "2026-09-07",
-      "day": 2,
-      "exercises": [
-        {
-          "name": "Cardio",
-          "sets": [
-            {
-              "set_number": 1,
-              "weight": 3.2,
-              "reps": 32,
-              "is_amrap": false,
-              "notes": "run"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "week_start": "2026-08-24",
       "day": 1,
+      "date": "2026-08-24",
       "exercises": [
         {
           "name": "Goblet Squat",
@@ -145,6 +130,14 @@
           ]
         }
       ]
+    }
+  ],
+  "runs": [
+    {
+      "date": "2026-09-07",
+      "distance": 3.2,
+      "time": 32,
+      "notes": null
     }
   ],
   "body_weight": [
@@ -177,13 +170,6 @@
   "stats": {
     "sessions_this_week": 1,
     "best_sets": [
-      {
-        "exercise": "Cardio",
-        "weight": 3.2,
-        "reps": 32,
-        "week_start": "2026-09-07",
-        "day": 2
-      },
       {
         "exercise": "Goblet Squat",
         "weight": 80,

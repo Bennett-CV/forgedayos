@@ -2,6 +2,11 @@
   "name": "WorkoutLog",
   "type": "object",
   "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Calendar day performed (yyyy-MM-dd). Stamped when a current-week set is created. Older rows omit it."
+    },
     "week_start": {
       "type": "string",
       "format": "date",

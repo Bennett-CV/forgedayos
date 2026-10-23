@@ -9,7 +9,10 @@ import {
   parseDurationMinutes,
   formatDurationMinutes,
   parseCardioType,
+  parseCardioNoteText,
+  encodeCardioNotes,
 } from "@/lib/workoutLog";
+import { requestTrainingSheetSync } from "@/lib/requestTrainingSheetSync";
 import {
   lastSessionSets,
   formatLastSessionLine,
@@ -41,6 +44,11 @@ async function awardSessionActivity(isCardio) {
 
 function isCurrentWeekStart(weekStart) {
   return weekStart === localWeekStartKey(new Date());
+}
+
+function withPerformedDate(payload, isCreate, weekStart) {
+  if (!isCreate || !isCurrentWeekStart(weekStart)) return payload;
+  return { ...payload, date: localToday() };
 }
 
 function initialSets(numSets, currentLogs, exerciseName) {
@@ -131,11 +139,12 @@ function StrengthRow({ exercise, sets, weekStart, currentLogs, historyLogs, load
             return next;
           });
           onSaved?.();
+          requestTrainingSheetSync();
         }
         return;
       }
 
-      const payload = {
+      const payload = withPerformedDate({
         week_start: weekStart,
         day: exercise._day,
         exercise: exercise.name,
@@ -143,7 +152,7 @@ function StrengthRow({ exercise, sets, weekStart, currentLogs, historyLogs, load
         is_amrap: exercise.isAmrap || false,
         weight: emptyToNull(weight),
         reps: emptyToNull(reps),
-      };
+      }, !d.id, weekStart);
 
       if (d.id) {
         await base44.entities.WorkoutLog.update(d.id, payload);
@@ -160,6 +169,7 @@ function StrengthRow({ exercise, sets, weekStart, currentLogs, historyLogs, load
         await awardSessionActivity(false);
       }
       onSaved?.();
+      requestTrainingSheetSync();
     } catch {
       // keep the typed values; retry on next save
     } finally {
@@ -284,6 +294,7 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
     || historyLogs?.find(l => l.exercise === exercise.name && l.week_start !== weekStart);
 
   const [type, setType] = useState(() => parseCardioType(existing?.notes) || "");
+  const [noteText, setNoteText] = useState(() => parseCardioNoteText(existing?.notes));
   const [duration, setDuration] = useState(() => formatDurationMinutes(existing?.reps) || displayLoggedNumber(existing?.reps));
   const [distance, setDistance] = useState(() => displayLoggedNumber(existing?.weight));
   const [id, setId] = useState(existing?.id || null);
@@ -291,6 +302,7 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
   useEffect(() => {
     const log = getLog(currentLogs, exercise.name, 1) || currentLogs?.find(l => l.exercise === exercise.name);
     setType(parseCardioType(log?.notes) || "");
+    setNoteText(parseCardioNoteText(log?.notes));
     setDuration(formatDurationMinutes(log?.reps) || displayLoggedNumber(log?.reps));
     setDistance(displayLoggedNumber(log?.weight));
     setId(log?.id || null);
@@ -311,6 +323,7 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
 
   const handleSave = async (overrides = {}) => {
     const nextType = overrides.type !== undefined ? overrides.type : type;
+    const nextNote = overrides.note !== undefined ? overrides.note : noteText;
     const nextDuration = overrides.duration !== undefined ? overrides.duration : duration;
     const nextDistance = overrides.distance !== undefined ? overrides.distance : distance;
     const minutes = parseDurationMinutes(nextDuration);
@@ -318,16 +331,17 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
     const cardioType = nextType || "";
 
     try {
-      if (minutes == null && miles == null && !cardioType) {
+      if (minutes == null && miles == null && !cardioType && !String(nextNote || "").trim()) {
         if (id) {
           await base44.entities.WorkoutLog.delete(id);
           setId(null);
           onSaved?.();
+          requestTrainingSheetSync();
         }
         return;
       }
 
-      const payload = {
+      const payload = withPerformedDate({
         week_start: weekStart,
         day: exercise._day,
         exercise: exercise.name,
@@ -335,8 +349,8 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
         is_amrap: false,
         reps: emptyToNull(minutes),
         weight: emptyToNull(miles),
-        notes: cardioType || "other",
-      };
+        notes: encodeCardioNotes(cardioType, nextNote),
+      }, !id, weekStart);
 
       if (id) {
         await base44.entities.WorkoutLog.update(id, payload);
@@ -349,6 +363,7 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
         await awardSessionActivity(true);
       }
       onSaved?.();
+      requestTrainingSheetSync();
     } catch {
       // keep the typed values; retry on next blur
     }
@@ -429,6 +444,19 @@ function CardioRow({ exercise, weekStart, currentLogs, historyLogs, loadToken, o
             className="h-11 text-[15px] bg-secondary border-0 font-mono px-2"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-faint mb-1.5 block">Notes</label>
+        <Input
+          type="text"
+          placeholder="optional"
+          value={noteText}
+          onChange={e => setNoteText(e.target.value)}
+          onBlur={() => handleSave()}
+          className="h-11 text-[15px] bg-secondary border-0 px-2"
+          aria-label="Run notes"
+        />
       </div>
     </div>
   );

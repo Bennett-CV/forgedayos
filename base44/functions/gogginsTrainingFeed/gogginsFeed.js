@@ -2,11 +2,25 @@
  * Read-only Goggins training feed builder.
  * Pure: entity arrays in → versioned JSON out. No Base44 I/O.
  *
- * Deno mirror of src/lib/gogginsFeed.js — keep identical.
- * Self-contained (no date-fns) for Base44 function runtime.
+ * Date and run/lift classification live in ./trainingSheet.js (no date-fns)
+ * so the Deno function can ship both files.
+ * SOURCE OF TRUTH: keep identical to
+ * base44/functions/gogginsTrainingFeed/gogginsFeed.js
  */
 
-export const GOGGINS_FEED_SCHEMA_VERSION = "1.0.0";
+import {
+  classifyWorkoutLog,
+  localDaysAgoKey,
+  localWeekStartKey,
+  logCalendarDate,
+  normalizeDateKey,
+  parseLocalDate,
+  parseStoredCardio,
+  redactAccountNumbers,
+  shiftLocalDateKey,
+} from "./trainingSheet.js";
+
+export const GOGGINS_FEED_SCHEMA_VERSION = "1.1.0";
 
 const DEFAULT_WEEKS = 10;
 const DEFAULT_WEIGHT_DAYS = 90;
@@ -15,86 +29,12 @@ const MAX_WEEKS = 26;
 const MIN_WEIGHT_DAYS = 7;
 const MAX_WEIGHT_DAYS = 365;
 
-const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-function pad2(n) {
-  return String(n).padStart(2, "0");
-}
-
-function localDateKey(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-}
-
-function parseLocalDate(value) {
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return value;
-    return new Date(value.getFullYear(), value.getMonth(), value.getDate(), 12, 0, 0);
-  }
-  if (value == null || value === "") return new Date(NaN);
-  const raw = String(value).trim();
-  const dateOnly = raw.match(DATE_ONLY);
-  if (dateOnly) {
-    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]), 12, 0, 0);
-  }
-  const instant = new Date(raw);
-  if (Number.isNaN(instant.getTime())) return instant;
-  return new Date(instant.getFullYear(), instant.getMonth(), instant.getDate(), 12, 0, 0);
-}
-
-function normalizeDateKey(value) {
-  if (value == null || value === "") return "";
-  const raw = String(value).trim();
-  if (DATE_ONLY.test(raw)) return raw;
-  return localDateKey(parseLocalDate(raw));
-}
-
-function shiftLocalDateKey(value, days) {
-  const d = value instanceof Date ? new Date(value.getTime()) : parseLocalDate(value);
-  if (Number.isNaN(d.getTime())) return "";
-  d.setDate(d.getDate() + Number(days || 0));
-  return localDateKey(d);
-}
-
-function localDaysAgoKey(days, from = new Date()) {
-  const d = from instanceof Date ? new Date(from.getTime()) : parseLocalDate(from);
-  if (Number.isNaN(d.getTime())) return "";
-  d.setDate(d.getDate() - Number(days || 0));
-  return localDateKey(d);
-}
-
-/** Monday (weekStartsOn = 1) of the local week containing `from`. */
-function localWeekStartKey(from = new Date()) {
-  const d = from instanceof Date ? new Date(from.getTime()) : parseLocalDate(from);
-  if (Number.isNaN(d.getTime())) return "";
-  const day = d.getDay(); // 0 Sun … 6 Sat
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return localDateKey(d);
-}
-
 function clampInt(value, min, max, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
-function hasLoggedValue(log) {
-  if (!log) return false;
-  return Number(log.weight) > 0 || Number(log.reps) > 0 || Boolean(String(log.notes || "").trim());
-}
-
-/**
- * Drop account-like digit runs from free text.
- * Nine or more digits, with optional single spaces or dashes between them.
- * Dates (YYYY-MM-DD) are eight digits and stay intact.
- */
-function redactAccountNumbers(value) {
-  if (value == null) return null;
-  const trimmed = String(value).trim();
-  if (!trimmed) return null;
-  return trimmed.replace(/\d(?:[ \t-]?\d){8,}/g, "[redacted]");
-}
 
 /** Heaviest set; ties go to more reps. Ignores 0/empty weight. */
 function bestSetInLogs(logs) {
@@ -154,12 +94,18 @@ function summarizeProgram(program) {
   return { days };
 }
 
+function inWeekWindow(log, weekFrom) {
+  const week = normalizeDateKey(log.week_start);
+  if (!week) return false;
+  if (weekFrom && week < weekFrom) return false;
+  return true;
+}
+
 function groupWorkouts(workoutLogs, weekFrom) {
   const relevant = (workoutLogs || []).filter((l) => {
-    const week = normalizeDateKey(l.week_start);
-    if (!week) return false;
-    if (weekFrom && week < weekFrom) return false;
-    return hasLoggedValue(l);
+    if (!inWeekWindow(l, weekFrom)) return false;
+    const kind = classifyWorkoutLog(l);
+    return kind === "lift" || kind === "cardio";
   });
 
   const byWeekDay = new Map();
@@ -168,9 +114,11 @@ function groupWorkouts(workoutLogs, weekFrom) {
     const day = Number(l.day) || 0;
     const key = `${week_start}|${day}`;
     if (!byWeekDay.has(key)) {
-      byWeekDay.set(key, { week_start, day, exercises: new Map() });
+      byWeekDay.set(key, { week_start, day, dates: [], exercises: new Map() });
     }
     const session = byWeekDay.get(key);
+    const performed = logCalendarDate(l);
+    if (performed) session.dates.push(performed);
     const name = String(l.exercise || "").trim() || "Unknown";
     if (!session.exercises.has(name)) session.exercises.set(name, []);
     session.exercises.get(name).push({
@@ -191,6 +139,7 @@ function groupWorkouts(workoutLogs, weekFrom) {
     .map((session) => ({
       week_start: session.week_start,
       day: session.day,
+      date: session.dates.sort()[0] || session.week_start,
       exercises: [...session.exercises.entries()]
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([name, sets]) => ({
@@ -200,12 +149,35 @@ function groupWorkouts(workoutLogs, weekFrom) {
     }));
 }
 
+/** Runs in the workout window, newest date first. Distance is miles, time is minutes. */
+function collectRuns(workoutLogs, weekFrom) {
+  return (workoutLogs || [])
+    .filter((l) => inWeekWindow(l, weekFrom) && classifyWorkoutLog(l) === "run")
+    .map((l) => {
+      const cardio = parseStoredCardio(l.notes);
+      const miles = l.weight != null && Number(l.weight) > 0 ? Number(l.weight) : null;
+      const minutes = l.reps != null && Number(l.reps) > 0 ? Number(l.reps) : null;
+      const notes = cardio ? cardio.text : redactAccountNumbers(l.notes);
+      return {
+        date: logCalendarDate(l),
+        distance: miles,
+        time: minutes,
+        notes: notes || null,
+      };
+    })
+    .sort((a, b) => {
+      const byDate = b.date.localeCompare(a.date);
+      if (byDate !== 0) return byDate;
+      return (b.distance || 0) - (a.distance || 0);
+    });
+}
+
 function bestSetsInWindow(workoutLogs, weekFrom) {
   const byExercise = new Map();
   for (const l of workoutLogs || []) {
     const week = normalizeDateKey(l.week_start);
     if (!week || (weekFrom && week < weekFrom)) continue;
-    if (!hasLoggedValue(l)) continue;
+    if (classifyWorkoutLog(l) !== "lift") continue;
     const name = String(l.exercise || "").trim();
     if (!name) continue;
     if (!byExercise.has(name)) byExercise.set(name, []);
@@ -228,11 +200,16 @@ function bestSetsInWindow(workoutLogs, weekFrom) {
   return best.sort((a, b) => a.exercise.localeCompare(b.exercise));
 }
 
-function sessionsThisWeek(workouts, currentWeekStart) {
+function sessionsThisWeek(workouts, workoutLogs, currentWeekStart) {
   const keys = new Set();
   for (const session of workouts) {
     if (session.week_start !== currentWeekStart) continue;
     keys.add(`${session.week_start}|${session.day}`);
+  }
+  for (const log of workoutLogs || []) {
+    if (normalizeDateKey(log.week_start) !== currentWeekStart) continue;
+    if (classifyWorkoutLog(log) !== "run") continue;
+    keys.add(`${currentWeekStart}|${Number(log.day) || 0}`);
   }
   return keys.size;
 }
@@ -266,6 +243,7 @@ export function buildGogginsFeed({
   const weightFrom = localDaysAgoKey(weightDaysN, today);
 
   const workouts = groupWorkouts(workoutLogs, weekFrom);
+  const runs = collectRuns(workoutLogs, weekFrom);
   const body_weight = sortedWeightSeries(weightLogs, weightFrom);
   const latest = body_weight.length ? body_weight[body_weight.length - 1] : null;
 
@@ -287,9 +265,10 @@ export function buildGogginsFeed({
     },
     program: summarizeProgram(program),
     workouts,
+    runs,
     body_weight,
     stats: {
-      sessions_this_week: sessionsThisWeek(workouts, currentWeekStart),
+      sessions_this_week: sessionsThisWeek(workouts, workoutLogs, currentWeekStart),
       best_sets: bestSetsInWindow(workoutLogs, weekFrom),
       latest_weight_lbs: latest ? latest.weight_lbs : null,
       weight_delta_7d: weightDelta(body_weight, latest, 7, today),

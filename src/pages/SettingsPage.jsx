@@ -45,6 +45,7 @@ export default function SettingsPage() {
   const [notificationPrefs, setNotificationPrefs] = useState(() => normalizeNotificationPrefs(null));
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [copyingGoggins, setCopyingGoggins] = useState(false);
+  const [syncingSheet, setSyncingSheet] = useState(false);
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem("theme");
     if (stored === "dark" || stored === "midnight") return "midnight";
@@ -175,6 +176,25 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSyncTrainingSheet = async () => {
+    setSyncingSheet(true);
+    try {
+      const response = await base44.functions.invoke("syncTrainingSheet", {});
+      const data = response?.data || {};
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+      const earliest = data.earliest_date ? ` Earliest ${data.earliest_date}.` : "";
+      const truncated = data.truncated ? " History was capped." : "";
+      toast.success(`Synced ${data.lifts ?? 0} sets and ${data.runs ?? 0} runs.${earliest}${truncated}`);
+    } catch {
+      toast.error("Could not sync to Google Sheet. Connect Google Drive and Google Sheets in Base44.");
+    } finally {
+      setSyncingSheet(false);
+    }
+  };
+
   const handleSaveName = async () => {
     const trimmed = firstName.trim();
     if (!trimmed) {
@@ -289,6 +309,22 @@ export default function SettingsPage() {
           className="w-full min-h-[44px]"
         >
           {copyingGoggins ? "Building…" : "Copy Goggins feed"}
+        </Button>
+      </div>
+
+      <div className="editorial-card p-4 space-y-2">
+        <p className="micro-label">Google Sheet</p>
+        <p className="text-[13px] text-caption leading-snug">
+          Rewrite “Forgeday Training” in the Drive folder “Forgeday” with every set and run logged so far. Running it again replaces those rows.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleSyncTrainingSheet}
+          disabled={syncingSheet}
+          className="w-full min-h-[44px]"
+        >
+          {syncingSheet ? "Syncing…" : "Sync to Google Sheet"}
         </Button>
       </div>
 
