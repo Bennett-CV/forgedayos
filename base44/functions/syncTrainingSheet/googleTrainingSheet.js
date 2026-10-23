@@ -11,6 +11,9 @@ export const FORGEDAY_FOLDER_NAME = "Forgeday";
 export const FORGEDAY_SPREADSHEET_NAME = "Forgeday Training";
 export const LIFTS_TAB = "Lifts";
 export const RUNS_TAB = "Runs";
+export const MEALS_TAB = "Meals";
+
+const DATA_TABS = [LIFTS_TAB, RUNS_TAB, MEALS_TAB];
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const SHEET_MIME = "application/vnd.google-apps.spreadsheet";
@@ -137,15 +140,15 @@ async function batchUpdate(fetchImpl, sheetsToken, spreadsheetId, requests) {
 }
 
 /**
- * Add Lifts and Runs first. Delete Sheet1 only in a later request, after
- * another tab exists. Google rejects a batch that would remove the only sheet.
+ * Add Lifts, Runs, and Meals first. Delete Sheet1 only in a later request,
+ * after another tab exists. Google rejects a batch that would remove the only sheet.
  */
 async function ensureTabs(fetchImpl, sheetsToken, spreadsheetId) {
   let sheets = await runStep("read_tabs", () => readSheets(fetchImpl, sheetsToken, spreadsheetId));
   const titles = new Set(sheets.map((sheet) => sheet.title));
-  const adds = [];
-  if (!titles.has(LIFTS_TAB)) adds.push({ addSheet: { properties: { title: LIFTS_TAB } } });
-  if (!titles.has(RUNS_TAB)) adds.push({ addSheet: { properties: { title: RUNS_TAB } } });
+  const adds = DATA_TABS
+    .filter((title) => !titles.has(title))
+    .map((title) => ({ addSheet: { properties: { title } } }));
   if (adds.length > 0) {
     await runStep("add_tabs", () => batchUpdate(fetchImpl, sheetsToken, spreadsheetId, adds));
     sheets = await runStep("read_tabs", () => readSheets(fetchImpl, sheetsToken, spreadsheetId));
@@ -153,7 +156,7 @@ async function ensureTabs(fetchImpl, sheetsToken, spreadsheetId) {
 
   const titlesNow = new Set(sheets.map((sheet) => sheet.title));
   const defaultSheet = sheets.find((sheet) => sheet.title === "Sheet1");
-  const otherSheetExists = titlesNow.has(LIFTS_TAB) || titlesNow.has(RUNS_TAB);
+  const otherSheetExists = DATA_TABS.some((title) => titlesNow.has(title));
   if (otherSheetExists && defaultSheet && defaultSheet.sheetId != null) {
     await runStep("delete_sheet1", () => batchUpdate(fetchImpl, sheetsToken, spreadsheetId, [
       { deleteSheet: { sheetId: defaultSheet.sheetId } },
@@ -192,6 +195,7 @@ async function replaceGrid(fetchImpl, sheetsToken, spreadsheetId, title, values,
  * @param {string} [opts.sheetsToken]
  * @param {Array<Array>} opts.liftValues header + one row per set
  * @param {Array<Array>} opts.runValues header + one row per run
+ * @param {Array<Array>} opts.mealValues header + one row per Meal
  * @param {typeof fetch} [opts.fetchImpl]
  */
 export async function syncTrainingSpreadsheet({
@@ -199,16 +203,21 @@ export async function syncTrainingSpreadsheet({
   sheetsToken,
   liftValues,
   runValues,
+  mealValues,
   fetchImpl = fetch,
 }) {
   if (!driveToken) stepError("drive_token", new Error("Google Drive is not connected in Base44."));
   const sheetToken = sheetsToken || driveToken;
+  const mealsGrid = mealValues || [[
+    "date", "meal", "food", "quantity", "serving", "calories", "protein", "carbs", "fat", "notes",
+  ]];
 
   const folder = await runStep("find_folder", () => findOrCreateFolder(fetchImpl, driveToken));
   const spreadsheet = await runStep("find_spreadsheet", () => findOrCreateSpreadsheet(fetchImpl, driveToken, folder.id));
   await ensureTabs(fetchImpl, sheetToken, spreadsheet.id);
   await replaceGrid(fetchImpl, sheetToken, spreadsheet.id, LIFTS_TAB, liftValues, 6, "lifts");
   await replaceGrid(fetchImpl, sheetToken, spreadsheet.id, RUNS_TAB, runValues, 4, "runs");
+  await replaceGrid(fetchImpl, sheetToken, spreadsheet.id, MEALS_TAB, mealsGrid, mealsGrid[0].length, "meals");
 
   return {
     folder_id: folder.id,

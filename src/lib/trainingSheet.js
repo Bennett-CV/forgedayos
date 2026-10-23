@@ -13,6 +13,18 @@ export const TRAINING_SHEET_MAX_PAGES = 500;
 
 export const LIFT_HEADERS = ["date", "exercise", "set number", "reps", "weight", "notes"];
 export const RUN_HEADERS = ["date", "distance", "time", "notes"];
+export const MEAL_HEADERS = [
+  "date",
+  "meal",
+  "food",
+  "quantity",
+  "serving",
+  "calories",
+  "protein",
+  "carbs",
+  "fat",
+  "notes",
+];
 
 const CARDIO_IDS = new Set(["run", "bike", "swim", "other"]);
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -32,7 +44,9 @@ export const TRAINING_HISTORY_LIMITS = [
   "Bike, swim, and other cardio stay in the JSON feed's workouts so they are not dropped, and they are not written to the Lifts or Runs tabs.",
   "Planned exercises, sets, and reps live on WorkoutProgram templates, not on logs, and are not written to the sheet.",
   "Activity rows awarded for a session do not store distance, time, or per-set weight. The sheet reads WorkoutLog only.",
-  `Backfill pages through every WorkoutLog (page size ${TRAINING_SHEET_PAGE_SIZE}, cap ${TRAINING_SHEET_MAX_PAGES} pages / ${TRAINING_SHEET_PAGE_SIZE * TRAINING_SHEET_MAX_PAGES} rows). If the cap is hit, truncated is true and later pages are not synced.`,
+  `Backfill pages through every WorkoutLog and, separately, every Meal (page size ${TRAINING_SHEET_PAGE_SIZE}, cap ${TRAINING_SHEET_MAX_PAGES} pages / ${TRAINING_SHEET_PAGE_SIZE * TRAINING_SHEET_MAX_PAGES} rows each). If a cap is hit, truncated is true and later pages of that entity are not synced. Nothing in the repo stores how far back personal meal or workout history goes.`,
+  "Meal rows are one Meal record each. The sheet columns are date, meal (breakfast, lunch, dinner, or snack), food, quantity, serving, calories, protein, carbs, and fat, plus notes. There is no clock time on Meal. fiber_g and sugar_g exist on the entity and are not columns.",
+  "Meal.date is required by the schema and the food screens stamp a calendar day. If a stored row has no date, the sheet uses the calendar day of created_date. Protein, carbs, fat, and notes are optional. The food screens do not write notes. quantity is often 1, with the portion text in serving.",
 ];
 
 function pad2(n) {
@@ -279,6 +293,109 @@ export function buildTrainingSheet(logs, { truncated = false } = {}) {
       page_size: TRAINING_SHEET_PAGE_SIZE,
       max_pages: TRAINING_SHEET_MAX_PAGES,
       limits: TRAINING_HISTORY_LIMITS,
+    },
+  };
+}
+
+const MEAL_SLOT_ORDER = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
+
+function mealNumber(value) {
+  if (value == null || value === "") return "";
+  const n = Number(value);
+  return Number.isFinite(n) ? n : "";
+}
+
+function mealFood(meal) {
+  const name = String(meal?.food_name || "").trim();
+  const description = String(meal?.food_description || "").trim();
+  const text = name && description && name !== description
+    ? `${name} — ${description}`
+    : (name || description);
+  return redactAccountNumbers(text) || "";
+}
+
+function mealServing(meal) {
+  const label = String(meal?.serving_size || "").trim();
+  if (label) return redactAccountNumbers(label) || "";
+  const grams = mealNumber(meal?.serving_size_g);
+  return grams === "" || grams === 0 ? "" : `${grams} g`;
+}
+
+function mealHasContent(meal, food) {
+  if (food) return true;
+  if (mealNumber(meal?.calories) !== "") return true;
+  if (mealNumber(meal?.protein_g) !== "") return true;
+  if (mealNumber(meal?.carbs_g) !== "") return true;
+  if (mealNumber(meal?.fat_g) !== "") return true;
+  if (String(meal?.notes || "").trim()) return true;
+  return false;
+}
+
+/**
+ * Every logged Meal, one row per food. Same full replace as lifts: duplicate
+ * ids collapse, and the caller writes this grid over the Meals tab.
+ */
+export function buildMealSheet(meals, { truncated = false } = {}) {
+  const unique = dedupeLogs(meals);
+  const rows = [];
+  let withoutExplicitDate = 0;
+
+  for (const meal of unique) {
+    const food = mealFood(meal);
+    if (!mealHasContent(meal, food)) continue;
+    if (!normalizeDateKey(meal.date)) withoutExplicitDate += 1;
+    rows.push({
+      date: normalizeDateKey(meal.date) || normalizeDateKey(meal.created_date),
+      meal: String(meal.meal_type || "").trim().toLowerCase(),
+      food,
+      quantity: mealNumber(meal.quantity),
+      serving: mealServing(meal),
+      calories: mealNumber(meal.calories),
+      protein: mealNumber(meal.protein_g),
+      carbs: mealNumber(meal.carbs_g),
+      fat: mealNumber(meal.fat_g),
+      notes: redactAccountNumbers(meal.notes) || "",
+      _id: meal.id != null ? String(meal.id) : "",
+    });
+  }
+
+  rows.sort((a, b) => (
+    compareText(a.date, b.date)
+    || (MEAL_SLOT_ORDER[a.meal] ?? 9) - (MEAL_SLOT_ORDER[b.meal] ?? 9)
+    || compareText(a.meal, b.meal)
+    || compareText(a.food, b.food)
+    || compareText(a._id, b._id)
+  ));
+
+  const dates = rows.map((row) => row.date).filter(Boolean).sort();
+  return {
+    meals: rows.map(({ _id, ...row }) => row),
+    mealValues: [
+      MEAL_HEADERS,
+      ...rows.map((row) => [
+        row.date,
+        row.meal,
+        row.food,
+        row.quantity,
+        row.serving,
+        row.calories,
+        row.protein,
+        row.carbs,
+        row.fat,
+        row.notes,
+      ]),
+    ],
+    history: {
+      earliest_date: dates[0] || null,
+      latest_date: dates.length ? dates[dates.length - 1] : null,
+      meal_count: rows.length,
+      meals_without_explicit_date: withoutExplicitDate,
+      meals_missing_calories: rows.filter((row) => row.calories === "").length,
+      meals_missing_protein: rows.filter((row) => row.protein === "").length,
+      meals_missing_notes: rows.filter((row) => !row.notes).length,
+      truncated: Boolean(truncated),
+      page_size: TRAINING_SHEET_PAGE_SIZE,
+      max_pages: TRAINING_SHEET_MAX_PAGES,
     },
   };
 }

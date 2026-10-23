@@ -4,6 +4,7 @@ import { localToday, normalizeDateKey } from "@/lib/localDate";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { requestTrainingSheetSync } from "@/lib/requestTrainingSheetSync";
 
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
@@ -73,6 +74,7 @@ export default function AddFoodForm({
         setFat("");
       }
       onAdded?.();
+      requestTrainingSheetSync();
     } catch {
       toast.error(isEdit ? "Failed to update meal." : "Failed to save meal.");
     } finally {
@@ -87,6 +89,7 @@ export default function AddFoodForm({
       await base44.entities.Meal.delete(existingMeal.id);
       toast.success("Removed");
       onDeleted?.();
+      requestTrainingSheetSync();
     } catch {
       toast.error("Could not delete meal.");
       setConfirmDelete(false);

@@ -1,9 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
-import { buildTrainingSheet, pageThrough } from './trainingSheet.js';
+import { buildMealSheet, buildTrainingSheet, pageThrough } from './trainingSheet.js';
 import { syncTrainingSpreadsheet } from './googleTrainingSheet.js';
 
 /**
- * Backfill every WorkoutLog set and run into the Google Sheet
+ * Backfill every WorkoutLog set and run, and every Meal, into the Google Sheet
  * "Forgeday Training" in the Drive folder "Forgeday".
  *
  * Sheets API calls use the googledrive connector token. That connection's
@@ -64,8 +64,16 @@ Deno.serve(async (req) => {
       base44.entities.WorkoutLog.filter({ created_by: email }, 'created_date', limit, skip)
     );
 
+    step = 'load_meals';
+    const mealsLoaded = await pageThrough((limit, skip) =>
+      base44.entities.Meal.filter({ created_by: email }, 'created_date', limit, skip)
+    );
+
     step = 'build_rows';
     const sheet = buildTrainingSheet(loaded.rows, { truncated: loaded.truncated });
+    const meals = buildMealSheet(mealsLoaded.rows, { truncated: mealsLoaded.truncated });
+    const earliest = [sheet.history.earliest_date, meals.history.earliest_date].filter(Boolean).sort()[0] || null;
+    const latest = [sheet.history.latest_date, meals.history.latest_date].filter(Boolean).sort().pop() || null;
 
     step = 'drive_token';
     const token = await driveToken(base44);
@@ -75,6 +83,7 @@ Deno.serve(async (req) => {
       driveToken: token,
       liftValues: sheet.liftValues,
       runValues: sheet.runValues,
+      mealValues: meals.mealValues,
     });
 
     return Response.json({
@@ -82,11 +91,18 @@ Deno.serve(async (req) => {
       ...written,
       lifts: sheet.history.lift_count,
       runs: sheet.history.run_count,
+      meals: meals.history.meal_count,
       logs_read: sheet.history.log_count,
+      meals_read: mealsLoaded.rows.length,
       pages: loaded.pages,
-      truncated: sheet.history.truncated,
-      earliest_date: sheet.history.earliest_date,
-      latest_date: sheet.history.latest_date,
+      meal_pages: mealsLoaded.pages,
+      truncated: sheet.history.truncated || meals.history.truncated,
+      earliest_date: earliest,
+      latest_date: latest,
+      meals_without_explicit_date: meals.history.meals_without_explicit_date,
+      meals_missing_calories: meals.history.meals_missing_calories,
+      meals_missing_protein: meals.history.meals_missing_protein,
+      meals_missing_notes: meals.history.meals_missing_notes,
       logs_without_explicit_date: sheet.history.logs_without_explicit_date,
       lifts_missing_notes: sheet.history.lifts_missing_notes,
       runs_missing_distance: sheet.history.runs_missing_distance,
