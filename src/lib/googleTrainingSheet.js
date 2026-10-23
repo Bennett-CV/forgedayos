@@ -19,6 +19,22 @@ function escapeDriveQuery(value) {
   return String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+function stepError(step, error) {
+  const message = error instanceof Error ? error.message : String(error);
+  const wrapped = new Error(message);
+  wrapped.step = step;
+  throw wrapped;
+}
+
+async function runStep(step, fn) {
+  try {
+    return await fn();
+  } catch (error) {
+    if (error && error.step) throw error;
+    stepError(step, error);
+  }
+}
+
 async function googleJson(fetchImpl, token, url, { method = "GET", body } = {}) {
   const response = await fetchImpl(url, {
     method,
@@ -98,53 +114,82 @@ async function findOrCreateSpreadsheet(fetchImpl, driveToken, folderId) {
   return { id: created.id, created: true, matches: 1 };
 }
 
-async function ensureTabs(fetchImpl, sheetsToken, spreadsheetId) {
+function sheetProperties(meta) {
+  return (meta.sheets || []).map((sheet) => sheet.properties || {});
+}
+
+async function readSheets(fetchImpl, sheetsToken, spreadsheetId) {
   const meta = await googleJson(
     fetchImpl,
     sheetsToken,
     `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}?fields=sheets.properties`
   );
-  const sheets = (meta.sheets || []).map((sheet) => sheet.properties || {});
-  const titles = new Set(sheets.map((sheet) => sheet.title));
-  const requests = [];
-  if (!titles.has(LIFTS_TAB)) requests.push({ addSheet: { properties: { title: LIFTS_TAB } } });
-  if (!titles.has(RUNS_TAB)) requests.push({ addSheet: { properties: { title: RUNS_TAB } } });
-  const defaultSheet = sheets.find((sheet) => sheet.title === "Sheet1");
-  if (defaultSheet && defaultSheet.sheetId != null) {
-    requests.push({ deleteSheet: { sheetId: defaultSheet.sheetId } });
-  }
-  if (requests.length === 0) return { added: [] };
+  return sheetProperties(meta);
+}
+
+async function batchUpdate(fetchImpl, sheetsToken, spreadsheetId, requests) {
   await googleJson(
     fetchImpl,
     sheetsToken,
     `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
     { method: "POST", body: { requests } }
   );
-  return { added: requests.filter((request) => request.addSheet).map((request) => request.addSheet.properties.title) };
 }
 
-async function replaceGrid(fetchImpl, sheetsToken, spreadsheetId, title, values, columnCount) {
+/**
+ * Add Lifts and Runs first. Delete Sheet1 only in a later request, after
+ * another tab exists. Google rejects a batch that would remove the only sheet.
+ */
+async function ensureTabs(fetchImpl, sheetsToken, spreadsheetId) {
+  let sheets = await runStep("read_tabs", () => readSheets(fetchImpl, sheetsToken, spreadsheetId));
+  const titles = new Set(sheets.map((sheet) => sheet.title));
+  const adds = [];
+  if (!titles.has(LIFTS_TAB)) adds.push({ addSheet: { properties: { title: LIFTS_TAB } } });
+  if (!titles.has(RUNS_TAB)) adds.push({ addSheet: { properties: { title: RUNS_TAB } } });
+  if (adds.length > 0) {
+    await runStep("add_tabs", () => batchUpdate(fetchImpl, sheetsToken, spreadsheetId, adds));
+    sheets = await runStep("read_tabs", () => readSheets(fetchImpl, sheetsToken, spreadsheetId));
+  }
+
+  const titlesNow = new Set(sheets.map((sheet) => sheet.title));
+  const defaultSheet = sheets.find((sheet) => sheet.title === "Sheet1");
+  const otherSheetExists = titlesNow.has(LIFTS_TAB) || titlesNow.has(RUNS_TAB);
+  if (otherSheetExists && defaultSheet && defaultSheet.sheetId != null) {
+    await runStep("delete_sheet1", () => batchUpdate(fetchImpl, sheetsToken, spreadsheetId, [
+      { deleteSheet: { sheetId: defaultSheet.sheetId } },
+    ]));
+  }
+  return { added: adds.map((request) => request.addSheet.properties.title) };
+}
+
+function valuesUrl(spreadsheetId, range, suffix) {
+  const id = encodeURIComponent(spreadsheetId);
+  const encodedRange = encodeURIComponent(range);
+  return `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${encodedRange}${suffix}`;
+}
+
+async function replaceGrid(fetchImpl, sheetsToken, spreadsheetId, title, values, columnCount, stepPrefix) {
   const lastColumn = String.fromCharCode("A".charCodeAt(0) + columnCount - 1);
-  const clearRange = encodeURIComponent(`${title}!A:${lastColumn}`);
-  await googleJson(
+  await runStep(`clear_${stepPrefix}`, () => googleJson(
     fetchImpl,
     sheetsToken,
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${clearRange}:clear`,
+    valuesUrl(spreadsheetId, `${title}!A:${lastColumn}`, ":clear"),
     { method: "POST", body: {} }
-  );
-  const writeRange = encodeURIComponent(`${title}!A1`);
-  await googleJson(
+  ));
+  await runStep(`write_${stepPrefix}`, () => googleJson(
     fetchImpl,
     sheetsToken,
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${writeRange}?valueInputOption=RAW`,
+    valuesUrl(spreadsheetId, `${title}!A1`, "?valueInputOption=RAW"),
     { method: "PUT", body: { values } }
-  );
+  ));
 }
 
 /**
  * @param {object} opts
- * @param {string} opts.driveToken OAuth token from the Base44 googledrive connector
- * @param {string} opts.sheetsToken OAuth token from the Base44 googlesheets connector
+ * @param {string} opts.driveToken OAuth token from the Base44 googledrive connector.
+ *   drive.file covers Sheets API calls on files this connection created.
+ *   Pass sheetsToken only when that token itself has the spreadsheets scope.
+ * @param {string} [opts.sheetsToken]
  * @param {Array<Array>} opts.liftValues header + one row per set
  * @param {Array<Array>} opts.runValues header + one row per run
  * @param {typeof fetch} [opts.fetchImpl]
@@ -156,14 +201,14 @@ export async function syncTrainingSpreadsheet({
   runValues,
   fetchImpl = fetch,
 }) {
-  if (!driveToken) throw new Error("Google Drive is not connected in Base44.");
-  if (!sheetsToken) throw new Error("Google Sheets is not connected in Base44.");
+  if (!driveToken) stepError("drive_token", new Error("Google Drive is not connected in Base44."));
+  const sheetToken = sheetsToken || driveToken;
 
-  const folder = await findOrCreateFolder(fetchImpl, driveToken);
-  const spreadsheet = await findOrCreateSpreadsheet(fetchImpl, driveToken, folder.id);
-  await ensureTabs(fetchImpl, sheetsToken, spreadsheet.id);
-  await replaceGrid(fetchImpl, sheetsToken, spreadsheet.id, LIFTS_TAB, liftValues, 6);
-  await replaceGrid(fetchImpl, sheetsToken, spreadsheet.id, RUNS_TAB, runValues, 4);
+  const folder = await runStep("find_folder", () => findOrCreateFolder(fetchImpl, driveToken));
+  const spreadsheet = await runStep("find_spreadsheet", () => findOrCreateSpreadsheet(fetchImpl, driveToken, folder.id));
+  await ensureTabs(fetchImpl, sheetToken, spreadsheet.id);
+  await replaceGrid(fetchImpl, sheetToken, spreadsheet.id, LIFTS_TAB, liftValues, 6, "lifts");
+  await replaceGrid(fetchImpl, sheetToken, spreadsheet.id, RUNS_TAB, runValues, 4, "runs");
 
   return {
     folder_id: folder.id,

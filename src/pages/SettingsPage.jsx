@@ -46,6 +46,7 @@ export default function SettingsPage() {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [copyingGoggins, setCopyingGoggins] = useState(false);
   const [syncingSheet, setSyncingSheet] = useState(false);
+  const [sheetNotice, setSheetNotice] = useState(null);
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem("theme");
     if (stored === "dark" || stored === "midnight") return "midnight";
@@ -178,18 +179,30 @@ export default function SettingsPage() {
 
   const handleSyncTrainingSheet = async () => {
     setSyncingSheet(true);
+    setSheetNotice("Syncing every logged set and run…");
     try {
       const response = await base44.functions.invoke("syncTrainingSheet", {});
       const data = response?.data || {};
-      if (data.error) {
-        toast.error(data.error);
+      if (data.ok === false || data.error) {
+        const step = data.step || "sync";
+        const message = data.message || data.error || "Sync failed";
+        const text = `${step}: ${message}`;
+        setSheetNotice(text);
+        toast.error(text);
         return;
       }
       const earliest = data.earliest_date ? ` Earliest ${data.earliest_date}.` : "";
       const truncated = data.truncated ? " History was capped." : "";
-      toast.success(`Synced ${data.lifts ?? 0} sets and ${data.runs ?? 0} runs.${earliest}${truncated}`);
-    } catch {
-      toast.error("Could not sync to Google Sheet. Connect Google Drive and Google Sheets in Base44.");
+      const text = `Synced ${data.lifts ?? 0} sets and ${data.runs ?? 0} runs.${earliest}${truncated}`;
+      setSheetNotice(text);
+      toast.success(text);
+    } catch (error) {
+      const body = error?.response?.data;
+      const step = body?.step || "sync";
+      const message = body?.message || body?.error || error?.message || "Could not sync to Google Sheet.";
+      const text = `${step}: ${message}`;
+      setSheetNotice(text);
+      toast.error(text);
     } finally {
       setSyncingSheet(false);
     }
@@ -322,10 +335,16 @@ export default function SettingsPage() {
           variant="outline"
           onClick={handleSyncTrainingSheet}
           disabled={syncingSheet}
+          aria-busy={syncingSheet}
           className="w-full min-h-[44px]"
         >
           {syncingSheet ? "Syncing…" : "Sync to Google Sheet"}
         </Button>
+        {sheetNotice && (
+          <p className="text-[13px] text-caption leading-snug" role="status">
+            {sheetNotice}
+          </p>
+        )}
       </div>
 
       <button
