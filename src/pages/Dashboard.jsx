@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { formatLocalDate, localToday, localWeekStartKey, localWeekEndKey, localMonthKey } from "@/lib/localDate";
+import { formatLocalDate, localToday, localWeekStartKey, localWeekEndKey, localMonthKey, isSameLocalDay } from "@/lib/localDate";
 import { greetingFirstName, greetingForHour } from "@/lib/greetingName";
 import { buildTodaySnapshot } from "@/lib/todayCommand";
+import { summarizeMindChecks, mindLogOnDate, mindLogPayload, normalizeMindNote, normalizePhotoUrl } from "@/lib/mindChecks";
 import { computeForgedayScore } from "@/lib/forgedayScore";
 import { generateInsights } from "@/lib/insights";
 import { normalizeBooks } from "@/lib/books";
@@ -22,10 +23,12 @@ import {
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import TodayCommand from "../components/dashboard/TodayCommand";
+import MindChecks from "../components/dashboard/MindChecks";
 import ForgedayScoreCard from "../components/score/ForgedayScoreCard";
 import InsightList from "../components/score/InsightList";
 import GlanceWidgets from "../components/dashboard/GlanceWidgets";
 import SmartBanner from "../components/notifications/SmartBanner";
+import { toast } from "sonner";
 
 async function safe(promise, fallback) {
   try {
@@ -42,6 +45,11 @@ export default function Dashboard() {
   const [insights, setInsights] = useState([]);
   const [weightLogs, setWeightLogs] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [mindLogs, setMindLogs] = useState([]);
+  const [journalEntries, setJournalEntries] = useState([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const mindSave = useRef(Promise.resolve());
+  const todayLogRef = useRef(null);
   const [nudgeState, setNudgeState] = useState(() => readNudgeState());
   const [loading, setLoading] = useState(true);
 
@@ -55,7 +63,7 @@ export default function Dashboard() {
     const weekEnd = localWeekEndKey(new Date());
     const month = localMonthKey(new Date());
 
-    const [meals, logs, program, journals, txns, reviews, acts, weights, budgets] = await Promise.all([
+    const [meals, logs, program, journals, txns, reviews, acts, weights, budgets, minds] = await Promise.all([
       safe(base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 200), []),
       safe(base44.entities.WorkoutLog.filter({ created_by: user.email }, "-created_date", 400), []),
       safe(base44.entities.WorkoutProgram.filter({ created_by: user.email }, "day", 12), []),
@@ -65,6 +73,7 @@ export default function Dashboard() {
       safe(base44.entities.Activity.filter({ created_by: user.email }, "-created_date", 200), []),
       safe(base44.entities.WeightLog.filter({ created_by: user.email }, "-date", 90), []),
       safe(base44.entities.BudgetCategory.filter({ created_by: user.email }), []),
+      safe(base44.entities.MindLog.filter({ created_by: user.email }, "-date", 60), []),
     ]);
 
     const workoutProgram = (program || []).filter(d => d.created_by === user.email);
@@ -72,6 +81,8 @@ export default function Dashboard() {
 
     setActivities(acts);
     setWeightLogs(weights);
+    setMindLogs(minds || []);
+    setJournalEntries(journals || []);
     setSnapshot(buildTodaySnapshot({
       user,
       today,
@@ -85,6 +96,7 @@ export default function Dashboard() {
       reviews,
       weightLogs: weights,
       books,
+      mindLogs: minds,
       weekStart,
     }));
 
@@ -102,6 +114,7 @@ export default function Dashboard() {
       activities: acts,
       books,
       budgetCategories: budgets,
+      mindLogs: minds,
     }));
 
     setInsights(generateInsights({
@@ -162,6 +175,88 @@ export default function Dashboard() {
     setNudgeState(s => ({ ...s, lastFired: markNudgeFired(primaryNudge.id, todayKey) }));
   }, [loading, primaryNudge?.id, primaryNudge?.title, primaryNudge?.body, todayKey, nudgeState.lastFired]);
 
+  const todayMind = mindLogOnDate(mindLogs, todayKey);
+  todayLogRef.current = todayMind || (
+    todayLogRef.current?.date === todayKey
+      ? todayLogRef.current
+      : { date: todayKey }
+  );
+  const todayChecks = {
+    am_journal: Boolean(todayMind?.am_journal),
+    pm_journal: Boolean(todayMind?.pm_journal),
+    meditated: Boolean(todayMind?.meditated),
+  };
+  const weekPractice = useMemo(() => summarizeMindChecks({
+    mindLogs,
+    journalEntries,
+    start: localWeekStartKey(new Date()),
+    end: todayKey,
+  }), [mindLogs, journalEntries, todayKey]);
+
+  const enqueueMind = useCallback((patch) => {
+    const base = {
+      date: todayKey,
+      id: todayLogRef.current?.id,
+      am_journal: Boolean(todayLogRef.current?.am_journal),
+      pm_journal: Boolean(todayLogRef.current?.pm_journal),
+      meditated: Boolean(todayLogRef.current?.meditated),
+      note: todayLogRef.current?.note || "",
+      photo_url: todayLogRef.current?.photo_url || "",
+      ...patch,
+    };
+    todayLogRef.current = base;
+    setMindLogs(prev => {
+      const rest = (prev || []).filter(row => !isSameLocalDay(row.date, todayKey));
+      return [base, ...rest];
+    });
+    mindSave.current = mindSave.current.catch(() => {}).then(async () => {
+      const snapshot = { ...todayLogRef.current };
+      const payload = mindLogPayload(snapshot, todayKey);
+      if (snapshot.id) {
+        await base44.entities.MindLog.update(snapshot.id, payload);
+        return;
+      }
+      const created = await base44.entities.MindLog.create(payload);
+      const id = created?.id;
+      if (!id) return;
+      todayLogRef.current = { ...todayLogRef.current, id };
+      setMindLogs(prev => (prev || []).map(row => (
+        isSameLocalDay(row.date, todayKey) ? { ...row, id } : row
+      )));
+    });
+    mindSave.current.catch(() => {
+      toast.error("Could not save the mind check.");
+      load();
+    });
+  }, [todayKey, load]);
+
+  const toggleMind = useCallback((key) => {
+    enqueueMind({ [key]: !Boolean(todayLogRef.current?.[key]) });
+  }, [enqueueMind]);
+
+  const saveMindNote = useCallback((value) => {
+    if (normalizeMindNote(todayLogRef.current?.note) === normalizeMindNote(value)) return;
+    enqueueMind({ note: value });
+  }, [enqueueMind]);
+
+  const saveMindPhoto = useCallback(async (file) => {
+    if (!file || !String(file.type || "").startsWith("image/")) {
+      toast.error("Choose a photo.");
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const result = await base44.integrations.Core.UploadFile({ file });
+      const url = result?.file_url;
+      if (!url) throw new Error("missing photo url");
+      enqueueMind({ photo_url: url });
+    } catch {
+      toast.error("Could not add the photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }, [enqueueMind]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -193,6 +288,19 @@ export default function Dashboard() {
         />
         <GlanceWidgets widgets={widgets} />
         <TodayCommand snapshot={snapshot} />
+        {snapshot?.items?.some(item => item.key === "mindfulness") ? (
+          <MindChecks
+            checks={todayChecks}
+            note={todayMind?.note || ""}
+            photoUrl={normalizePhotoUrl(todayMind?.photo_url)}
+            weekLine={weekPractice.hasPractice ? weekPractice.line : ""}
+            saving={uploadingPhoto}
+            onToggle={toggleMind}
+            onNote={saveMindNote}
+            onPhoto={saveMindPhoto}
+            onClearPhoto={() => enqueueMind({ photo_url: "" })}
+          />
+        ) : null}
         <ForgedayScoreCard score={score} compact />
         <InsightList insights={insights} />
         <div className="grid grid-cols-3 gap-2 pt-1">

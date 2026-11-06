@@ -81,6 +81,21 @@ test("snapshot: logged day produces X of Y and protein insight", () => {
   assert.equal(snap.next.label, "Add protein (40 / 180g)");
 });
 
+test("snapshot: one-tap mind checks count without a written journal", () => {
+  const snap = buildTodaySnapshot({
+    user: { focused_pillars: ["mindfulness"] },
+    today: "2026-09-14",
+    now: new Date(2026, 8, 14, 9, 0, 0),
+    weekStart: "2026-09-14",
+    weekdayMon0: 0,
+    mindLogs: [{ date: "2026-09-14", am_journal: true, pm_journal: false, meditated: true }],
+  });
+  const mind = snap.items.find(i => i.key === "mindfulness");
+  assert.equal(mind.complete, true);
+  assert.equal(mind.detail, "AM journal · Meditated");
+  assert.equal(snap.completeCount, 1);
+});
+
 test("snapshot: reading a book names the next mind action", () => {
   const snap = buildTodaySnapshot({
     user: { focused_pillars: ["mindfulness"] },

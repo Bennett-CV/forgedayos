@@ -102,6 +102,25 @@ test("scores body, mind, and consistency from logged data and explains the math"
   assert.match(score.pillars.mind.explain.join(" "), /Atomic Habits/);
 });
 
+test("mind checks score the week as journaled slots and meditation days", () => {
+  const days = ["2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13", "2026-09-14"];
+  const score = computeForgedayScore({
+    user: { focused_pillars: ["mindfulness"] },
+    today: "2026-09-14",
+    weekStart: "2026-09-08",
+    weekEnd: "2026-09-14",
+    mindLogs: days.map((date, index) => ({
+      date,
+      am_journal: index < 6,
+      pm_journal: index < 6,
+      meditated: index < 5,
+    })),
+  });
+  assert.match(score.pillars.mind.explain.join(" "), /Journaled 12\/14, meditated 5\/7/);
+  assert.ok(score.pillars.mind.score >= 70);
+  assert.equal(score.inputs.mindDays, 6);
+});
+
 test("money scores only when a budget and spend both exist", () => {
   const hidden = computeForgedayScore({
     user: { focused_pillars: ["finance"] },

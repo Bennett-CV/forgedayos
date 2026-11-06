@@ -1,5 +1,6 @@
 import { formatLocalDate, normalizeDateKey } from "./localDate.js";
 import { booksForMind, normalizeBooks } from "./books.js";
+import { summarizeMindChecks, dayHasMindCheck } from "./mindChecks.js";
 
 const MIND_TYPES = ["morning", "evening", "meditation", "reading"];
 
@@ -49,6 +50,7 @@ export function synthesizeWeek({
   activities = [],
   nutritionGoals = {},
   books = [],
+  mindLogs = [],
 } = {}) {
   const weekMeals = meals.filter(m => inRange(m.date, weekStart, weekEnd));
   const weekLogs = workoutLogs.filter(l => l.week_start === weekStart || inRange(l.created_date, weekStart, weekEnd));
@@ -79,7 +81,19 @@ export function synthesizeWeek({
   for (const t of MIND_TYPES) {
     mindCounts[t] = weekMind.filter(e => e.type === t).length;
   }
-  const mindDays = uniqueDays(weekMind);
+  const practice = summarizeMindChecks({
+    mindLogs,
+    journalEntries,
+    start: weekStart,
+    end: weekEnd,
+  });
+  const mindDayKeys = new Set(weekMind.map(e => normalizeDateKey(e.date)).filter(Boolean));
+  for (const log of mindLogs || []) {
+    const key = normalizeDateKey(log.date);
+    if (!inRange(key, weekStart, weekEnd) || !dayHasMindCheck(log)) continue;
+    mindDayKeys.add(key);
+  }
+  const mindDays = mindDayKeys.size;
   const pagesRead = weekMind.reduce((s, e) => s + (Number(e.pages_read) || 0), 0);
   const sitMinutes = weekMind.reduce((s, e) => s + (Number(e.duration_minutes) || 0), 0);
 
@@ -105,11 +119,12 @@ export function synthesizeWeek({
   const bookMind = booksForMind(normalizeBooks(books), weekStart, weekEnd);
 
   const mind = {
-    hasData: mindDays > 0 || bookMind.reading.length > 0 || bookMind.finishedThisWeek.length > 0,
+    hasData: mindDays > 0 || practice.hasPractice || bookMind.reading.length > 0 || bookMind.finishedThisWeek.length > 0,
     days: mindDays,
     counts: mindCounts,
     pagesRead,
     sitMinutes,
+    practiceLine: practice.hasPractice ? practice.line : "",
     readingBooks: bookMind.reading,
     finishedBooks: bookMind.finishedThisWeek,
   };
@@ -150,6 +165,7 @@ export function formatWeekSectionLines(synthesis) {
     .filter(t => mind.counts[t] > 0)
     .map(t => `${t.charAt(0).toUpperCase() + t.slice(1)} ${mind.counts[t]}`);
   const mindLines = [];
+  if (mind.practiceLine) mindLines.push(mind.practiceLine);
   if (mindBits.length) mindLines.push(mindBits.join(" · "));
   if (mind.pagesRead > 0) mindLines.push(`${mind.pagesRead} pages read`);
   if (mind.sitMinutes > 0) mindLines.push(`${mind.sitMinutes} min sat`);

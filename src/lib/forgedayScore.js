@@ -1,6 +1,7 @@
-import { normalizeDateKey, isSameLocalDay } from "./localDate.js";
+import { normalizeDateKey } from "./localDate.js";
 import { enabledDailyKeys } from "./todayCommand.js";
 import { normalizeBooks, booksForMind } from "./books.js";
+import { summarizeMindChecks, dayHasMindCheck } from "./mindChecks.js";
 
 const PILLAR_ORDER = ["body", "money", "mind", "consistency"];
 
@@ -133,6 +134,7 @@ export function computeForgedayScore({
   activities = [],
   books = [],
   budgetCategories = [],
+  mindLogs = [],
 } = {}) {
   const todayKey = normalizeDateKey(today);
   const start = normalizeDateKey(weekStart);
@@ -239,7 +241,21 @@ export function computeForgedayScore({
 
   const list = normalizeBooks(books.length ? books : user?.books);
   const bookMind = booksForMind(list, start, end);
-  const mindDays = uniqueDays(weekMind).size;
+  const practice = summarizeMindChecks({
+    mindLogs,
+    journalEntries,
+    start,
+    end: elapsedEnd,
+  });
+  const mindDaySet = uniqueDays(weekMind);
+  for (const log of mindLogs || []) {
+    const key = normalizeDateKey(log.date);
+    if (!key || key < start || key > elapsedEnd) continue;
+    if (dayHasMindCheck(log) || String(log.note || "").trim() || String(log.photo_url || "").trim()) {
+      mindDaySet.add(key);
+    }
+  }
+  const mindDays = mindDaySet.size;
   const pagesRead = weekMind.reduce((s, e) => s + (Number(e.pages_read) || 0), 0);
   const sitMinutes = weekMind.reduce((s, e) => s + (Number(e.duration_minutes) || 0), 0);
   const mindParts = [];
@@ -274,6 +290,17 @@ export function computeForgedayScore({
     mindParts.push(100);
     mindExplain.push(`Finished ${bookMind.finishedThisWeek.map(b => b.title).join(", ")} → 100`);
   }
+  if (practice.hasPractice) {
+    mindExplain.push(practice.line);
+    if (practice.journaled > 0 && practice.journalSlots > 0) {
+      const part = ratioScore(practice.journaled, practice.journalSlots);
+      mindParts.push(part);
+    }
+    if (practice.meditated > 0 && practice.days > 0) {
+      const part = ratioScore(practice.meditated, practice.days);
+      mindParts.push(part);
+    }
+  }
   const mindScore = raw.mind > 0 ? clampScore(average(mindParts)) : null;
   if (raw.mind > 0 && mindScore == null) {
     mindExplain.push("Log a journal, sit, or book to score Mind.");
@@ -291,7 +318,7 @@ export function computeForgedayScore({
     for (const d of mealDaySet) enabledLogDays.add(d);
   }
   if (keys.includes("mindfulness")) {
-    for (const d of uniqueDays(weekMind)) enabledLogDays.add(d);
+    for (const d of mindDaySet) enabledLogDays.add(d);
   }
   if (keys.includes("finance")) {
     for (const d of uniqueDays(weekTxns)) enabledLogDays.add(d);

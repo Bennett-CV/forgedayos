@@ -1,9 +1,8 @@
 import { isSameLocalDay, normalizeDateKey, localDaysAgoKey } from "./localDate.js";
 import { readingBookLabel, normalizeBooks } from "./books.js";
+import { checksForDay, mindLogOnDate } from "./mindChecks.js";
 
 export const DAILY_KEYS = ["lifts", "nutrition", "mindfulness", "finance"];
-
-const MIND_TYPES = ["morning", "evening", "meditation", "reading"];
 
 /** Monday = 0 … Sunday = 6 */
 export function mondayIndex(date) {
@@ -72,17 +71,24 @@ function mealHourHint(hour) {
   return { meal: "dinner", label: "Log dinner" };
 }
 
-function mindHint(hour, todayEntries) {
-  if (hour >= 17 && !todayEntries.some(e => e.type === "evening")) {
+function mindHint(hour, todayEntries, flags = {}) {
+  const eveningDone = todayEntries.some(e => e.type === "evening") || flags.pm_journal;
+  const morningDone = todayEntries.some(e => e.type === "morning") || flags.am_journal;
+  const readingDone = todayEntries.some(e => e.type === "reading");
+  const meditatedDone = todayEntries.some(e => e.type === "meditation") || flags.meditated;
+  if (hour >= 17 && !eveningDone) {
     return { type: "evening", label: "Log evening pages" };
   }
-  if (!todayEntries.some(e => e.type === "morning")) {
+  if (!morningDone) {
     return { type: "morning", label: "Log morning pages" };
   }
-  if (!todayEntries.some(e => e.type === "reading")) {
+  if (!readingDone) {
     return { type: "reading", label: "Log reading" };
   }
-  return { type: "meditation", label: "Log a sit" };
+  if (!meditatedDone) {
+    return { type: "meditation", label: "Log a sit" };
+  }
+  return { type: "reading", label: "Log reading" };
 }
 
 /**
@@ -102,6 +108,7 @@ export function buildTodaySnapshot({
   reviews = [],
   weightLogs = [],
   books = [],
+  mindLogs = [],
   weekStart,
   weekdayMon0,
 } = {}) {
@@ -118,7 +125,12 @@ export function buildTodaySnapshot({
   const proteinGoal = Number(goals.protein_g) > 0 ? Number(goals.protein_g) : 0;
 
   const todayMind = (journalEntries || []).filter(e => isSameLocalDay(e.date, today));
-  const mindDone = MIND_TYPES.filter(t => todayMind.some(e => e.type === t));
+  const mindFlags = checksForDay(mindLogOnDate(mindLogs, today), journalEntries, today);
+  const mindLabels = [];
+  if (mindFlags.am_journal) mindLabels.push("AM journal");
+  if (mindFlags.pm_journal) mindLabels.push("PM journal");
+  if (mindFlags.meditated) mindLabels.push("Meditated");
+  if (todayMind.some(e => e.type === "reading")) mindLabels.push("Reading");
 
   const todaySpend = (transactions || []).filter(t => isSameLocalDay(t.date, today));
   const spendTotal = todaySpend
@@ -185,11 +197,9 @@ export function buildTodaySnapshot({
   }
 
   if (keys.includes("mindfulness")) {
-    const complete = mindDone.length > 0;
-    const detail = complete
-      ? mindDone.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(" · ")
-      : "Nothing logged";
-    const hint = mindHint(hour, todayMind);
+    const complete = mindLabels.length > 0;
+    const detail = complete ? mindLabels.join(" · ") : "Nothing logged";
+    const hint = mindHint(hour, todayMind, mindFlags);
     items.push({
       key: "mindfulness",
       label: "Mind",
@@ -227,6 +237,7 @@ export function buildTodaySnapshot({
     suggestedDay,
     hour,
     todayMind,
+    mindFlags,
     reviewReady,
     allComplete: totalCount > 0 && completeCount === totalCount,
     user,
@@ -270,6 +281,7 @@ export function pickNextAction({
   suggestedDay,
   hour,
   todayMind,
+  mindFlags = {},
   reviewReady,
   allComplete,
   user,
@@ -301,7 +313,7 @@ export function pickNextAction({
     return { label: hint.label, href: nutrition.href };
   }
   if (mind && !mind.complete) {
-    const hint = mindHint(hour, todayMind || []);
+    const hint = mindHint(hour, todayMind || [], mindFlags);
     const readingTitle = readingBookLabel(books);
     if (hint.type === "reading" && readingTitle) {
       return { label: `Log reading — ${readingTitle}`, href: mind.href };
