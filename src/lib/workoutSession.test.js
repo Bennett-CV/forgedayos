@@ -5,6 +5,11 @@ import {
   formatLastSet,
   formatLastSessionLine,
   mergeLastIntoSets,
+  mergeServerIntoSets,
+  serverSetsFromLogs,
+  isPendingSet,
+  isUntouchedPrefill,
+  mergeCardioDraft,
   sessionProgress,
 } from "./workoutSession.js";
 
@@ -43,8 +48,150 @@ test("mergeLastIntoSets fills empties only", () => {
   );
   assert.equal(merged[0].weight, "135");
   assert.equal(merged[0].reps, "8");
+  assert.equal(merged[0].weightPrefilled, true);
+  assert.equal(merged[0].repsPrefilled, true);
   assert.equal(merged[1].weight, "155");
+  assert.equal(merged[1].reps, "");
   assert.equal(merged[2].id, "saved");
+  assert.equal(merged[2].weight, "140");
+});
+
+const lastSession = [
+  { exercise: "Squat", set_number: 1, weight: 135, reps: 8 },
+  { exercise: "Squat", set_number: 2, weight: 145, reps: 6 },
+];
+
+test("mergeServerIntoSets prefills empty untouched sets and does not save them", () => {
+  const server = serverSetsFromLogs(3, [], "Squat");
+  const merged = mergeServerIntoSets([], server, lastSession);
+  assert.equal(merged[0].weight, "135");
+  assert.equal(merged[0].reps, "8");
+  assert.equal(merged[0].id, null);
+  assert.equal(merged[0].weightPrefilled, true);
+  assert.equal(isUntouchedPrefill(merged[0]), true);
+  assert.equal(isPendingSet(merged[0]), true);
+  assert.equal(merged[1].weight, "145");
+  assert.equal(merged[1].reps, "6");
+  // No set 3 last time — do not copy set 2 into it.
+  assert.equal(merged[2].weight, "");
+  assert.equal(merged[2].reps, "");
+  assert.equal(isPendingSet(merged[2]), false);
+});
+
+test("mergeServerIntoSets keeps typed fields when an earlier set is saved", () => {
+  const server = serverSetsFromLogs(3, [
+    { id: "s1", exercise: "Squat", set_number: 1, weight: 185, reps: 3 },
+  ], "Squat");
+  const local = mergeServerIntoSets([], serverSetsFromLogs(3, [], "Squat"), lastSession);
+  local[1] = {
+    ...local[1],
+    weight: "200",
+    weightTouched: true,
+    weightPrefilled: false,
+  };
+  local[2] = {
+    ...local[2],
+    weight: "",
+    reps: "",
+    weightTouched: true,
+    repsTouched: true,
+    weightPrefilled: false,
+    repsPrefilled: false,
+  };
+
+  const merged = mergeServerIntoSets(local, server, lastSession);
+
+  assert.equal(merged[0].id, "s1");
+  assert.equal(merged[0].weight, "185");
+  assert.equal(merged[0].reps, "3");
+  assert.equal(merged[0].weightPrefilled, false);
+  assert.equal(merged[1].weight, "200");
+  assert.equal(merged[1].weightTouched, true);
+  assert.equal(merged[1].reps, "6");
+  assert.equal(merged[1].repsPrefilled, true);
+  assert.equal(merged[1].id, null);
+  assert.equal(merged[2].weight, "");
+  assert.equal(merged[2].reps, "");
+  assert.equal(isPendingSet(merged[1]), true);
+  assert.equal(isUntouchedPrefill(merged[1]), false);
+});
+
+test("mergeServerIntoSets keeps an explicit prefill when this refresh has no last session", () => {
+  const local = [{
+    id: null,
+    weight: "135",
+    reps: "8",
+    weightTouched: false,
+    repsTouched: false,
+    weightPrefilled: true,
+    repsPrefilled: true,
+  }];
+  const merged = mergeServerIntoSets(local, serverSetsFromLogs(1, [], "Squat"), []);
+  assert.equal(merged[0].weight, "135");
+  assert.equal(merged[0].reps, "8");
+  assert.equal(merged[0].weightPrefilled, true);
+  assert.equal(merged[0].id, null);
+  assert.equal(isUntouchedPrefill(merged[0]), true);
+});
+
+test("mergeServerIntoSets keeps a row saved locally when the refresh is behind", () => {
+  const local = [{
+    id: "new",
+    weight: "185",
+    reps: "3",
+    weightTouched: false,
+    repsTouched: false,
+    weightPrefilled: false,
+    repsPrefilled: false,
+  }];
+  const server = serverSetsFromLogs(1, [], "Squat");
+  const merged = mergeServerIntoSets(local, server, lastSession);
+  assert.equal(merged[0].id, "new");
+  assert.equal(merged[0].weight, "185");
+  assert.equal(merged[0].reps, "3");
+  assert.equal(merged[0].weightPrefilled, false);
+  assert.equal(isPendingSet(merged[0]), false);
+});
+
+test("isPendingSet includes unsaved edits and skips saved untouched rows", () => {
+  assert.equal(isPendingSet({ id: "a", weight: "135", reps: "8" }), false);
+  assert.equal(isPendingSet({
+    id: "a", weight: "140", reps: "8", weightTouched: true,
+  }), true);
+  assert.equal(isPendingSet({
+    id: null, weight: "", reps: "", weightTouched: true, repsTouched: true,
+  }), false);
+});
+
+test("mergeCardioDraft keeps typed fields and fills the rest from the server", () => {
+  const local = {
+    type: "bike",
+    note: "easy",
+    duration: "40",
+    distance: "8",
+    id: null,
+    touched: { type: true, note: true, duration: true, distance: false },
+  };
+  const merged = mergeCardioDraft(local, {
+    type: "run",
+    note: "",
+    duration: "20",
+    distance: "3",
+    id: "c1",
+  });
+  assert.equal(merged.type, "bike");
+  assert.equal(merged.note, "easy");
+  assert.equal(merged.duration, "40");
+  assert.equal(merged.distance, "3");
+  assert.equal(merged.id, "c1");
+
+  const draft = mergeCardioDraft(
+    { type: "", note: "", duration: "32", distance: "4", id: null, touched: {} },
+    { type: "", note: "", duration: "", distance: "", id: null }
+  );
+  assert.equal(draft.duration, "32");
+  assert.equal(draft.distance, "4");
+  assert.equal(draft.id, null);
 });
 
 test("sessionProgress counts logged exercises", () => {

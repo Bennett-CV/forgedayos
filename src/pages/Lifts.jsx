@@ -243,7 +243,7 @@ export default function Lifts() {
                       ? `${progress.done} of ${progress.total} exercises`
                       : dayProgram.type === "cardio"
                         ? "Type, time, and distance."
-                        : "Log each set. Last session loads into empty fields."}
+                        : "Last session is filled in. Tap Log to save."}
                   </p>
                 </div>
                 {thisWeek && (
