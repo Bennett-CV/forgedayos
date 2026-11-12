@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { requestTrainingSheetSync } from "@/lib/requestTrainingSheetSync";
 
-export default function MealSection({ mealType, meals, onAdd, onEdit, onDeleted, adding, editingId }) {
+export default function MealSection({ mealType, meals, onAdd, onRecent, onEdit, onDeleted, adding, editingId }) {
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -25,14 +25,26 @@ export default function MealSection({ mealType, meals, onAdd, onEdit, onDeleted,
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-2">
         <h3 className="micro-label">{mealType}</h3>
-        <button
-          onClick={() => onAdd(mealType)}
-          className="text-[12px] font-semibold text-clay min-h-0 min-w-0"
-        >
-          {adding ? "Adding" : "+ Add"}
-        </button>
+        <div className="flex items-center gap-3">
+          {onRecent && (
+            <button
+              type="button"
+              onClick={() => onRecent(mealType)}
+              className="text-[12px] font-semibold text-ink min-h-0 min-w-0"
+            >
+              Recent
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onAdd(mealType)}
+            className="text-[12px] font-semibold text-clay min-h-0 min-w-0"
+          >
+            {adding ? "Adding" : "+ Add"}
+          </button>
+        </div>
       </div>
 
       <div className="editorial-card overflow-hidden">

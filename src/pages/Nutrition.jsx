@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
-import { formatLocalDate, localDaysAgoKey, isSameLocalDay } from "@/lib/localDate";
+import { formatLocalDate, localDaysAgoKey, isSameLocalDay, localToday } from "@/lib/localDate";
+import { mergeLoggedMeals } from "@/lib/recentMeals";
 import { motion } from "framer-motion";
 import AddFoodForm from "../components/nutrition/AddFoodForm";
 import DescribeMeal from "../components/nutrition/DescribeMeal";
 import MealSection from "../components/nutrition/MealSection";
+import RecentMeals from "../components/nutrition/RecentMeals";
 import DailyMacroSummary from "../components/nutrition/DailyMacroSummary";
 import WeightTab from "../components/nutrition/WeightTab.jsx";
 import GoalSetter from "../components/nutrition/GoalSetter";
@@ -33,27 +35,34 @@ export default function Nutrition() {
   const [addingType, setAddingType] = useState(() => addParamToMeal(searchParams.get("add")));
   const [editingMeal, setEditingMeal] = useState(null);
   const [showGoals, setShowGoals] = useState(() => searchParams.get("goals") === "1");
+  const [showRecent, setShowRecent] = useState(false);
+  const [recentMealType, setRecentMealType] = useState("");
+  const [recentFocus, setRecentFocus] = useState(0);
   const formRef = useRef(null);
 
   const currentDate = localDaysAgoKey(dateOffset);
+  const todayKey = localToday();
   const displayDate = formatLocalDate(currentDate, "EEEE, MMMM d");
 
-  const load = async () => {
+  const load = async ({ apply = true } = {}) => {
     if (!user?.email) {
       setLoading(false);
-      return;
+      return [];
     }
     try {
       const [data, me] = await Promise.all([
         base44.entities.Meal.filter({ created_by: user.email }, "-created_date", 500),
         base44.auth.me(),
       ]);
-      setMeals(data);
+      if (apply) setMeals(data);
       setGoals(me?.nutrition_goals || null);
+      setLoading(false);
+      return data;
     } catch {
       // best-effort
     }
     setLoading(false);
+    return null;
   };
 
   useEffect(() => { load(); }, []);
@@ -93,6 +102,19 @@ export default function Nutrition() {
   const handleListDeleted = (id) => {
     setEditingMeal(prev => (prev?.id === id ? null : prev));
     load();
+  };
+
+  const openRecent = (mealType = "") => {
+    setRecentMealType(mealType || "");
+    setShowRecent(true);
+    setRecentFocus(n => n + 1);
+  };
+
+  const handleRecentLogged = async (created) => {
+    const rows = Array.isArray(created) ? created : [];
+    if (rows.length) setMeals(prev => mergeLoggedMeals(prev, rows));
+    const data = await load({ apply: false });
+    if (Array.isArray(data)) setMeals(mergeLoggedMeals(data, rows));
   };
 
   useEffect(() => {
@@ -194,6 +216,19 @@ export default function Nutrition() {
             </div>
           )}
 
+          <RecentMeals
+            meals={meals}
+            logDate={currentDate}
+            today={todayKey}
+            open={showRecent}
+            mealType={recentMealType}
+            focusToken={recentFocus}
+            onMealType={setRecentMealType}
+            onOpen={() => openRecent("")}
+            onClose={() => setShowRecent(false)}
+            onLogged={handleRecentLogged}
+          />
+
           <motion.div
             key={currentDate}
             initial={{ opacity: 0, y: 8 }}
@@ -206,6 +241,7 @@ export default function Nutrition() {
                 mealType={mealType}
                 meals={dayMeals.filter(m => m.meal_type === mealType)}
                 onAdd={handleAdd}
+                onRecent={openRecent}
                 onEdit={handleEdit}
                 onDeleted={handleListDeleted}
                 adding={addingType === mealType}
